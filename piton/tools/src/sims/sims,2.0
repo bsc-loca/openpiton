@@ -360,6 +360,7 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_OST1")     if ($opt{ost1} || $opt{pico_
 push (@{$opt{config_cpp_args}}, "-DFLIST_PICO")     if ($opt{pico} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
+push (@{$opt{config_rtl}}, "CONF_SARGANTANA_PHY_ADDR_SIZE 40") if ($opt{sarg}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
 
 ################################################################################
