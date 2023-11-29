@@ -1148,7 +1148,20 @@ if (TILE_TYPE == `SARGANTANA_RV64_TILE) begin : g_sarg_core
                                      transducer_l15_rqtype == `PCX_REQTYPE_IFILL &&
                                     ~transducer_l15_invalidate_cacheline) ? `MSG_DATA_SIZE_32B : `MSG_DATA_SIZE_16B;
 
-    drac_openpiton_wrapper core (
+    drac_openpiton_wrapper #(
+<%
+str = '''
+        .NIOSections     ( 1 ),
+        .InitIOBase      ( {40'hFF_F000_0000} ),
+        .InitIOEnd       ( {40'hFF_F200_0000} ),
+        .NMappedSections ( 2 ),
+        .InitMappedBase  ( {40'h00_8000_0000, 40'hFF_F000_0000}   ),
+        .InitMappedEnd   ( {40'h24_0000_0000, 40'hFF_F200_0000}  ),
+        .InitBROMBase    ( 40'hFF_F101_0000  ),
+        .InitBROMEnd     ( 40'hFF_F200_0000 )'''
+print(str)
+%>
+    ) core (
         .clk_i       ( clk_gated    ),
         .reset_l     ( rst_n_f      ),
         .spc_grst_l  ( spc_grst_l   ),

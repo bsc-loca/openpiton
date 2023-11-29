@@ -30,7 +30,7 @@
 
 
 // some OpenPiton-specific defines
-#define PITON_UART_ADDRESS  0x0040420000ULL
+#define PITON_UART_ADDRESS  0xfff0c2c000ULL
 // this is used in piton stream to terminate correctly
 #define PITON_TEST_GOOD_END 0x8100000000ULL
 #define PITON_TEST_BAD_END  0x8200000000ULL

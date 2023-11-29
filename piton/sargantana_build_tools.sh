@@ -87,7 +87,7 @@ else
 
   make clean
   make isa        -j${NUM_JOBS} > /dev/null
-  NUM_TILES=1 SIMULATION_UART_ADDR=0x0040420000ULL make benchmarks -j${NUM_JOBS} > /dev/null
+  NUM_TILES=1 make benchmarks -j${NUM_JOBS} > /dev/null
   make install
   cd ${PITON_ROOT}
 
