@@ -1145,7 +1145,11 @@ for i in range(len(devices)):
     if devices[i]["name"] == "ariane_plic":
         PlicBase = devices[i]["base"]
 str = '''
+`ifdef PITON_BSC_RISCV_PERIPHERALS
+    bsc_riscv_peripherals #(
+`else
     riscv_peripherals #(
+`endif // PITON_BSC_RISCV_PERIPHERALS
         .DataWidth      ( `NOC_DATA_WIDTH ),
         .NumHarts       ( `PITON_NUM_TILES),
         .NumSources     (               2 ),
@@ -1222,74 +1226,6 @@ print(str)
 %>
 
 `else
-`ifdef PITON_BSC_RISCV_PERIPHERALS
-    `ifdef PITON_FPGA_SYNTH
-    assign ariane_boot_sel   = uart_boot_en;
-    `else
-    `ifdef ARIANE_SIM_LINUX_BOOT
-        assign ariane_boot_sel = 1'b0;
-    `else
-        assign ariane_boot_sel = 1'b1;
-    `endif
-    `endif
-    
-    bsc_riscv_peripherals #(
-        .DataWidth      ( `NOC_DATA_WIDTH ),
-        .NumHarts       ( `PITON_NUM_TILES),
-        .NumSources     (               2 ),
-        .SwapEndianess  (               1 )
-    ) i_riscv_peripherals (
-        .clk_i                           ( chipset_clk                   ),
-        .rst_ni                          ( chipset_rst_n                 ),
-        .buf_ariane_debug_noc2_data_i    ( buf_ariane_debug_noc2_data    ),
-        .buf_ariane_debug_noc2_valid_i   ( buf_ariane_debug_noc2_valid   ),
-        .ariane_debug_buf_noc2_ready_o   ( ariane_debug_buf_noc2_ready   ),
-        .ariane_debug_buf_noc3_data_o    ( ariane_debug_buf_noc3_data    ),
-        .ariane_debug_buf_noc3_valid_o   ( ariane_debug_buf_noc3_valid   ),
-        .buf_ariane_debug_noc3_ready_i   ( buf_ariane_debug_noc3_ready   ),
-        .buf_ariane_bootrom_noc2_data_i  ( buf_ariane_bootrom_noc2_data  ),
-        .buf_ariane_bootrom_noc2_valid_i ( buf_ariane_bootrom_noc2_valid ),
-        .ariane_bootrom_buf_noc2_ready_o ( ariane_bootrom_buf_noc2_ready ),
-        .ariane_bootrom_buf_noc3_data_o  ( ariane_bootrom_buf_noc3_data  ),
-        .ariane_bootrom_buf_noc3_valid_o ( ariane_bootrom_buf_noc3_valid ),
-        .buf_ariane_bootrom_noc3_ready_i ( buf_ariane_bootrom_noc3_ready ),
-        .buf_ariane_clint_noc2_data_i    ( buf_ariane_clint_noc2_data    ),
-        .buf_ariane_clint_noc2_valid_i   ( buf_ariane_clint_noc2_valid   ),
-        .ariane_clint_buf_noc2_ready_o   ( ariane_clint_buf_noc2_ready   ),
-        .ariane_clint_buf_noc3_data_o    ( ariane_clint_buf_noc3_data    ),
-        .ariane_clint_buf_noc3_valid_o   ( ariane_clint_buf_noc3_valid   ),
-        .buf_ariane_clint_noc3_ready_i   ( buf_ariane_clint_noc3_ready   ),
-        .buf_ariane_plic_noc2_data_i     ( buf_ariane_plic_noc2_data     ),
-        .buf_ariane_plic_noc2_valid_i    ( buf_ariane_plic_noc2_valid    ),
-        .ariane_plic_buf_noc2_ready_o    ( ariane_plic_buf_noc2_ready    ),
-        .ariane_plic_buf_noc3_data_o     ( ariane_plic_buf_noc3_data     ),
-        .ariane_plic_buf_noc3_valid_o    ( ariane_plic_buf_noc3_valid    ),
-        .buf_ariane_plic_noc3_ready_i    ( buf_ariane_plic_noc3_ready    ),
-        // This selects either the BM or linux bootrom
-        .ariane_boot_sel_i               ( ariane_boot_sel               ),
- 
-        .ndmreset_o                      ( ndmreset_o                    ),
-        .dmactive_o                      ( dmactive_o                    ),
-        .debug_req_o                     ( debug_req_o                   ),
-        .unavailable_i                   ( unavailable_i                 ),
-        // JTAG
-        .tck_i                           ( tck_i                         ),
-        .tms_i                           ( tms_i                         ),
-        .trst_ni                         ( trst_ni                       ),
-        .td_i                            ( td_i                          ),
-        .td_o                            ( td_o                          ),
-        .tdo_oe_o                        (                               ),
-        // CLINT
-        .rtc_i                           ( rtc_i                         ),
-        .timer_irq_o                     ( timer_irq_o                   ),
-        .ipi_o                           ( ipi_o                         ),
- 
-        // PLIC
-        .irq_le_i                        ( irq_le                        ), // 0:level 1:edge
-        .irq_sources_i                   ( irq_sources                   ),
-        .irq_o                           ( irq_o                         )
-    );
-`else
 
     // tie off unused sigs
     assign ariane_debug_buf_noc2_ready   = 1'b0;
@@ -1307,7 +1243,6 @@ print(str)
     assign ariane_plic_buf_noc2_ready    = 1'b0;
     assign ariane_plic_buf_noc3_data     = `NOC_DATA_WIDTH'b0;
     assign ariane_plic_buf_noc3_valid    = 1'b0;
-`endif // ifdef PITON_BSC_RISCV_PERIPHERALS
 `endif // ifdef PITON_RV64_PLATFORM
 
 endmodule
