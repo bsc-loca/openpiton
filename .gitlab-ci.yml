@@ -32,7 +32,7 @@ variables:
   GIT_SUBMODULE_DEPTH: 1
   CI_RISCV_DIR: /opt/riscv-gnu-toolchain/rvv-0.7.1/
   MODELSIM_HOME: /eda/Siemens/2022-23/RHELx86/QUESTA-CORE-PRIME_2022.4
-  VERILATOR_HOME: /opt/verilator/4.228
+  VERILATOR_HOME: /opt/verilator/5.014
 
 default:
   tags:
@@ -53,7 +53,7 @@ default:
     ## Setup tools
     - . /load_modulefiles_bash.sh
     - module load rvv/0.7.1
-    - module load verilator/4.228
+    - module load verilator/5.014
 
 .regression_base:
   script:
@@ -73,7 +73,7 @@ default:
     - source piton/sargantana_setup.sh
     - piton/sargantana_build_tools.sh $CI_JOB_TOKEN
     - export ARIANE_ROOT=$(pwd)/piton/design/chip/tile/sargantana # This should be fixed
-    - export VERILATOR_ROOT=/opt/verilator/4.228
+    - export VERILATOR_ROOT=/opt/verilator/5.014
 
 .ariane_regression_base:
   extends: .regression_base
@@ -86,6 +86,7 @@ default:
     - source piton/ariane_setup.sh
     - export RISCV=/opt/riscv-gnu-toolchain/rvv-0.7.1/
     - piton/ariane_build_tools.sh $CI_JOB_TOKEN
+    - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h
 
 
@@ -146,7 +147,7 @@ ariane_build:
     - !reference [.ariane_regression_base, before_script]
   script:
     - cd build
-    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_build_id
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_build_id
   artifacts:
     expire_in: 1 day
     when: always
@@ -159,7 +160,7 @@ ariane_isa_tests:
   stage: sim_isa_tests
   parallel:
     matrix:
-      - SIM_TYPE: [msm]
+      - SIM_TYPE: [vlt]
         TEST_GROUP:
         - ariane_tile1_asm_tests_p
         - ariane_tile1_asm_tests_v
@@ -178,7 +179,7 @@ ariane_benchmarks:
   stage: sim_benchmarks
   parallel:
     matrix:
-      - SIM_TYPE: [msm]
+      - SIM_TYPE: [vlt]
         TEST_GROUP:
         - ariane_tile1_benchmarks
         - ariane_tile1_simple
