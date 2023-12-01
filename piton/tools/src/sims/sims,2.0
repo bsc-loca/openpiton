@@ -222,6 +222,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'vcs_build' => 0,
         'vcs_build_args' => [],
         'clean' => 0,
+        'noclean' => 0,
         'vcs_cm_args' => "",
         'vcs_cm_cond' => "",
         'vcs_cm_config' => "",
@@ -515,19 +516,19 @@ else { $model_path = "$model_dir/$opt{model}/$opt{build_id}" ; }
 # do some pre building stuff - generate flist
 ################################################################################
 
-&pre_build () if ($opt{vcs_build} or $opt{other_sim_build} or
-                  $opt{icv_build} or $opt{ncv_build} or
-                  $opt{msm_build} or $opt{vlt_build} or
-				  $opt{riv_build}) ;
+&pre_build () if (($opt{vcs_build} or $opt{other_sim_build} or
+                   $opt{icv_build} or $opt{ncv_build} or
+                   $opt{msm_build} or $opt{vlt_build} or
+				           $opt{riv_build}) and !$opt{noclean} ) ;
 
 ################################################################################
 # build the simulation model
 ################################################################################
 
-&generic_sim_build () if ($opt{vcs_build} or $opt{ncv_build} or
-                          $opt{icv_build} or $opt{other_sim_build} or
-                          $opt{msm_build} or $opt{vlt_build} or
-						  $opt{riv_build}) ;
+&generic_sim_build () if (($opt{vcs_build} or $opt{ncv_build} or
+                           $opt{icv_build} or $opt{other_sim_build} or
+                           $opt{msm_build} or $opt{vlt_build} or
+						               $opt{riv_build}) and !$opt{noclean} ) ;
 
 ################################################################################
 # assemble .s diag
@@ -2627,6 +2628,7 @@ sub parse_args
             'vcs_build!',
             'vcs_build_args=s@',
             'clean!',
+            'noclean!',
             'vcs_cm_args=s',
             'vcs_cm_cond=s',
             'vcs_cm_config=s',
