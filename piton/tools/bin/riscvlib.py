@@ -23,9 +23,19 @@ import time
 # this prints some system information, to be printed by the bootrom at power-on
 def get_bootrom_info(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, timeStamp):
 
+    if os.environ['PITON_ARIANE'] == '1':
+        core = 'Ariane'
+        root =  os.environ['ARIANE_ROOT']
+    else :
+        core = 'Sarg'
+        root =  os.environ['SARG_ROOT']
+       
+  
+    #root = os.environ[root_key]
+
     gitver_cmd = "git log | grep commit -m1 | LD_LIBRARY_PATH= awk -e '{print $2;}'"
     piton_ver  = subprocess.check_output([gitver_cmd], shell=True)
-    ariane_ver =  subprocess.check_output(["cd %s && %s" % (os.environ['ARIANE_ROOT'], gitver_cmd)], shell=True)
+    ariane_ver =  subprocess.check_output(["cd %s && %s" % (root, gitver_cmd)], shell=True)
 
     # get length of memory
     memLen  = 0
@@ -56,7 +66,7 @@ const char info[] = {
 "--     OpenPiton+Ariane Platform      --\\r\\n"
 "----------------------------------------\\r\\n"
 "OpenPiton Version: %s                   \\r\\n"
-"Ariane Version:    %s                   \\r\\n"
+"%s     Version:    %s                   \\r\\n"
 "                                        \\r\\n"
 "FPGA Board:        %s                   \\r\\n"
 "Build Date:        %s                   \\r\\n"
@@ -77,6 +87,7 @@ const char info[] = {
 
 ''' % (timeStamp,
        piton_ver[0:8],
+       core,
        ariane_ver[0:8],
        boardName,
        timeStamp,
