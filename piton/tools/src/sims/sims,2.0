@@ -173,6 +173,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'parallel' => 0,
         'ost1' => 0,
         'ariane' => 0,
+        'hpdc' => 0,
         'sarg' => 0,
         'pico' => 0,
         'pico_het' => 0,
@@ -327,6 +328,7 @@ GetOptions (\%opt,
             'parallel!',
             'ost1!',
             'ariane!',
+            'hpdc!',
             'sarg!',
             'pico!',
             'pico_het!',
@@ -362,6 +364,14 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
 push (@{$opt{config_rtl}}, "CONF_SARGANTANA_PHY_ADDR_SIZE 40") if ($opt{sarg}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
+
+if ($opt{ariane}) {
+  if ($opt{hpdc}) {
+    push (@{$opt{config_rtl}}, "PITON_ARIANE_HPDC")
+  } else {
+    push (@{$opt{config_rtl}}, "WT_DCACHE")
+  }
+}
 
 ################################################################################
 # define $result_dir
@@ -3090,6 +3100,10 @@ VERILOG COMPILATION RELATED
     -ariane
            this specifies that the ARIANE RV64GC core shall be used
            in this case, programs are compiled and assembled using the RISCV GCC toolchain.
+
+    -hpdc
+           with -ariane, this specifies that the HPDCache will be used with the Ariane core.
+           If not specified, Ariane will use its default dCache (WT_DCACHE)
 
 VERILOG RUNTIME RELATED
 
