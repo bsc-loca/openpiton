@@ -72,7 +72,6 @@ default:
     - !reference [default, before_script]
     - source piton/sargantana_setup.sh
     - piton/sargantana_build_tools.sh $CI_JOB_TOKEN
-    - export ARIANE_ROOT=$(pwd)/piton/design/chip/tile/sargantana # This should be fixed
     - export VERILATOR_ROOT=/opt/verilator/5.014
 
 .ariane_regression_base:
