@@ -1,9 +1,6 @@
 [submodule "piton/design/chipset/rv64_platform/bootrom/u-boot/uboot"]
 	path = piton/design/chipset/rv64_platform/bootrom/u-boot/uboot
 	url = https://github.com/u-boot/u-boot.git
-[submodule "piton/design/chip/tile/ariane"]
-	path = piton/design/chip/tile/ariane
-	url = https://github.com/AileonN/cva6_openpiton_noliete.git
 [submodule "piton/design/chip/tile/sargantana"]
 	path = piton/design/chip/tile/sargantana
 	url = ../../../../drac/drac-inorder.git
@@ -21,3 +18,6 @@
 	path = piton/design/chipset/bsc_rv64_peripherals
 	url = ../bsc_rv64_peripherals.git
 	branch = main
+[submodule "piton/design/chip/tile/ariane"]
+	path = piton/design/chip/tile/ariane
+	url = ../../cores/cva6.git
