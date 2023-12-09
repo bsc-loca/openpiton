@@ -23,7 +23,7 @@ import time
 # this prints some system information, to be printed by the bootrom at power-on
 def get_bootrom_info(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, timeStamp):
 
-    if os.environ['PITON_ARIANE'] == '1':
+    if os.environ.get('PITON_ARIANE') == '1':
         core = 'Ariane'
         root =  os.environ['ARIANE_ROOT']
     else :
