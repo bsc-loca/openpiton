@@ -309,8 +309,8 @@ module bsc_riscv_peripherals #(
       .NUM_TARGETS(NumHarts*2),
       .NUM_SOURCES(NumSources) // for example
    ) plic (
-      .clk_i(clk_muxed),
-      .rst_ni(rst_n_inter_sync_f),
+      .clk_i(clk_i),
+      .rst_ni(rst_ni),
 
       .irq_sources_i(irq_sources_i),
       .eip_targets_o(irq_o),
