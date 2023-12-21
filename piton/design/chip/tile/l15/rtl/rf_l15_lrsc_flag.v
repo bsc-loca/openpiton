@@ -27,82 +27,71 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //==================================================================================================
-//  Filename      : rf_l15_wmt.v
-//  Created On    : 2014-02-04 18:14:58
-//  Last Modified : 2014-12-18 17:10:02
+//  Filename      : rf_l15_lrsc_flag.v
+//  Created On    : 2018-11-08 18:14:58
+//  Last Modified : 
 //  Revision      :
-//  Author        : Tri Nguyen
+//  Author        : Fei Gao
 //  Company       : Princeton University
-//  Email         : trin@princeton.edu
+//  Email         : feig@princeton.edu
 //
 //  Description   :
 //
 //
 //==================================================================================================
-//rf_l15_wmt.v
+//rf_l15_lrsc_flag.v
 
-// trin timing fix 12/16: move read s3 to s2
-// timing 12/17: move write to s2 to s3
+//`timescale 1 ns / 10 ps
+//`default_nettype none
 
-<%
-  import pyhplib
-  from pyhplib import * 
-%>
-module rf_l15_wmt(
+`include "l15.tmp.h"
+
+module rf_l15_lrsc_flag #(
+   parameter L15_L1D_LINE_SIZE = 64, 
+   localparam L15_NUM_ENTRIES = `CONFIG_L15_SIZE/L15_L1D_LINE_SIZE,
+   localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - 2,
+   localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY
+) (
    input wire clk,
    input wire rst_n,
 
    input wire read_valid,
-   input wire [`L1D_SET_IDX_MASK] read_index,
+   input wire [L15_CACHE_INDEX_WIDTH-1:0] read_index,
 
    input wire write_valid,
-   input wire [`L1D_SET_IDX_MASK] write_index,
-   input wire [`L15_WMT_MASK] write_mask,
-   input wire [`L15_WMT_MASK] write_data,
+   input wire [L15_CACHE_INDEX_WIDTH-1:0] write_index,
+   input wire [3:0] write_mask,
+   input wire [3:0] write_data,
 
-   output wire [`L15_WMT_MASK] read_data
+   output wire [3:0] read_data
    );
 
-<%
-   linesize = 16
-   numset = int(int(CONFIG_L1D_SIZE)/int(CONFIG_L1D_ASSOCIATIVITY)/linesize)
-   numway=int(CONFIG_L1D_ASSOCIATIVITY)
-   # numset=128
-   # numway=4
-%>
-// reg [`L15_WMT_MASK] data_out_f;
-
-// reg [`L15_WMT_MASK] regfile [0:127];
-
-// always @ (posedge clk)
-// begin
-//    if (read_valid)
-//       data_out_f <= regfile[read_index];
-// end
-
-
-// assign read_data = data_out_f;
-
-
-reg [`L15_WMT_MASK] data_out_f;
-reg [`L1D_SET_IDX_MASK] write_index_f;
-reg [`L15_WMT_MASK] write_data_f;
-reg [`L15_WMT_MASK] write_mask_f;
+// reg read_valid_f;
+reg [L15_CACHE_INDEX_WIDTH-1:0] read_index_f;
+reg [L15_CACHE_INDEX_WIDTH-1:0] write_index_f;
+reg [3:0] write_data_f;
+reg [3:0] write_mask_f;
 reg write_valid_f;
 
-reg [`L15_WMT_MASK] regfile [0:`L15_WMT_ENTRY_COUNT-1];
+reg [3:0] regfile [0:L15_SET_COUNT-1];
 
 always @ (posedge clk)
 begin
+   if (!rst_n)
+   begin
+      read_index_f <= 0;
+   end
+   else
    if (read_valid)
-      data_out_f <= regfile[read_index];
+      read_index_f <= read_index;
+   else
+      read_index_f <= read_index_f;
 end
 
-
-assign read_data = data_out_f;
+// read port
+assign read_data = regfile[read_index_f];
 
 // Write port
-
 always @ (posedge clk)
 begin
    write_valid_f <= write_valid;
@@ -113,16 +102,14 @@ begin
       write_mask_f <= write_mask;
    end
 end
-
+integer numset;
 always @ (posedge clk)
 begin
    if (!rst_n)
    begin
-      <%
-         for i in range (numset):
-            for j in range (numway):
-               print("regfile[%d][`L15_WMT_ENTRY_%d_VALID_MASK] <= 1'b0;" % (i,j))
-      %>
+      for (numset=0;numset<L15_SET_COUNT; numset = numset + 1) begin
+         regfile[numset] <= 4'b0;
+      end
    end
    else
    if (write_valid_f)

@@ -46,38 +46,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // 12/17 timing fix: move write to s3
 
-<%
-  import pyhplib
-  from pyhplib import * 
-%>
-module rf_l15_mesi(
+`include "l15.tmp.h"
+
+
+module rf_l15_mesi #(
+   parameter L15_L1D_LINE_SIZE = 64, 
+   localparam L15_NUM_ENTRIES = `CONFIG_L15_SIZE/L15_L1D_LINE_SIZE,
+   localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - 2,
+   localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY
+
+)(
    input wire clk,
    input wire rst_n,
 
    input wire read_valid,
-   input wire [`L15_CACHE_INDEX_WIDTH-1:0] read_index,
+   input wire [L15_CACHE_INDEX_WIDTH-1:0] read_index,
 
    input wire write_valid,
-   input wire [`L15_CACHE_INDEX_WIDTH-1:0] write_index,
+   input wire [L15_CACHE_INDEX_WIDTH-1:0] write_index,
    input wire [7:0] write_mask,
    input wire [7:0] write_data,
 
    output wire [7:0] read_data
    );
 
-<%
-   linesize = 16
-   numset = int(int(CONFIG_L15_SIZE)/int(CONFIG_L15_ASSOCIATIVITY)/linesize)
-%>
+
+
+
 
 // reg read_valid_f;
-reg [`L15_CACHE_INDEX_WIDTH-1:0] read_index_f;
-reg [`L15_CACHE_INDEX_WIDTH-1:0] write_index_f;
+reg [L15_CACHE_INDEX_WIDTH-1:0] read_index_f;
+reg [L15_CACHE_INDEX_WIDTH-1:0] write_index_f;
 reg [7:0] write_data_f;
 reg [7:0] write_mask_f;
 reg write_valid_f;
 
-reg [7:0] regfile [0:`L15_CACHE_INDEX_VECTOR_WIDTH-1];
+reg [7:0] regfile [0:L15_SET_COUNT-1];
 
 always @ (posedge clk)
 begin
@@ -107,15 +111,14 @@ begin
    end
 end
 
+integer numset;
 always @ (posedge clk)
 begin
    if (!rst_n)
    begin
-      <%
-         for i in range (numset):
-            print("regfile[%d] <= 8'b0;" % (i))
-      %>
-      // regfile <= 1024'b0;
+      for (numset=0;numset<L15_SET_COUNT; numset = numset + 1) begin
+            regfile[numset] <= 8'b0;
+      end
    end
    else
    if (write_valid_f)
