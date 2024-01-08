@@ -3,7 +3,7 @@
 	url = https://github.com/u-boot/u-boot.git
 [submodule "piton/design/chip/tile/sargantana"]
 	path = piton/design/chip/tile/sargantana
-	url = ../../../../drac/drac-inorder.git
+	url = ../../core-tile/sargantana_tile.git
 	branch = ft/openpiton-hwdesign
 [submodule "piton/design/common/pulp-platform/axi"]
 	path = piton/design/common/pulp-platform/axi

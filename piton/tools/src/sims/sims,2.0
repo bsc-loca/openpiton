@@ -1162,6 +1162,12 @@ sub gen_flist
       }
       elsif ($line =~ /^\-v\s\//)
       { }
+      elsif ($line =~ /^\-F.*/) {
+        $line =~ s/^\-F (.*)/\-F $base\/$1/ ;
+      }
+      elsif ($line =~ /^\-f.*/) {
+        $line =~ s/^\-f (.*)/\-f $base\/$1/ ;
+      }
       elsif ($line =~ /^\-v/) {
         $line =~ s/-v\s*(.*)/-v $base\/$1/ ;
       }
