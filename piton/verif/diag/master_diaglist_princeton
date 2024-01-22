@@ -715,6 +715,115 @@ pico-amoxor     amoxor_w.S
 </cmp_default>
 </sarg_tile1>
 
+<sarg_tile2 sys=manycore -x_tiles=1 -y_tiles=2 -sarg>
+<cmp_default name=default>
+    // note: these asm tests assume that the RISCV tests have been precompiled with the
+    // correct environment
+    <sarg_tile2_mt_benchmarks>
+        <runargs -x_tiles=1 -y_tiles=2 -sarg -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+            sarg-mt-axpy            mt-axpy.riscv
+            //sarg-mt-blackscholes    mt-blackscholes.riscv
+            sarg-mt-histogram       mt-histogram.riscv
+            sarg-mt-int-sort        mt-int-sort.riscv
+            //sarg-mt-jacobi_2d       mt-jacobi_2d.riscv
+            //sarg-mt-matmul          mt-matmul.riscv
+            sarg-mt-somier          mt-somier.riscv
+            sarg-mt-stream-copy     mt-stream-copy.riscv
+            sarg-mt-stream-triad    mt-stream-triad.riscv
+        </runargs>
+    </sarg_tile2_mt_benchmarks>
+
+    <sarg_tile2_simple>
+        <runargs -x_tiles=1 -y_tiles=2 -sarg -rtl_timeout 1000000>
+            sarg-hello-world  hello_world_many.c
+        </runargs>
+    </sarg_tile2_simple>
+
+</cmp_default>
+</sarg_tile2>
+
+<sarg_tile4 sys=manycore -x_tiles=2 -y_tiles=2 -sarg>
+<cmp_default name=default>
+    // note: these asm tests assume that the RISCV tests have been precompiled with the
+    // correct environment
+    <sarg_tile4_mt_benchmarks>
+        <runargs -x_tiles=2 -y_tiles=2 -sarg -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+            sarg-mt-axpy            mt-axpy.riscv
+            //sarg-mt-blackscholes    mt-blackscholes.riscv
+            sarg-mt-histogram       mt-histogram.riscv
+            sarg-mt-int-sort        mt-int-sort.riscv
+            //sarg-mt-jacobi_2d       mt-jacobi_2d.riscv
+            //sarg-mt-matmul          mt-matmul.riscv
+            sarg-mt-somier          mt-somier.riscv
+            sarg-mt-stream-copy     mt-stream-copy.riscv
+            sarg-mt-stream-triad    mt-stream-triad.riscv
+        </runargs>
+    </sarg_tile4_mt_benchmarks>
+
+    <sarg_tile4_simple>
+        <runargs -x_tiles=2 -y_tiles=2 -sarg -rtl_timeout 1000000>
+            sarg-hello-world  hello_world_many.c
+        </runargs>
+    </sarg_tile4_simple>
+
+</cmp_default>
+</sarg_tile4>
+
+
+<ariane_tile2 sys=manycore -x_tiles=1 -y_tiles=2 -ariane>
+<cmp_default name=default>
+    // note: these asm tests assume that the RISCV tests have been precompiled with the
+    // correct environment
+    <ariane_tile2_mt_benchmarks>
+        <runargs -x_tiles=1 -y_tiles=2 -ariane -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+            ariane-mt-axpy            mt-axpy.riscv
+            //ariane-mt-blackscholes    mt-blackscholes.riscv
+            ariane-mt-histogram       mt-histogram.riscv
+            ariane-mt-int-sort        mt-int-sort.riscv
+            //ariane-mt-jacobi_2d       mt-jacobi_2d.riscv
+            //ariane-mt-matmul          mt-matmul.riscv
+            ariane-mt-somier          mt-somier.riscv
+            ariane-mt-stream-copy     mt-stream-copy.riscv
+            ariane-mt-stream-triad    mt-stream-triad.riscv
+        </runargs>
+    </ariane_tile2_mt_benchmarks>
+
+    <ariane_tile2_simple>
+        <runargs -x_tiles=1 -y_tiles=2 -ariane -rtl_timeout 1000000>
+            ariane-hello-world  hello_world_many.c
+        </runargs>
+    </ariane_tile2_simple>
+
+</cmp_default>
+</ariane_tile2>
+
+<ariane_tile4 sys=manycore -x_tiles=2 -y_tiles=2 -ariane>
+<cmp_default name=default>
+    // note: these asm tests assume that the RISCV tests have been precompiled with the
+    // correct environment
+    <ariane_tile4_mt_benchmarks>
+        <runargs -x_tiles=2 -y_tiles=2 -ariane -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+            ariane-mt-axpy            mt-axpy.riscv
+            //ariane-mt-blackscholes    mt-blackscholes.riscv
+            ariane-mt-histogram       mt-histogram.riscv
+            ariane-mt-int-sort        mt-int-sort.riscv
+            //ariane-mt-jacobi_2d       mt-jacobi_2d.riscv
+            //ariane-mt-matmul          mt-matmul.riscv
+            ariane-mt-somier          mt-somier.riscv
+            ariane-mt-stream-copy     mt-stream-copy.riscv
+            ariane-mt-stream-triad    mt-stream-triad.riscv
+        </runargs>
+    </ariane_tile4_mt_benchmarks>
+
+    <ariane_tile4_simple>
+        <runargs -x_tiles=2 -y_tiles=2 -ariane -rtl_timeout 1000000>
+            ariane-hello-world  hello_world_many.c
+        </runargs>
+    </ariane_tile4_simple>
+
+</cmp_default>
+</ariane_tile4>
+
 <tile1 sys=manycore -x_tiles=1 -y_tiles=1>
 <cmp_default name=default>
 

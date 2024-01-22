@@ -55,31 +55,24 @@ default:
     - module load rvv/0.7.1
     - module load verilator/5.014
 
-.regression_base:
+.regression_report:
   script:
-    - cd build
-    - sims -sim_type=$SIM_TYPE -group=$TEST_GROUP -noclean -build_id=${BUILD_ID}
-    - regreport $(ls -td -- */ | head -n 1) -summary && echo " " && regreport $(ls -td -- */ | head -n 1) | grep -E "^Diag" && echo " "
+    - regreport $(ls -td -- */ | head -n 1) | grep -E "^Diag" && echo " " && regreport $(ls -td -- */ | head -n 1) -summary && echo " "
     - regreport $(ls -td -- */ | head -n 1) -summary | grep "REGRESSION PASSED" && echo "Simulation PASSED" || (echo "Simulation AILED" && exit 1)
 
 .sargantana_regression_base:
-  extends: .regression_base
-  needs:
+  dependencies:
     - sargantana_build
-  variables:
-    CORE: sargantana
   before_script:
     - !reference [default, before_script]
     - source piton/sargantana_setup.sh
     - piton/sargantana_build_tools.sh $CI_JOB_TOKEN
     - export VERILATOR_ROOT=/opt/verilator/5.014
+  timeout: 4h
 
 .ariane_regression_base:
-  extends: .regression_base
-  needs:
+  dependencies:
     - ariane_build
-  variables:
-    CORE: ariane
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
@@ -87,14 +80,10 @@ default:
     - piton/ariane_build_tools.sh $CI_JOB_TOKEN
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h
-
 
 .ariane_hpdc_regression_base:
-  extends: .regression_base
-  needs:
+  dependencies:
     - ariane_hpdc_build
-  variables:
-    CORE: ariane
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
@@ -103,14 +92,22 @@ default:
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h
 
-### Sargantana ###
+################################################################################
+# SARGANTANA
+################################################################################
+
 sargantana_build:
   stage: build
   before_script:
     - !reference [.sargantana_regression_base, before_script]
   script:
     - cd build
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_vlt_1_1
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_msm_1_1
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=2 -sarg -build_id=sargantana_vlt_1_2
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=2 -sarg -build_id=sargantana_msm_1_2
+    - sims -vlt_build -sys=manycore -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_vlt_2_2
+    - sims -msm_build -sys=manycore -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_msm_2_2
   artifacts:
     expire_in: 1 day
     when: always
@@ -120,18 +117,19 @@ sargantana_build:
 sargantana_isa_tests:
   extends: .sargantana_regression_base
   stage: sim_isa_tests
-  variables:
-    BUILD_ID: sargantana
   parallel:
     matrix:
-      - SIM_TYPE: [vlt]
-        TEST_GROUP:
-        - sarg_tile1_asm_tests_p
-        - sarg_tile1_asm_tests_v
-        - sarg_tile1_amo_tests_p
-        - sarg_tile1_amo_tests_v
-        - sarg_tile1_fp_tests_p
-        - sarg_tile1_fp_tests_v
+      - SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_1_1
+      -group=sarg_tile1_asm_tests_p
+      -group=sarg_tile1_asm_tests_v
+      -group=sarg_tile1_amo_tests_p
+      -group=sarg_tile1_amo_tests_v
+      -group=sarg_tile1_fp_tests_p
+      -group=sarg_tile1_fp_tests_v
+    - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
     when: always
@@ -141,30 +139,61 @@ sargantana_isa_tests:
 sargantana_benchmarks:
   extends: .sargantana_regression_base
   stage: sim_benchmarks
-  variables:
-    BUILD_ID: sargantana
   parallel:
     matrix:
-      - SIM_TYPE: [vlt]
-        TEST_GROUP:
-        - sarg_tile1_benchmarks
-        - sarg_tile1_mt_benchmarks
-        - sarg_tile1_simple
+      - SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_1_1
+      -group sarg_tile1_benchmarks
+      -group sarg_tile1_mt_benchmarks
+      -group sarg_tile1_simple
+    - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
     when: always
     paths:
       - ./build
 
+sargantana_multicore:
+  extends: .sargantana_regression_base
+  stage: sim_multicore
+  parallel:
+    matrix:
+      - X_TILES: [1]
+        Y_TILES: [1, 2]
+        SIM_TYPE: [vlt, msm]
+      - X_TILES: [2]
+        Y_TILES: [2]
+        SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+      -group sarg_tile$(($X_TILES * $Y_TILES))_simple
+      -group sarg_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
 
-### Ariane ###
+################################################################################
+# ARIANE
+################################################################################
+
 ariane_build:
   stage: build
   before_script:
     - !reference [.ariane_regression_base, before_script]
   script:
     - cd build
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_vlt_1_1
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_msm_1_1
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -build_id=ariane_vlt_1_2
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -build_id=ariane_msm_1_2
+    - sims -vlt_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2
+    - sims -msm_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2
   artifacts:
     expire_in: 1 day
     when: always
@@ -175,51 +204,83 @@ ariane_build:
 ariane_isa_tests:
   extends: .ariane_regression_base
   stage: sim_isa_tests
-  variables:
-    BUILD_ID: ariane
   parallel:
     matrix:
-      - SIM_TYPE: [vlt]
-        TEST_GROUP:
-        - ariane_tile1_asm_tests_p
-        - ariane_tile1_asm_tests_v
-        - ariane_tile1_amo_tests_p
-        - ariane_tile1_amo_tests_v
-        - ariane_tile1_fp_tests_p
-        - ariane_tile1_fp_tests_v
+      - SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_1_1
+      -group ariane_tile1_asm_tests_p
+      -group ariane_tile1_asm_tests_v
+      -group ariane_tile1_amo_tests_p
+      -group ariane_tile1_amo_tests_v
+      -group ariane_tile1_fp_tests_p
+      -group ariane_tile1_fp_tests_v
+    - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
     when: always
     paths:
       - ./build
-  allow_failure: true # Ariane and verilator 5 have some simulation issues
 
 ariane_benchmarks:
   extends: .ariane_regression_base
   stage: sim_benchmarks
-  variables:
-    BUILD_ID: ariane
   parallel:
     matrix:
-      - SIM_TYPE: [vlt]
-        TEST_GROUP:
-        - ariane_tile1_benchmarks
-        - ariane_tile1_simple
+      - SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_1_1
+      -group ariane_tile1_benchmarks
+      -group ariane_tile1_simple
+    - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
     when: always
     paths:
       - ./build
-  allow_failure: true # Ariane and verilator 5 have some simulation issues
 
-### Ariane HPDC ###
+ariane_multicore:
+  extends: .ariane_regression_base
+  stage: sim_multicore
+  parallel:
+    matrix:
+      - X_TILES: [1]
+        Y_TILES: [1, 2]
+        SIM_TYPE: [vlt, msm]
+      - X_TILES: [2]
+        Y_TILES: [2]
+        SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+      -group ariane_tile$(($X_TILES * $Y_TILES))_simple
+      -group ariane_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+
+################################################################################
+# ARIANE (w/ HPDC)
+################################################################################
+
 ariane_hpdc_build:
   stage: build
   before_script:
     - !reference [.ariane_hpdc_regression_base, before_script]
   script:
     - cd build
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_vlt_1_1
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_msm_1_1
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_vlt_1_2
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_msm_1_2
+    - sims -vlt_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_vlt_2_2
+    - sims -msm_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_msm_2_2
   artifacts:
     expire_in: 1 day
     when: always
@@ -230,18 +291,19 @@ ariane_hpdc_build:
 ariane_hpdc_isa_tests:
   extends: .ariane_hpdc_regression_base
   stage: sim_isa_tests
-  variables:
-    BUILD_ID: ariane_hpdc
   parallel:
     matrix:
-      - SIM_TYPE: [vlt]
-        TEST_GROUP:
-        - ariane_tile1_asm_tests_p
-        - ariane_tile1_asm_tests_v
-        - ariane_tile1_amo_tests_p
-        - ariane_tile1_amo_tests_v
-        - ariane_tile1_fp_tests_p
-        - ariane_tile1_fp_tests_v
+      - SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_1_1
+      -group ariane_tile1_asm_tests_p
+      -group ariane_tile1_asm_tests_v
+      -group ariane_tile1_amo_tests_p
+      -group ariane_tile1_amo_tests_v
+      -group ariane_tile1_fp_tests_p
+      -group ariane_tile1_fp_tests_v
+    - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
     when: always
@@ -251,30 +313,40 @@ ariane_hpdc_isa_tests:
 ariane_hpdc_benchmarks:
   extends: .ariane_hpdc_regression_base
   stage: sim_benchmarks
-  variables:
-    BUILD_ID: ariane_hpdc
   parallel:
     matrix:
-      - SIM_TYPE: [vlt]
-        TEST_GROUP:
-        - ariane_tile1_benchmarks
-        - ariane_tile1_simple
+      - SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_1_1
+      -group ariane_tile1_benchmarks
+      -group ariane_tile1_simple
+    - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
     when: always
     paths:
       - ./build
 
-#ariane_multicore:
-#  extends: .ariane_base
-#  stage: sim_multicore
-#  parallel:
-#    matrix:
-#      - SIM_TYPE: [vlt]
-#        TEST_GROUP:
-#        - ariane_tile16
-#  artifacts:
-#    expire_in: 1 day
-#    when: always
-#    paths:
-#      - ./build
+ariane_hpdc_multicore:
+  extends: .ariane_hpdc_regression_base
+  stage: sim_multicore
+  parallel:
+    matrix:
+      - X_TILES: [1]
+        Y_TILES: [1, 2]
+        SIM_TYPE: [vlt, msm]
+      - X_TILES: [2]
+        Y_TILES: [2]
+        SIM_TYPE: [vlt, msm]
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+      -group ariane_tile$(($X_TILES * $Y_TILES))_simple
+      -group ariane_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
