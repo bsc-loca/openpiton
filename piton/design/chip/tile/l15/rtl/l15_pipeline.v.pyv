@@ -534,8 +534,13 @@ begin
 
             if (noc2decoder_l15_icache_type)
             begin
+                `ifdef ICACHE_64B
+                predecode_is_last_inval_s1 = ((fetch_state_s1 == `L15_FETCH_STATE_NORMAL) && (predecode_fwd_subcacheline_vector_s1[3:2] == 2'b11)) ||
+                                             ((fetch_state_s1 == `L15_FETCH_STATE_NORMAL) && (predecode_fwd_subcacheline_vector_s1[`L15_UNPARAM_3_0] == 4'b0011));
+                `else
                 predecode_is_last_inval_s1 = ((fetch_state_s1 == `L15_FETCH_STATE_ICACHE_INVAL_2) && (predecode_fwd_subcacheline_vector_s1[3:2] == 2'b11)) ||
                                              ((fetch_state_s1 == `L15_FETCH_STATE_NORMAL) && (predecode_fwd_subcacheline_vector_s1[`L15_UNPARAM_3_0] == 4'b0011));
+                `endif
                 // predecode_is_last_inval_s1 = ((fetch_state_s1 == `L15_FETCH_STATE_ICACHE_INVAL_2));
             end
             else
@@ -1081,7 +1086,12 @@ begin
                 else if (fetch_is_noc2_data_invalidation_s1)
                     fetch_state_next_s1 = `L15_FETCH_STATE_INVAL_2;
                 else if (fetch_is_noc2_instruction_invalidation_s1)
-                    fetch_state_next_s1 = `L15_FETCH_STATE_ICACHE_INVAL_2;
+                    `ifdef ICACHE_64B
+                        //fetch_state_next_s1 = `L15_FETCH_STATE_ICACHE_INVAL_2;
+                        fetch_state_next_s1 = `L15_FETCH_STATE_NORMAL;
+                    `else
+                        fetch_state_next_s1 = `L15_FETCH_STATE_ICACHE_INVAL_2;
+                    `endif
                 else if (fetch_is_noc2_ackdt_s1)
                     fetch_state_next_s1 = `L15_FETCH_STATE_NOC2_WRITEBACK_DONE;
             end

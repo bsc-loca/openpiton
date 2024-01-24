@@ -1146,9 +1146,8 @@ if (TILE_TYPE == `SARGANTANA_RV64_TILE) begin : g_sarg_core
                                     (transducer_l15_size_pcx_standard == `PCX_SZ_2B) ? `MSG_DATA_SIZE_2B : 
                                     (transducer_l15_size_pcx_standard == `PCX_SZ_4B) ? `MSG_DATA_SIZE_4B : 
                                     (transducer_l15_size_pcx_standard == `PCX_SZ_8B) ? `MSG_DATA_SIZE_8B : 
-                                    (transducer_l15_size_pcx_standard == `PCX_SZ_16B && 
-                                     ((transducer_l15_rqtype == `PCX_REQTYPE_IFILL && 
-                                    ~transducer_l15_invalidate_cacheline) || L15_L1D_LINE_SIZE==32)) ? `MSG_DATA_SIZE_32B : 
+                                    (transducer_l15_size_pcx_standard == `PCX_SZ_16B && (transducer_l15_rqtype == `PCX_REQTYPE_IFILL && ~transducer_l15_invalidate_cacheline)) ? `MSG_DATA_SIZE_64B : 
+                                    (transducer_l15_size_pcx_standard == `PCX_SZ_16B && L15_L1D_LINE_SIZE==32) ? `MSG_DATA_SIZE_32B : 
                                     (transducer_l15_size_pcx_standard == `PCX_SZ_16B && L15_L1D_LINE_SIZE==64) ? `MSG_DATA_SIZE_64B : `MSG_DATA_SIZE_16B;
 
     drac_openpiton_wrapper #(
