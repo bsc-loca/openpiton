@@ -55,14 +55,14 @@ module l2_pipe1(
    //inputs from NOC1
 
     input wire noc_valid_in,
-    input wire [`NOC_DATA_WIDTH-1:0] noc_data_in,
+    input wire [`PITON_NOC1_WIDTH-1:0] noc_data_in,
     output wire noc_ready_in,
 
 
     //outputs to NOC2
 
     output wire noc_valid_out,
-    output wire [`NOC_DATA_WIDTH-1:0] noc_data_out,
+    output wire [`PITON_NOC2_WIDTH-1:0] noc_data_out,
     input wire  noc_ready_out,
 
     input wire pipe2_valid_S1,

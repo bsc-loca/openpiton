@@ -49,23 +49,23 @@ module ciop_iob (
     `endif                 
 
     input                               noc1_in_val,
-    input [`NOC_DATA_WIDTH-1:0]         noc1_in_data,
+    input [`PITON_NOC1_WIDTH-1:0]       noc1_in_data,
     output reg                          noc1_in_rdy,
 
     output                              noc2_out_val,
-    output reg [`NOC_DATA_WIDTH-1:0]        noc2_out_data,
+    output reg [`PITON_NOC2_WIDTH-1:0]  noc2_out_data,
     input                               noc2_out_rdy,
 
     input                               noc3_in_val,
-    input [`NOC_DATA_WIDTH-1:0]         noc3_in_data,
+    input [`PITON_NOC3_WIDTH-1:0]       noc3_in_data,
     output wire                         noc3_in_rdy,
 
     input                               noc2_in_val,
-    input [`NOC_DATA_WIDTH-1:0]         noc2_in_data,
+    input [`PITON_NOC2_WIDTH-1:0]       noc2_in_data,
     output reg                          noc2_in_rdy,
 
     output                              noc3_out_val,
-    output [`NOC_DATA_WIDTH-1:0]        noc3_out_data,
+    output [`PITON_NOC3_WIDTH-1:0]      noc3_out_data,
     input                               noc3_out_rdy,
 
     input                               uart_interrupt,
@@ -218,7 +218,7 @@ always @(*) begin
             noc2_out_data = iob_buffer_flit2;
         end 
         else begin
-            noc2_out_data =  {`NOC_DATA_WIDTH{1'b0}};
+            noc2_out_data =  {`PITON_NOC2_WIDTH{1'b0}};
         end
     end 
     else begin
@@ -230,12 +230,12 @@ always @(*) begin
                 noc2_out_data = iob_buffer_net_flit2;
             end
             else begin
-                noc2_out_data =  {`NOC_DATA_WIDTH{1'b0}};
+                noc2_out_data =  {`PITON_NOC2_WIDTH{1'b0}};
             end
         end
 `ifndef PITON_UART_INTR
         else begin
-            noc2_out_data =  {`NOC_DATA_WIDTH{1'b0}};
+            noc2_out_data =  {`PITON_NOC2_WIDTH{1'b0}};
         end
 `endif
 `endif
@@ -255,12 +255,12 @@ always @(*) begin
                 noc2_out_data = iob_buffer_uart_flit2;
             end
             else begin
-                noc2_out_data =  {`NOC_DATA_WIDTH{1'b0}};
+                noc2_out_data =  {`PITON_NOC2_WIDTH{1'b0}};
             end
         end
 `ifndef PITON_FPGA_ETHERNETLITE
         else begin
-            noc2_out_data =  {`NOC_DATA_WIDTH{1'b0}};
+            noc2_out_data =  {`PITON_NOC2_WIDTH{1'b0}};
         end
 `endif
 `endif
@@ -268,14 +268,14 @@ always @(*) begin
 `ifdef PITON_FPGA_ETHERNETLITE
 `ifdef PITON_UART_INTR
         else begin
-            noc2_out_data =  {`NOC_DATA_WIDTH{1'b0}};
+            noc2_out_data =  {`PITON_NOC2_WIDTH{1'b0}};
         end
 `endif
 `endif
 
 `ifndef PITON_FPGA_ETHERNETLITE
 `ifndef PITON_UART_INTR
-        noc2_out_data =  {`NOC_DATA_WIDTH{1'b0}};
+        noc2_out_data =  {`PITON_NOC2_WIDTH{1'b0}};
 `endif
 `endif
     end
@@ -301,6 +301,6 @@ end
 
 // from Alexey: never leave unconnected outputs!
 assign noc3_out_val     = 1'b0;
-assign noc3_out_data    = {`NOC_DATA_WIDTH{1'b0}};
+assign noc3_out_data    = {`PITON_NOC3_WIDTH{1'b0}};
 
 endmodule

@@ -30,22 +30,22 @@ module packet_filter (
 
     // noc2 to filter wires
     input wire                          noc2_filter_val,
-    input wire [`NOC_DATA_WIDTH - 1:0]  noc2_filter_data,
+    input wire [`PITON_NOC2_WIDTH - 1:0]  noc2_filter_data,
     output reg                         filter_noc2_rdy,
 
     // filter to noc3 wires
     output wire                         filter_noc3_val,
-    output wire [`NOC_DATA_WIDTH - 1:0] filter_noc3_data,
+    output wire [`PITON_NOC3_WIDTH - 1:0] filter_noc3_data,
     input wire                          noc3_filter_rdy,
 
     // filter to xbar wires
     output reg                         filter_xbar_val,
-    output reg [`NOC_DATA_WIDTH - 1:0] filter_xbar_data,
+    output reg [`PITON_NOC2_WIDTH - 1:0] filter_xbar_data,
     input wire                          xbar_filter_rdy,
 
     // xbar to filter wires
     input wire                          xbar_filter_val,
-    input wire  [`NOC_DATA_WIDTH - 1:0] xbar_filter_data,
+    input wire  [`PITON_NOC3_WIDTH - 1:0] xbar_filter_data,
     output wire                         filter_xbar_rdy,
 
     // uart_dmw stuff
@@ -59,7 +59,11 @@ import pyhplib
 import os
 
 devices = pyhplib.ReadDevicesXMLFile()
-%>
+from pyhplib import *
+
+
+if (NOC2_WIDTH ==  64) :
+    txt='''
     localparam IDLE = 3'b000;
     localparam ONLYHEADERFLIT = 3'b001;
     localparam ONEFLIT = 3'b010;
@@ -285,7 +289,7 @@ devices = pyhplib.ReadDevicesXMLFile()
         end
         endcase
     end
-
+     
     always @* begin
         readdressed_flit0 = flit_buffer_0_reg;
         invalid_access  = 1'b0;
@@ -293,53 +297,56 @@ devices = pyhplib.ReadDevicesXMLFile()
             flit_buffer_0_reg[`MSG_TYPE] == `MSG_TYPE_STORE_MEM ||
             flit_buffer_0_reg[`MSG_TYPE] == `MSG_TYPE_NC_LOAD_REQ ||
             flit_buffer_0_reg[`MSG_TYPE] == `MSG_TYPE_NC_STORE_REQ) begin
-<%
+    '''
+    print(txt)
 
-elseStr = ""
-mem_addr_range = ""
-mem_port = -1
 
-# If not memory and not virtual device -- just output filtering info. Else -- collect the address range data, write memory filtering info in the end
-for i in range(1, len(devices)):
-    info = devices[i]
-    if info["name"] != "mem" and not info["virtual"]:
-        outputStr = """
-                %sif ((noc2_filter_data[`MSG_ADDR_] >= `PHY_ADDR_WIDTH'h%x && noc2_filter_data[`MSG_ADDR_] < `PHY_ADDR_WIDTH'h%x + `PHY_ADDR_WIDTH'h%x)""" \
-                % (elseStr, info["base"], info["base"], info["length"])
-        print(outputStr,end="")
-        if not info["stream_accessible"]:
-            print(" & (~uart_boot_en))",end="")
-        else:
-            print(")",end="")
-        outputStr = """
-                begin
-                    readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
-                end""" % (info["portnum"])
-        print(outputStr)
-        elseStr = "else "
-    else:
-        mem_addr_range += ("(noc2_filter_data[`MSG_ADDR_] >= `PHY_ADDR_WIDTH'h%x && noc2_filter_data[`MSG_ADDR_] < `PHY_ADDR_WIDTH'h%x + `PHY_ADDR_WIDTH'h%x) || " % 
-            (info["base"], info["base"], info["length"]))
-        if info["name"] == "mem":
-            mem_port = info["portnum"]
+    elseStr = ""
+    mem_addr_range = ""
+    mem_port = -1
 
-outputstr = """
-                else begin
-`ifdef MONITOR_INVALID_ACCESSES
-                    // route everything else to the memory when uart_boot_en is asserted
-                    if (%s (uart_boot_en)) begin
+    # If not memory and not virtual device -- just output filtering info. Else -- collect the address range data, write memory filtering info in the end
+    for i in range(1, len(devices)):
+        info = devices[i]
+        if info["name"] != "mem" and not info["virtual"]:
+            outputStr = """
+                    %sif ((noc2_filter_data[`MSG_ADDR_] >= `PHY_ADDR_WIDTH'h%x && noc2_filter_data[`MSG_ADDR_] < `PHY_ADDR_WIDTH'h%x + `PHY_ADDR_WIDTH'h%x)""" \
+                    % (elseStr, info["base"], info["base"], info["length"])
+            print(outputStr,end="")
+            if not info["stream_accessible"]:
+                print(" & (~uart_boot_en))",end="")
+            else:
+                print(")",end="")
+            outputStr = """
+                    begin
                         readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
-                    end else begin
-                        invalid_access = 1'b1;
+                    end""" % (info["portnum"])
+            print(outputStr)
+            elseStr = "else "
+        else:
+            mem_addr_range += ("(noc2_filter_data[`MSG_ADDR_] >= `PHY_ADDR_WIDTH'h%x && noc2_filter_data[`MSG_ADDR_] < `PHY_ADDR_WIDTH'h%x + `PHY_ADDR_WIDTH'h%x) || " % 
+                (info["base"], info["base"], info["length"]))
+            if info["name"] == "mem":
+                mem_port = info["portnum"]
+
+    outputstr = """
+                    else begin
+    `ifdef MONITOR_INVALID_ACCESSES
+                        // route everything else to the memory when uart_boot_en is asserted
+                        if (%s (uart_boot_en)) begin
+                            readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
+                        end else begin
+                            invalid_access = 1'b1;
+                        end
+    `else // MONITOR_INVALID_ACCESSES
+                    // route everything else to the memory in simulation
+                    readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
+    `endif // MONITOR_INVALID_ACCESSES
                     end
-`else // MONITOR_INVALID_ACCESSES
-                  // route everything else to the memory in simulation
-                  readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
-`endif // MONITOR_INVALID_ACCESSES
-                end
 """ % (mem_addr_range, mem_port, mem_port)
-print(outputstr)
-%>
+    print(outputstr)
+
+    print('''
         end
     end
 
@@ -356,8 +363,8 @@ print(outputstr)
         end
         else
         begin
-      			invalid_access_q  <= invalid_access_d;
-			      flit_buffer_0_reg <= flit_buffer_0_next;
+      		invalid_access_q  <= invalid_access_d;
+			flit_buffer_0_reg <= flit_buffer_0_next;
             flit_buffer_1_reg <= flit_buffer_1_next;
             num_flits_reg     <= num_flits_next;
             flits_sent_reg    <= flits_sent_next;
@@ -379,7 +386,167 @@ print(outputstr)
     assign filter_xbar_rdy = noc3_filter_rdy;
     assign filter_noc3_val = xbar_filter_val;
     assign filter_noc3_data = xbar_filter_data;
+    ''')
 
+else :
+    CHANEL_OUT_SIZE =NOC2_WIDTH/64
+    print("localparam CHANEL_OUT_SIZE =   "+  str(int(CHANEL_OUT_SIZE))+";")
+
+    print('''
+
+    localparam  [1:0] 
+		HEADER = 1,
+		BODY   = 2;
+    reg [2:0] flit_type,flit_type_next;
+    wire [`MSG_LENGTH_WIDTH-1       :0] length_in      =  noc2_filter_data [ `MSG_LENGTH ];
+    reg  [`MSG_LENGTH_WIDTH-1       :0] remain, remain_next;
+    reg invalid_access, invalid_access_d, invalid_access_q;
+
+    always @ (*) begin        
+        remain_next = remain;
+        flit_type_next = flit_type;
+        invalid_access_d = invalid_access_q;
+        if(noc2_filter_val & filter_noc2_rdy) begin
+            case(flit_type) 
+            HEADER: begin 
+                if (length_in >= CHANEL_OUT_SIZE ) begin 
+                        flit_type_next = BODY;
+                        remain_next = length_in  - CHANEL_OUT_SIZE;                   
+                end 
+                invalid_access_d = invalid_access_q |  invalid_access;     
+            end //HEADER
+            BODY: begin 
+                if(remain < CHANEL_OUT_SIZE) begin                 
+                        flit_type_next = HEADER;
+                end else if (remain >= CHANEL_OUT_SIZE ) begin             
+                        remain_next = remain  - CHANEL_OUT_SIZE;                    
+                end
+            end //BODY
+            endcase
+        end
+    end//always
+
+    always @ (posedge clk) begin
+        if (!rst_n)  begin  
+            remain <= {`MSG_LENGTH_WIDTH{1'b0}};
+            flit_type <=HEADER;
+        end else begin 
+            remain <= remain_next;
+            flit_type <= flit_type_next;
+        end
+    end
+
+    reg [`NOC_DATA_WIDTH-1:0] readdressed_flit0;
+    wire [`NOC_DATA_WIDTH-1:0] hdr_0, hdr_1;
+    assign hdr_0 = noc2_filter_data [`NOC_DATA_WIDTH-1 : 0];
+    assign hdr_1 = noc2_filter_data [2*`NOC_DATA_WIDTH-1 :`NOC_DATA_WIDTH];
+
+    always @* begin
+        readdressed_flit0 = hdr_0;
+        invalid_access  = 1'b0;
+        if (hdr_0[`MSG_TYPE] == `MSG_TYPE_LOAD_MEM ||
+            hdr_0[`MSG_TYPE] == `MSG_TYPE_STORE_MEM ||
+            hdr_0[`MSG_TYPE] == `MSG_TYPE_NC_LOAD_REQ ||
+            hdr_0[`MSG_TYPE] == `MSG_TYPE_NC_STORE_REQ) begin
+    ''')
+    elseStr = ""
+    mem_addr_range = ""
+    mem_port = -1
+
+    # If not memory and not virtual device -- just output filtering info. Else -- collect the address range data, write memory filtering info in the end
+    for i in range(1, len(devices)):
+        info = devices[i]
+        if info["name"] != "mem" and not info["virtual"]:
+            outputStr = """
+                    %sif ((hdr_1[`MSG_ADDR_] >= `PHY_ADDR_WIDTH'h%x && hdr_1[`MSG_ADDR_] < `PHY_ADDR_WIDTH'h%x + `PHY_ADDR_WIDTH'h%x)""" \
+                    % (elseStr, info["base"], info["base"], info["length"])
+            print(outputStr,end="")
+            if not info["stream_accessible"]:
+                print(" & (~uart_boot_en))",end="")
+            else:
+                print(")",end="")
+            outputStr = """
+                    begin
+                        readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
+                    end""" % (info["portnum"])
+            print(outputStr)
+            elseStr = "else "
+        else:
+            mem_addr_range += ("(hdr_1[`MSG_ADDR_] >= `PHY_ADDR_WIDTH'h%x && hdr_1[`MSG_ADDR_] < `PHY_ADDR_WIDTH'h%x + `PHY_ADDR_WIDTH'h%x) || " % 
+                (info["base"], info["base"], info["length"]))
+            if info["name"] == "mem":
+                mem_port = info["portnum"]
+
+    outputstr = """
+                    else begin
+    `ifdef PITON_FPGA_SYNTH
+                        // route everything else to the memory when uart_boot_en is asserted
+                        if (%s (uart_boot_en)) begin
+                            readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
+                        end else begin
+                            invalid_access = 1'b1;
+                        end
+    `else // PITON_FPGA_SYNTH
+    `ifdef MONITOR_INVALID_ACCESSES
+                        // route everything else to the memory when uart_boot_en is asserted
+                        if (%s (uart_boot_en)) begin
+                            readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
+                        end else begin
+                            invalid_access = 1'b1;
+                        end
+    `else // MONITOR_INVALID_ACCESSES
+                    // route everything else to the memory in simulation
+                    readdressed_flit0[`MSG_DST_X] = `NOC_X_WIDTH'h%x;
+    `endif // MONITOR_INVALID_ACCESSES
+    `endif // PITON_FPGA_SYNTH
+                    end
+    """ % (mem_addr_range, mem_port, mem_addr_range, mem_port, mem_port)
+    print(outputstr)
+
+    print('''
+        end
+    end
+
+    assign invalid_access_o = invalid_access_q;
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            invalid_access_q  <= 1'b0;              
+        end else begin
+            invalid_access_q  <= invalid_access_d;
+    `ifdef MONITOR_INVALID_ACCESSES
+            if (invalid_access_d) begin
+                $fatal(1,"Access to invalid address in packet filter: 0x%016X", noc2_filter_data[`MSG_ADDR_]);
+            end
+    `endif
+        end
+    end
+
+
+
+    always @(*) begin
+        filter_xbar_val  = noc2_filter_val;
+        filter_xbar_data = noc2_filter_data;
+        if(flit_type == HEADER) begin
+            filter_xbar_data [`NOC_DATA_WIDTH-1 : 0] = readdressed_flit0;
+        end
+        filter_noc2_rdy  = xbar_filter_rdy;
+    end
+
+    // response logic for noc3
+    // no modifications are needed for response packets,so just connecting
+    // the wires together
+    assign filter_xbar_rdy = noc3_filter_rdy;
+    assign filter_noc3_val = xbar_filter_val;
+    assign filter_noc3_data = xbar_filter_data;
+
+
+
+    ''')
+    
+
+
+%>    
 
 
 endmodule

@@ -30,11 +30,11 @@ module fake_uart (
     input                           rst_n,
 
     input                           src_uart_noc2_val,
-    input  [`NOC_DATA_WIDTH-1:0]    src_uart_noc2_data,
+    input  [`PITON_NOC2_WIDTH-1:0]  src_uart_noc2_data,
     output                          src_uart_noc2_rdy,
 
     output                          uart_dst_noc3_val,
-    output [`NOC_DATA_WIDTH-1:0]    uart_dst_noc3_data,
+    output [`PITON_NOC3_WIDTH-1:0]  uart_dst_noc3_data,
     input                           uart_dst_noc3_rdy
 );
 
@@ -56,6 +56,43 @@ always @(posedge clk) begin
         $fflush(file);
     end
 end
+wire                         src_uart_noc2_val_64b;
+wire  [`NOC_DATA_WIDTH-1:0]  src_uart_noc2_data_64b;
+wire                         src_uart_noc2_rdy_64b;
+
+wire                         uart_dst_noc3_val_64b;
+wire  [`NOC_DATA_WIDTH-1:0]  uart_dst_noc3_data_64b;
+wire                         uart_dst_noc3_rdy_64b;
+
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`PITON_NOC2_WIDTH),
+    .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+)noc2_adpt(
+    .flit_val_i (src_uart_noc2_val),
+    .flit_data_i(src_uart_noc2_data),
+    .flit_rdy_o (src_uart_noc2_rdy), 
+    .flit_val_o (src_uart_noc2_val_64b),
+    .flit_data_o(src_uart_noc2_data_64b),
+    .flit_rdy_i (src_uart_noc2_rdy_64b),
+    .rst_n(rst_n),
+    .clk(clk)
+);
+
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`NOC_DATA_WIDTH),
+    .OUTPUT_WIDTH(`PITON_NOC3_WIDTH)
+)noc3_adpt(
+    .flit_val_i (uart_dst_noc3_val_64b),
+    .flit_data_i(uart_dst_noc3_data_64b),
+    .flit_rdy_o (uart_dst_noc3_rdy_64b), 
+    .flit_val_o (uart_dst_noc3_val),
+    .flit_data_o(uart_dst_noc3_data ),
+    .flit_rdy_i (uart_dst_noc3_rdy ),
+    .rst_n(rst_n),
+    .clk(clk)
+);
 
 noc_axilite_bridge #(
  .SLAVE_RESP_BYTEWIDTH (1)
@@ -63,13 +100,13 @@ noc_axilite_bridge #(
     .clk                    (clk),
     .rst                    (~rst_n),
 
-    .splitter_bridge_val    (src_uart_noc2_val),
-    .splitter_bridge_data   (src_uart_noc2_data),
-    .bridge_splitter_rdy    (src_uart_noc2_rdy),
+    .splitter_bridge_val    (src_uart_noc2_val_64b),
+    .splitter_bridge_data   (src_uart_noc2_data_64b),
+    .bridge_splitter_rdy    (src_uart_noc2_rdy_64b),
 
-    .bridge_splitter_val    (uart_dst_noc3_val),
-    .bridge_splitter_data   (uart_dst_noc3_data),
-    .splitter_bridge_rdy    (uart_dst_noc3_rdy),
+    .bridge_splitter_val    (uart_dst_noc3_val_64b),
+    .bridge_splitter_data   (uart_dst_noc3_data_64b),
+    .splitter_bridge_rdy    (uart_dst_noc3_rdy_64b),
 
     //axi lite signals
     //write address channel

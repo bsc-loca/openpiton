@@ -35,7 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 `include "network_define.v"
 
-module dynamic_input_top_16(route_req_n_out, route_req_e_out, route_req_s_out, route_req_w_out, route_req_p_out, default_ready_n_out, default_ready_e_out, default_ready_s_out, default_ready_w_out, default_ready_p_out, tail_out, yummy_out, data_out, valid_out, clk, reset, my_loc_x_in, my_loc_y_in, my_chip_id_in, valid_in, data_in, thanks_n, thanks_e, thanks_s, thanks_w, thanks_p);
+module dynamic_input_top_16 #(parameter FLIT_WIDTH=64)
+(route_req_n_out, route_req_e_out, route_req_s_out, route_req_w_out, route_req_p_out, default_ready_n_out, default_ready_e_out, default_ready_s_out, default_ready_w_out, default_ready_p_out, tail_out, yummy_out, data_out, valid_out, clk, reset, my_loc_x_in, my_loc_y_in, my_chip_id_in, valid_in, data_in, thanks_n, thanks_e, thanks_s, thanks_w, thanks_p);
 
 // begin port declarations
 
@@ -51,7 +52,7 @@ output default_ready_w_out;
 output default_ready_p_out;
 output tail_out;
 output yummy_out;
-output [`DATA_WIDTH-1:0] data_out;
+output [FLIT_WIDTH-1:0] data_out;
 output valid_out;
 //yanqi fixed
 
@@ -62,7 +63,7 @@ input [`XY_WIDTH-1:0] my_loc_x_in;
 input [`XY_WIDTH-1:0] my_loc_y_in;
 input [`CHIP_ID_WIDTH-1:0] my_chip_id_in;
 input valid_in;
-input [`DATA_WIDTH-1:0] data_in;
+input [FLIT_WIDTH-1:0] data_in;
 input thanks_n;
 input thanks_e;
 input thanks_s;
@@ -78,25 +79,35 @@ input thanks_p;
 //wires
 wire thanks_all_temp;
 wire valid_out_internal;
-wire [`DATA_WIDTH-1:0] data_out_internal;
-wire [`DATA_WIDTH-1:0] data_out_internal_pre;
+wire [FLIT_WIDTH-1:0] data_out_internal;
+wire [FLIT_WIDTH-1:0] data_out_internal_pre;
 //wire regs
+// length_in is the number of 64-bits flit. we need to modify it for larger FLIT_WIDTH
+localparam OFFSET_LEN =  $clog2(FLIT_WIDTH / 64);
+reg  [`PAYLOAD_LEN-1:0]  length_flit;
+wire [`PAYLOAD_LEN-1:0]  length_in;
+assign length_in = data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-5:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-4-`PAYLOAD_LEN];
+
+always @(*) begin 
+  length_flit = `PAYLOAD_LEN'd0;
+  length_flit=length_in[`PAYLOAD_LEN-1:OFFSET_LEN];
+end
 
 //assigns
 assign valid_out = valid_out_internal;
 assign data_out = data_out_internal;
 
 //instantiations
-network_input_blk_multi_out #(.LOG2_NUMBER_FIFO_ELEMENTS(4)) NIB(.clk(clk), .reset(reset), .data_in(data_in), .valid_in(valid_in), .yummy_out(yummy_out), .thanks_in(thanks_all_temp), .data_val(data_out_internal_pre), .data_val1(), .data_avail(valid_out_internal));
+network_input_blk_multi_out #(.FLIT_WIDTH(FLIT_WIDTH),.LOG2_NUMBER_FIFO_ELEMENTS(4)) NIB(.clk(clk), .reset(reset), .data_in(data_in), .valid_in(valid_in), .yummy_out(yummy_out), .thanks_in(thanks_all_temp), .data_val(data_out_internal_pre), .data_val1(), .data_avail(valid_out_internal));
 
 // need buffering for this one
-// rBuffer #(`DATA_WIDTH, 1) NIB_buf(.A(data_out_internal_pre), .Z(data_out_internal));   
+// rBuffer #(FLIT_WIDTH, 1) NIB_buf(.A(data_out_internal_pre), .Z(data_out_internal));   
 assign data_out_internal = data_out_internal_pre;
 
 // Change fbits position in order to be compatible   
 wire [2:0] final_bits;
 assign final_bits = data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-1] ? 3'b0 : data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-2:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-4]; 
 dynamic_input_control control(.thanks_all_temp_out(thanks_all_temp), .route_req_n_out(route_req_n_out), .route_req_e_out(route_req_e_out), .route_req_s_out(route_req_s_out), .route_req_w_out(route_req_w_out), .route_req_p_out(route_req_p_out), .default_ready_n(default_ready_n_out), .default_ready_e(default_ready_e_out), .default_ready_s(default_ready_s_out), .default_ready_w(default_ready_w_out), .default_ready_p(default_ready_p_out), .tail_out(tail_out), .clk(clk), .reset(reset), .my_loc_x_in(my_loc_x_in), .my_loc_y_in(my_loc_y_in), 
-    .my_chip_id_in(my_chip_id_in), .abs_x(data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-1:`DATA_WIDTH-`CHIP_ID_WIDTH-`XY_WIDTH]), .abs_y(data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-`XY_WIDTH-1:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH]), .abs_chip_id(data_out_internal[`DATA_WIDTH-1:`DATA_WIDTH-`CHIP_ID_WIDTH]),.final_bits(final_bits), .valid_in(valid_out_internal), .thanks_n(thanks_n), .thanks_e(thanks_e), .thanks_s(thanks_s), .thanks_w(thanks_w), .thanks_p(thanks_p), .length(data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-5:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-4-`PAYLOAD_LEN]));
+    .my_chip_id_in(my_chip_id_in), .abs_x(data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-1:`DATA_WIDTH-`CHIP_ID_WIDTH-`XY_WIDTH]), .abs_y(data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-`XY_WIDTH-1:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH]), .abs_chip_id(data_out_internal[`DATA_WIDTH-1:`DATA_WIDTH-`CHIP_ID_WIDTH]),.final_bits(final_bits), .valid_in(valid_out_internal), .thanks_n(thanks_n), .thanks_e(thanks_e), .thanks_s(thanks_s), .thanks_w(thanks_w), .thanks_p(thanks_p), .length(length_flit));
 
 endmodule

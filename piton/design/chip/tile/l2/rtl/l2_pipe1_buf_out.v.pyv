@@ -53,12 +53,14 @@ module l2_pipe1_buf_out(
 
    
     output reg valid_out,
-    output reg [`NOC_DATA_WIDTH-1:0] data_out,
+    output reg [`PITON_NOC2_WIDTH-1:0] data_out,
     input wire ready_out
 
 );
 
 <%
+import pyhplib
+from pyhplib import *
 L2_P1_BUF_OUT_SIZE = 16
 %>
 
@@ -76,6 +78,24 @@ reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus2;
 reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus3;
 reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus4;
 reg [`L2_P1_BUF_OUT_LOG_SIZE:0] buf_rd_flits;
+
+<%
+#TODO only add if NOC2_WIDTH >=  128
+print (" reg  [`L2_P1_BUF_OUT_LOG_SIZE-1 :0] rd_ptr_incr ;")
+if (NOC2_WIDTH >=  128) :
+    print ("wire [`L2_P1_BUF_OUT_LOG_SIZE-1:0] rd_ptr_f_plus1 = rd_ptr_f+1;")
+if (NOC2_WIDTH >= 256) :
+    print ("wire [`L2_P1_BUF_OUT_LOG_SIZE-1:0] rd_ptr_f_plus2 = rd_ptr_f+2;")
+    print ("wire [`L2_P1_BUF_OUT_LOG_SIZE-1:0] rd_ptr_f_plus3 = rd_ptr_f+3;") 
+if (NOC2_WIDTH == 512) :
+    print ("wire [`L2_P1_BUF_OUT_LOG_SIZE-1:0] rd_ptr_f_plus4 = rd_ptr_f+4;")
+    print ("wire [`L2_P1_BUF_OUT_LOG_SIZE-1:0] rd_ptr_f_plus5 = rd_ptr_f+5;")
+    print ("wire [`L2_P1_BUF_OUT_LOG_SIZE-1:0] rd_ptr_f_plus6 = rd_ptr_f+6;")
+    print ("wire [`L2_P1_BUF_OUT_LOG_SIZE-1:0] rd_ptr_f_plus7 = rd_ptr_f+7;")   
+%>
+
+
+
 
 always @ *
 begin
@@ -129,7 +149,7 @@ begin
     end
     else if ((valid_in && ready_in) && (valid_out && ready_out))
     begin
-        buf_counter_next = buf_counter_f + buf_rd_flits - 1;
+        buf_counter_next = buf_counter_f + buf_rd_flits - rd_ptr_incr;
     end
     else if (valid_in && ready_in)
     begin 
@@ -137,7 +157,7 @@ begin
     end
     else if (valid_out && ready_out)
     begin 
-        buf_counter_next = buf_counter_f - 1;
+        buf_counter_next = buf_counter_f - rd_ptr_incr;
     end
     else
     begin
@@ -152,7 +172,7 @@ begin
     buf_counter_f <= buf_counter_next;
 end
 
-
+/*
 always @ *
 begin
     if (!rst_n)
@@ -168,7 +188,7 @@ begin
         rd_ptr_next = rd_ptr_f;
     end
 end
-
+*/
 
 
 always @ (posedge clk)
@@ -215,10 +235,120 @@ end
 
 always @ *
 begin
-    valid_out = !buf_empty;
-    data_out = buf_mem_f[rd_ptr_f]; 
+   // valid_out = !buf_empty;
+    data_out = {`PITON_NOC2_WIDTH{1'b0}};
+    data_out [`NOC_DATA_WIDTH-1:0] = buf_mem_f[rd_ptr_f]; 
+<%
+if (NOC2_WIDTH >=  128) :
+    print ("if(rd_ptr_incr>1) data_out [2*`NOC_DATA_WIDTH-1: 1*`NOC_DATA_WIDTH] = buf_mem_f[rd_ptr_f_plus1] ;")
+if (NOC2_WIDTH >= 256) :
+    print ("if(rd_ptr_incr>2) data_out [3*`NOC_DATA_WIDTH-1: 2*`NOC_DATA_WIDTH] = buf_mem_f[rd_ptr_f_plus2];")
+    print ("if(rd_ptr_incr>3) data_out [4*`NOC_DATA_WIDTH-1: 3*`NOC_DATA_WIDTH] = buf_mem_f[rd_ptr_f_plus3];")
+if (NOC2_WIDTH == 512) :
+    print ("if(rd_ptr_incr>4) data_out [5*`NOC_DATA_WIDTH-1: 4*`NOC_DATA_WIDTH] = buf_mem_f[rd_ptr_f_plus4];")
+    print ("if(rd_ptr_incr>5) data_out [6*`NOC_DATA_WIDTH-1: 5*`NOC_DATA_WIDTH] = buf_mem_f[rd_ptr_f_plus5];")
+    print ("if(rd_ptr_incr>6) data_out [7*`NOC_DATA_WIDTH-1: 6*`NOC_DATA_WIDTH] = buf_mem_f[rd_ptr_f_plus6];")
+    print ("if(rd_ptr_incr>7) data_out [8*`NOC_DATA_WIDTH-1: 7*`NOC_DATA_WIDTH] = buf_mem_f[rd_ptr_f_plus7];") 
+%>    
 end
 
+
+
+<%
+
+if (NOC2_WIDTH ==  128) :
+    print ("localparam CHANEL_OUT_SIZE =  2;")
+elif (NOC2_WIDTH == 256) :
+    print ("localparam CHANEL_OUT_SIZE =  4;")
+elif (NOC2_WIDTH == 512) :
+    print ("localparam CHANEL_OUT_SIZE =  8;")
+else :
+    print ("localparam CHANEL_OUT_SIZE =  1;")
+
+if (NOC2_WIDTH >=  64) :
+    txt='''   
+    
+   // reg  [`L2_P1_BUF_OUT_LOG_SIZE-1 :0] rd_ptr_incr ;
+    wire [`MSG_LENGTH_WIDTH-1       :0] length_in      =  buf_mem_f[rd_ptr_f] [ `MSG_LENGTH ];
+    reg  [`MSG_LENGTH_WIDTH-1       :0] remain, remain_next; 
+   
+    reg [2:0] flit_type,flit_type_next;
+	
+	localparam  [1:0] 
+		HEADER = 1,
+		BODY   = 2;
+
+    always @ (*) begin 
+        rd_ptr_incr =0;
+        valid_out=1'b0;
+        remain_next = remain;
+        flit_type_next = flit_type;
+        case(flit_type) 
+        HEADER: begin 
+       // if(length_in < buf_counter_f) begin
+            if(length_in < CHANEL_OUT_SIZE && length_in < buf_counter_f) begin   
+                valid_out=1'b1;
+                if(ready_out) rd_ptr_incr = length_in + 1;                
+            end else if (length_in >= CHANEL_OUT_SIZE && CHANEL_OUT_SIZE <= buf_counter_f ) begin 
+               valid_out=1'b1;
+               if(ready_out) begin 
+                    flit_type_next = BODY;
+                    remain_next = length_in  - CHANEL_OUT_SIZE;
+                    rd_ptr_incr = CHANEL_OUT_SIZE;
+                end
+            end      
+       // end
+        end //HEADER
+        BODY: begin 
+            if(remain < CHANEL_OUT_SIZE && remain < buf_counter_f) begin 
+                valid_out=1'b1;
+                if(ready_out) begin 
+                    flit_type_next = HEADER;
+                    rd_ptr_incr =remain + 1;
+                end                
+            end else if (remain >= CHANEL_OUT_SIZE && CHANEL_OUT_SIZE <= buf_counter_f ) begin 
+               valid_out=1'b1;
+               if(ready_out) begin                   
+                    remain_next = remain  - CHANEL_OUT_SIZE;
+                    rd_ptr_incr = CHANEL_OUT_SIZE;
+                end
+            end
+        end //BODY
+        endcase
+    end//always   
+
+
+    always @ (posedge clk) begin
+        if (!rst_n)  begin  
+            remain <= {`MSG_LENGTH_WIDTH{1'b0}};
+            flit_type <=HEADER;
+        end else begin 
+            remain <= remain_next;
+            flit_type <= flit_type_next;
+        end
+    end
+
+
+    always @ *
+    begin
+        if (!rst_n)
+        begin   
+            rd_ptr_next = 0;
+        end
+        else if (valid_out && ready_out)
+        begin
+            rd_ptr_next = rd_ptr_f + rd_ptr_incr;
+        end
+        else
+        begin
+            rd_ptr_next = rd_ptr_f;
+        end
+    end
+
+
+    '''
+    print (txt)
+%>    
 
 
 always @ (posedge clk)

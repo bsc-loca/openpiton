@@ -30,7 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 `include "define.tmp.h"
 
-module dynamic_node_top(clk,
+module dynamic_node_top #(parameter FLIT_WIDTH=64)(
+		    clk,
 		    reset_in,
 		    dataIn_N,
 		    dataIn_E,
@@ -79,11 +80,11 @@ module dynamic_node_top(clk,
 input clk;
 input reset_in;
    
-input [`DATA_WIDTH-1:0] dataIn_N;	// data inputs from neighboring tiles
-input [`DATA_WIDTH-1:0] dataIn_E;
-input [`DATA_WIDTH-1:0] dataIn_S;
-input [`DATA_WIDTH-1:0] dataIn_W;
-input [`DATA_WIDTH-1:0] dataIn_P;	// data input from processor
+input [FLIT_WIDTH-1:0] dataIn_N;	// data inputs from neighboring tiles
+input [FLIT_WIDTH-1:0] dataIn_E;
+input [FLIT_WIDTH-1:0] dataIn_S;
+input [FLIT_WIDTH-1:0] dataIn_W;
+input [FLIT_WIDTH-1:0] dataIn_P;	// data input from processor
    
 input validIn_N;		// valid signals from neighboring tiles
 input validIn_E;
@@ -107,11 +108,11 @@ input [4:0] store_meter_partner_address_Y;
 input [14:0] ec_cfg;            // NESWP 3 bits each selecter of event to monitor
 
 
-output [`DATA_WIDTH-1:0] dataOut_N;	// data outputs to neighbors
-output [`DATA_WIDTH-1:0] dataOut_E;
-output [`DATA_WIDTH-1:0] dataOut_S;
-output [`DATA_WIDTH-1:0] dataOut_W;
-output [`DATA_WIDTH-1:0] dataOut_P;	// data output to processor
+output [FLIT_WIDTH-1:0] dataOut_N;	// data outputs to neighbors
+output [FLIT_WIDTH-1:0] dataOut_E;
+output [FLIT_WIDTH-1:0] dataOut_S;
+output [FLIT_WIDTH-1:0] dataOut_W;
+output [FLIT_WIDTH-1:0] dataOut_P;	// data output to processor
 
 output validOut_N;		// valid outputs to neighbors
 output validOut_E;
@@ -159,11 +160,11 @@ wire south_input_tail;
 wire west_input_tail;
 wire proc_input_tail;
 
-wire [`DATA_WIDTH-1:0] north_input_data;
-wire [`DATA_WIDTH-1:0] east_input_data;
-wire [`DATA_WIDTH-1:0] south_input_data;
-wire [`DATA_WIDTH-1:0] west_input_data;
-wire [`DATA_WIDTH-1:0] proc_input_data;
+wire [FLIT_WIDTH-1:0] north_input_data;
+wire [FLIT_WIDTH-1:0] east_input_data;
+wire [FLIT_WIDTH-1:0] south_input_data;
+wire [FLIT_WIDTH-1:0] west_input_data;
+wire [FLIT_WIDTH-1:0] proc_input_data;
 
 wire north_input_valid;
 wire east_input_valid;
@@ -250,11 +251,11 @@ wire validOut_S_internal;
 wire validOut_W_internal;
 wire validOut_P_internal;
 
-wire [`DATA_WIDTH-1:0] dataOut_N_internal;
-wire [`DATA_WIDTH-1:0] dataOut_E_internal;
-wire [`DATA_WIDTH-1:0] dataOut_S_internal;
-wire [`DATA_WIDTH-1:0] dataOut_W_internal;
-wire [`DATA_WIDTH-1:0] dataOut_P_internal;
+wire [FLIT_WIDTH-1:0] dataOut_N_internal;
+wire [FLIT_WIDTH-1:0] dataOut_E_internal;
+wire [FLIT_WIDTH-1:0] dataOut_S_internal;
+wire [FLIT_WIDTH-1:0] dataOut_W_internal;
+wire [FLIT_WIDTH-1:0] dataOut_P_internal;
 
 wire yummyOut_N_flip1_out;
 wire yummyOut_E_flip1_out;
@@ -268,11 +269,11 @@ wire validOut_S_flip1_out;
 wire validOut_W_flip1_out;
 //wire validOut_P_flip1_out;
 
-wire [`DATA_WIDTH-1:0] dataOut_N_flip1_out;
-wire [`DATA_WIDTH-1:0] dataOut_E_flip1_out;
-wire [`DATA_WIDTH-1:0] dataOut_S_flip1_out;
-wire [`DATA_WIDTH-1:0] dataOut_W_flip1_out;
-//wire [`DATA_WIDTH-1:0] dataOut_P_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_N_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_E_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_S_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_W_flip1_out;
+//wire [FLIT_WIDTH-1:0] dataOut_P_flip1_out;
 
 wire yummyIn_N_internal;
 wire yummyIn_E_internal;
@@ -286,11 +287,11 @@ wire validIn_S_internal;
 wire validIn_W_internal;
 //wire validIn_P_internal;
 
-wire [`DATA_WIDTH-1:0] dataIn_N_internal;
-wire [`DATA_WIDTH-1:0] dataIn_E_internal;
-wire [`DATA_WIDTH-1:0] dataIn_S_internal;
-wire [`DATA_WIDTH-1:0] dataIn_W_internal;
-//wire [`DATA_WIDTH-1:0] dataIn_P_internal;
+wire [FLIT_WIDTH-1:0] dataIn_N_internal;
+wire [FLIT_WIDTH-1:0] dataIn_E_internal;
+wire [FLIT_WIDTH-1:0] dataIn_S_internal;
+wire [FLIT_WIDTH-1:0] dataIn_W_internal;
+//wire [FLIT_WIDTH-1:0] dataIn_P_internal;
 
 wire yummyIn_N_flip1_out;
 wire yummyIn_E_flip1_out;
@@ -304,11 +305,11 @@ wire validIn_S_flip1_out;
 wire validIn_W_flip1_out;
 //wire validIn_P_flip1_out;
 
-wire [`DATA_WIDTH-1:0] dataIn_N_flip1_out;
-wire [`DATA_WIDTH-1:0] dataIn_E_flip1_out;
-wire [`DATA_WIDTH-1:0] dataIn_S_flip1_out;
-wire [`DATA_WIDTH-1:0] dataIn_W_flip1_out;
-//wire [`DATA_WIDTH-1:0] dataIn_P_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_N_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_E_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_S_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_W_flip1_out;
+//wire [FLIT_WIDTH-1:0] dataIn_P_flip1_out;
 
 //state
 reg [`XY_WIDTH-1:0] myLocX_f;
@@ -474,11 +475,11 @@ end
    rDUMMY #(1) valid_out_west(.A(validOut_W_internal));
    rDUMMY #(1) valid_out_proc(.A(validOut_P_internal));
 
-   rDUMMY #(`DATA_WIDTH) data_out_north(.A(dataOut_N_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_east(.A(dataOut_E_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_south(.A(dataOut_S_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_west(.A(dataOut_W_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_proc(.A(dataOut_P_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_north(.A(dataOut_N_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_east(.A(dataOut_E_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_south(.A(dataOut_S_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_west(.A(dataOut_W_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_proc(.A(dataOut_P_internal));
 `endif*/
 
 //wire regs
@@ -526,16 +527,16 @@ flip_bus #(1, 21) validOut_S_flip2(validOut_S_flip1_out, validOut_S);
 flip_bus #(1, 21) validOut_W_flip2(validOut_W_flip1_out, validOut_W);
 //flip_bus #(1, 21) validOut_P_flip2(validOut_P_flip1_out, validOut_P);
 
-flip_bus #(`DATA_WIDTH, 14) dataOut_N_flip1(dataOut_N_internal, dataOut_N_flip1_out);
-flip_bus #(`DATA_WIDTH, 14) dataOut_E_flip1(dataOut_E_internal, dataOut_E_flip1_out);
-flip_bus #(`DATA_WIDTH, 14) dataOut_S_flip1(dataOut_S_internal, dataOut_S_flip1_out);
-flip_bus #(`DATA_WIDTH, 14) dataOut_W_flip1(dataOut_W_internal, dataOut_W_flip1_out);
-//flip_bus #(`DATA_WIDTH, 14) dataOut_P_flip1(dataOut_P_internal, dataOut_P_flip1_out);
-flip_bus #(`DATA_WIDTH, 21) dataOut_N_flip2(dataOut_N_flip1_out, dataOut_N);
-flip_bus #(`DATA_WIDTH, 21) dataOut_E_flip2(dataOut_E_flip1_out, dataOut_E);
-flip_bus #(`DATA_WIDTH, 21) dataOut_S_flip2(dataOut_S_flip1_out, dataOut_S);
-flip_bus #(`DATA_WIDTH, 21) dataOut_W_flip2(dataOut_W_flip1_out, dataOut_W);
-//flip_bus #(`DATA_WIDTH, 21) dataOut_P_flip2(dataOut_P_flip1_out, dataOut_P);
+flip_bus #(FLIT_WIDTH, 14) dataOut_N_flip1(dataOut_N_internal, dataOut_N_flip1_out);
+flip_bus #(FLIT_WIDTH, 14) dataOut_E_flip1(dataOut_E_internal, dataOut_E_flip1_out);
+flip_bus #(FLIT_WIDTH, 14) dataOut_S_flip1(dataOut_S_internal, dataOut_S_flip1_out);
+flip_bus #(FLIT_WIDTH, 14) dataOut_W_flip1(dataOut_W_internal, dataOut_W_flip1_out);
+//flip_bus #(FLIT_WIDTH, 14) dataOut_P_flip1(dataOut_P_internal, dataOut_P_flip1_out);
+flip_bus #(FLIT_WIDTH, 21) dataOut_N_flip2(dataOut_N_flip1_out, dataOut_N);
+flip_bus #(FLIT_WIDTH, 21) dataOut_E_flip2(dataOut_E_flip1_out, dataOut_E);
+flip_bus #(FLIT_WIDTH, 21) dataOut_S_flip2(dataOut_S_flip1_out, dataOut_S);
+flip_bus #(FLIT_WIDTH, 21) dataOut_W_flip2(dataOut_W_flip1_out, dataOut_W);
+//flip_bus #(FLIT_WIDTH, 21) dataOut_P_flip2(dataOut_P_flip1_out, dataOut_P);
 
 // two sets of inverters for input signals (buffering for timing purposes)
 flip_bus #(1, 14) yummyIn_N_flip1(yummyIn_N, yummyIn_N_flip1_out);
@@ -560,16 +561,16 @@ flip_bus #(1, 10) validIn_S_flip2(validIn_S_flip1_out, validIn_S_internal);
 flip_bus #(1, 10) validIn_W_flip2(validIn_W_flip1_out, validIn_W_internal);
 //flip_bus #(1, 10) validIn_P_flip2(validIn_P_flip1_out, validIn_P_internal);
 
-flip_bus #(`DATA_WIDTH, 14) dataIn_N_flip1(dataIn_N, dataIn_N_flip1_out);
-flip_bus #(`DATA_WIDTH, 14) dataIn_E_flip1(dataIn_E, dataIn_E_flip1_out);
-flip_bus #(`DATA_WIDTH, 14) dataIn_S_flip1(dataIn_S, dataIn_S_flip1_out);
-flip_bus #(`DATA_WIDTH, 14) dataIn_W_flip1(dataIn_W, dataIn_W_flip1_out);
-//flip_bus #(`DATA_WIDTH, 14) dataIn_P_flip1(dataIn_P, dataIn_P_flip1_out);
-flip_bus #(`DATA_WIDTH, 10) dataIn_N_flip2(dataIn_N_flip1_out, dataIn_N_internal);
-flip_bus #(`DATA_WIDTH, 10) dataIn_E_flip2(dataIn_E_flip1_out, dataIn_E_internal);
-flip_bus #(`DATA_WIDTH, 10) dataIn_S_flip2(dataIn_S_flip1_out, dataIn_S_internal);
-flip_bus #(`DATA_WIDTH, 10) dataIn_W_flip2(dataIn_W_flip1_out, dataIn_W_internal);
-//flip_bus #(`DATA_WIDTH, 10) dataIn_P_flip2(dataIn_P_flip1_out, dataIn_P_internal);
+flip_bus #(FLIT_WIDTH, 14) dataIn_N_flip1(dataIn_N, dataIn_N_flip1_out);
+flip_bus #(FLIT_WIDTH, 14) dataIn_E_flip1(dataIn_E, dataIn_E_flip1_out);
+flip_bus #(FLIT_WIDTH, 14) dataIn_S_flip1(dataIn_S, dataIn_S_flip1_out);
+flip_bus #(FLIT_WIDTH, 14) dataIn_W_flip1(dataIn_W, dataIn_W_flip1_out);
+//flip_bus #(FLIT_WIDTH, 14) dataIn_P_flip1(dataIn_P, dataIn_P_flip1_out);
+flip_bus #(FLIT_WIDTH, 10) dataIn_N_flip2(dataIn_N_flip1_out, dataIn_N_internal);
+flip_bus #(FLIT_WIDTH, 10) dataIn_E_flip2(dataIn_E_flip1_out, dataIn_E_internal);
+flip_bus #(FLIT_WIDTH, 10) dataIn_S_flip2(dataIn_S_flip1_out, dataIn_S_internal);
+flip_bus #(FLIT_WIDTH, 10) dataIn_W_flip2(dataIn_W_flip1_out, dataIn_W_internal);
+//flip_bus #(FLIT_WIDTH, 10) dataIn_P_flip2(dataIn_P_flip1_out, dataIn_P_internal);
 
 
 //instantiations
@@ -582,27 +583,27 @@ flip_bus #(`DATA_WIDTH, 10) dataIn_W_flip2(dataIn_W_flip1_out, dataIn_W_internal
 //the nibs inside of them.
 
 //dynamic inputs
-dynamic_input_top_4 north_input(.route_req_n_out(route_req_n_to_n), .route_req_e_out(route_req_n_to_e), .route_req_s_out(route_req_n_to_s), .route_req_w_out(route_req_n_to_w), .route_req_p_out(route_req_n_to_p), .default_ready_n_out(), .default_ready_e_out(), .default_ready_s_out(default_ready_n_to_s), .default_ready_w_out(), .default_ready_p_out(), .tail_out(north_input_tail), .yummy_out(yummyOut_N_internal), .data_out(north_input_data), .valid_out(north_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_N_internal), .data_in(dataIn_N_internal), .thanks_n(thanks_n_to_n), .thanks_e(thanks_e_to_n), .thanks_s(thanks_s_to_n), .thanks_w(thanks_w_to_n), .thanks_p(thanks_p_to_n));
+dynamic_input_top_4 #(.FLIT_WIDTH(FLIT_WIDTH)) north_input(.route_req_n_out(route_req_n_to_n), .route_req_e_out(route_req_n_to_e), .route_req_s_out(route_req_n_to_s), .route_req_w_out(route_req_n_to_w), .route_req_p_out(route_req_n_to_p), .default_ready_n_out(), .default_ready_e_out(), .default_ready_s_out(default_ready_n_to_s), .default_ready_w_out(), .default_ready_p_out(), .tail_out(north_input_tail), .yummy_out(yummyOut_N_internal), .data_out(north_input_data), .valid_out(north_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_N_internal), .data_in(dataIn_N_internal), .thanks_n(thanks_n_to_n), .thanks_e(thanks_e_to_n), .thanks_s(thanks_s_to_n), .thanks_w(thanks_w_to_n), .thanks_p(thanks_p_to_n));
 
-dynamic_input_top_4 east_input(.route_req_n_out(route_req_e_to_n), .route_req_e_out(route_req_e_to_e), .route_req_s_out(route_req_e_to_s), .route_req_w_out(route_req_e_to_w), .route_req_p_out(route_req_e_to_p), .default_ready_n_out(), .default_ready_e_out(), .default_ready_s_out(), .default_ready_w_out(default_ready_e_to_w), .default_ready_p_out(), .tail_out(east_input_tail), .yummy_out(yummyOut_E_internal), .data_out(east_input_data), .valid_out(east_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_E_internal), .data_in(dataIn_E_internal), .thanks_n(thanks_n_to_e), .thanks_e(thanks_e_to_e), .thanks_s(thanks_s_to_e), .thanks_w(thanks_w_to_e), .thanks_p(thanks_p_to_e));
+dynamic_input_top_4 #(.FLIT_WIDTH(FLIT_WIDTH)) east_input(.route_req_n_out(route_req_e_to_n), .route_req_e_out(route_req_e_to_e), .route_req_s_out(route_req_e_to_s), .route_req_w_out(route_req_e_to_w), .route_req_p_out(route_req_e_to_p), .default_ready_n_out(), .default_ready_e_out(), .default_ready_s_out(), .default_ready_w_out(default_ready_e_to_w), .default_ready_p_out(), .tail_out(east_input_tail), .yummy_out(yummyOut_E_internal), .data_out(east_input_data), .valid_out(east_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_E_internal), .data_in(dataIn_E_internal), .thanks_n(thanks_n_to_e), .thanks_e(thanks_e_to_e), .thanks_s(thanks_s_to_e), .thanks_w(thanks_w_to_e), .thanks_p(thanks_p_to_e));
 
-dynamic_input_top_4 south_input(.route_req_n_out(route_req_s_to_n), .route_req_e_out(route_req_s_to_e), .route_req_s_out(route_req_s_to_s), .route_req_w_out(route_req_s_to_w), .route_req_p_out(route_req_s_to_p), .default_ready_n_out(default_ready_s_to_n), .default_ready_e_out(), .default_ready_s_out(), .default_ready_w_out(), .default_ready_p_out(default_ready_s_to_p), .tail_out(south_input_tail), .yummy_out(yummyOut_S_internal), .data_out(south_input_data), .valid_out(south_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_S_internal), .data_in(dataIn_S_internal), .thanks_n(thanks_n_to_s), .thanks_e(thanks_e_to_s), .thanks_s(thanks_s_to_s), .thanks_w(thanks_w_to_s), .thanks_p(thanks_p_to_s));
+dynamic_input_top_4 #(.FLIT_WIDTH(FLIT_WIDTH)) south_input(.route_req_n_out(route_req_s_to_n), .route_req_e_out(route_req_s_to_e), .route_req_s_out(route_req_s_to_s), .route_req_w_out(route_req_s_to_w), .route_req_p_out(route_req_s_to_p), .default_ready_n_out(default_ready_s_to_n), .default_ready_e_out(), .default_ready_s_out(), .default_ready_w_out(), .default_ready_p_out(default_ready_s_to_p), .tail_out(south_input_tail), .yummy_out(yummyOut_S_internal), .data_out(south_input_data), .valid_out(south_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_S_internal), .data_in(dataIn_S_internal), .thanks_n(thanks_n_to_s), .thanks_e(thanks_e_to_s), .thanks_s(thanks_s_to_s), .thanks_w(thanks_w_to_s), .thanks_p(thanks_p_to_s));
 
-dynamic_input_top_4 west_input(.route_req_n_out(route_req_w_to_n), .route_req_e_out(route_req_w_to_e), .route_req_s_out(route_req_w_to_s), .route_req_w_out(route_req_w_to_w), .route_req_p_out(route_req_w_to_p), .default_ready_n_out(), .default_ready_e_out(default_ready_w_to_e), .default_ready_s_out(), .default_ready_w_out(), .default_ready_p_out(), .tail_out(west_input_tail), .yummy_out(yummyOut_W_internal), .data_out(west_input_data), .valid_out(west_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_W_internal), .data_in(dataIn_W_internal), .thanks_n(thanks_n_to_w), .thanks_e(thanks_e_to_w), .thanks_s(thanks_s_to_w), .thanks_w(thanks_w_to_w), .thanks_p(thanks_p_to_w));
+dynamic_input_top_4 #(.FLIT_WIDTH(FLIT_WIDTH)) west_input(.route_req_n_out(route_req_w_to_n), .route_req_e_out(route_req_w_to_e), .route_req_s_out(route_req_w_to_s), .route_req_w_out(route_req_w_to_w), .route_req_p_out(route_req_w_to_p), .default_ready_n_out(), .default_ready_e_out(default_ready_w_to_e), .default_ready_s_out(), .default_ready_w_out(), .default_ready_p_out(), .tail_out(west_input_tail), .yummy_out(yummyOut_W_internal), .data_out(west_input_data), .valid_out(west_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_W_internal), .data_in(dataIn_W_internal), .thanks_n(thanks_n_to_w), .thanks_e(thanks_e_to_w), .thanks_s(thanks_s_to_w), .thanks_w(thanks_w_to_w), .thanks_p(thanks_p_to_w));
 
-dynamic_input_top_16 proc_input(.route_req_n_out(route_req_p_to_n), .route_req_e_out(route_req_p_to_e), .route_req_s_out(route_req_p_to_s), .route_req_w_out(route_req_p_to_w), .route_req_p_out(route_req_p_to_p), .default_ready_n_out(), .default_ready_e_out(), .default_ready_s_out(), .default_ready_w_out(), .default_ready_p_out(), .tail_out(proc_input_tail), .yummy_out(yummyOut_P_internal), .data_out(proc_input_data), .valid_out(proc_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_P), .data_in(dataIn_P), .thanks_n(thanks_n_to_p), .thanks_e(thanks_e_to_p), .thanks_s(thanks_s_to_p), .thanks_w(thanks_w_to_p), .thanks_p(thanks_p_to_p));
+dynamic_input_top_16 #(.FLIT_WIDTH(FLIT_WIDTH)) proc_input(.route_req_n_out(route_req_p_to_n), .route_req_e_out(route_req_p_to_e), .route_req_s_out(route_req_p_to_s), .route_req_w_out(route_req_p_to_w), .route_req_p_out(route_req_p_to_p), .default_ready_n_out(), .default_ready_e_out(), .default_ready_s_out(), .default_ready_w_out(), .default_ready_p_out(), .tail_out(proc_input_tail), .yummy_out(yummyOut_P_internal), .data_out(proc_input_data), .valid_out(proc_input_valid), .clk(clk), .reset(reset), .my_loc_x_in(myLocX_f), .my_loc_y_in(myLocY_f), .my_chip_id_in(myChipID_f), .valid_in(validIn_P), .data_in(dataIn_P), .thanks_n(thanks_n_to_p), .thanks_e(thanks_e_to_p), .thanks_s(thanks_s_to_p), .thanks_w(thanks_w_to_p), .thanks_p(thanks_p_to_p));
 
 //dynamic outputs
 
-dynamic_output_top north_output(.data_out(dataOut_N_internal), .thanks_a_out(thanks_n_to_s), .thanks_b_out(thanks_n_to_w), .thanks_c_out(thanks_n_to_p), .thanks_d_out(thanks_n_to_e), .thanks_x_out(thanks_n_to_n), .valid_out(validOut_N_internal),  .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(), .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_N), .clk(clk), .reset(reset), .route_req_a_in(route_req_s_to_n), .route_req_b_in(route_req_w_to_n), .route_req_c_in(route_req_p_to_n), .route_req_d_in(route_req_e_to_n), .route_req_x_in(route_req_n_to_n), .tail_a_in(south_input_tail), .tail_b_in(west_input_tail), .tail_c_in(proc_input_tail), .tail_d_in(east_input_tail), .tail_x_in(north_input_tail), .data_a_in(south_input_data), .data_b_in(west_input_data), .data_c_in(proc_input_data), .data_d_in(east_input_data), .data_x_in(north_input_data), .valid_a_in(south_input_valid), .valid_b_in(west_input_valid), .valid_c_in(proc_input_valid), .valid_d_in(east_input_valid), .valid_x_in(north_input_valid), .default_ready_in(default_ready_s_to_n), .yummy_in(yummyIn_N_internal));
+dynamic_output_top #(.FLIT_WIDTH(FLIT_WIDTH)) north_output(.data_out(dataOut_N_internal), .thanks_a_out(thanks_n_to_s), .thanks_b_out(thanks_n_to_w), .thanks_c_out(thanks_n_to_p), .thanks_d_out(thanks_n_to_e), .thanks_x_out(thanks_n_to_n), .valid_out(validOut_N_internal),  .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(), .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_N), .clk(clk), .reset(reset), .route_req_a_in(route_req_s_to_n), .route_req_b_in(route_req_w_to_n), .route_req_c_in(route_req_p_to_n), .route_req_d_in(route_req_e_to_n), .route_req_x_in(route_req_n_to_n), .tail_a_in(south_input_tail), .tail_b_in(west_input_tail), .tail_c_in(proc_input_tail), .tail_d_in(east_input_tail), .tail_x_in(north_input_tail), .data_a_in(south_input_data), .data_b_in(west_input_data), .data_c_in(proc_input_data), .data_d_in(east_input_data), .data_x_in(north_input_data), .valid_a_in(south_input_valid), .valid_b_in(west_input_valid), .valid_c_in(proc_input_valid), .valid_d_in(east_input_valid), .valid_x_in(north_input_valid), .default_ready_in(default_ready_s_to_n), .yummy_in(yummyIn_N_internal));
 
-dynamic_output_top east_output(.data_out(dataOut_E_internal), .thanks_a_out(thanks_e_to_w), .thanks_b_out(thanks_e_to_p), .thanks_c_out(thanks_e_to_n), .thanks_d_out(thanks_e_to_s), .thanks_x_out(thanks_e_to_e), .valid_out(validOut_E_internal),   .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_E), .clk(clk), .reset(reset), .route_req_a_in(route_req_w_to_e), .route_req_b_in(route_req_p_to_e), .route_req_c_in(route_req_n_to_e), .route_req_d_in(route_req_s_to_e), .route_req_x_in(route_req_e_to_e), .tail_a_in(west_input_tail), .tail_b_in(proc_input_tail), .tail_c_in(north_input_tail), .tail_d_in(south_input_tail), .tail_x_in(east_input_tail), .data_a_in(west_input_data), .data_b_in(proc_input_data), .data_c_in(north_input_data), .data_d_in(south_input_data), .data_x_in(east_input_data), .valid_a_in(west_input_valid), .valid_b_in(proc_input_valid), .valid_c_in(north_input_valid), .valid_d_in(south_input_valid), .valid_x_in(east_input_valid), .default_ready_in(default_ready_w_to_e), .yummy_in(yummyIn_E_internal));
+dynamic_output_top #(.FLIT_WIDTH(FLIT_WIDTH)) east_output(.data_out(dataOut_E_internal), .thanks_a_out(thanks_e_to_w), .thanks_b_out(thanks_e_to_p), .thanks_c_out(thanks_e_to_n), .thanks_d_out(thanks_e_to_s), .thanks_x_out(thanks_e_to_e), .valid_out(validOut_E_internal),   .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_E), .clk(clk), .reset(reset), .route_req_a_in(route_req_w_to_e), .route_req_b_in(route_req_p_to_e), .route_req_c_in(route_req_n_to_e), .route_req_d_in(route_req_s_to_e), .route_req_x_in(route_req_e_to_e), .tail_a_in(west_input_tail), .tail_b_in(proc_input_tail), .tail_c_in(north_input_tail), .tail_d_in(south_input_tail), .tail_x_in(east_input_tail), .data_a_in(west_input_data), .data_b_in(proc_input_data), .data_c_in(north_input_data), .data_d_in(south_input_data), .data_x_in(east_input_data), .valid_a_in(west_input_valid), .valid_b_in(proc_input_valid), .valid_c_in(north_input_valid), .valid_d_in(south_input_valid), .valid_x_in(east_input_valid), .default_ready_in(default_ready_w_to_e), .yummy_in(yummyIn_E_internal));
 
-dynamic_output_top south_output(.data_out(dataOut_S_internal), .thanks_a_out(thanks_s_to_n), .thanks_b_out(thanks_s_to_e), .thanks_c_out(thanks_s_to_w), .thanks_d_out(thanks_s_to_p), .thanks_x_out(thanks_s_to_s), .valid_out(validOut_S_internal),   .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_S), .clk(clk), .reset(reset), .route_req_a_in(route_req_n_to_s), .route_req_b_in(route_req_e_to_s), .route_req_c_in(route_req_w_to_s), .route_req_d_in(route_req_p_to_s), .route_req_x_in(route_req_s_to_s), .tail_a_in(north_input_tail), .tail_b_in(east_input_tail), .tail_c_in(west_input_tail), .tail_d_in(proc_input_tail), .tail_x_in(south_input_tail), .data_a_in(north_input_data), .data_b_in(east_input_data), .data_c_in(west_input_data), .data_d_in(proc_input_data), .data_x_in(south_input_data), .valid_a_in(north_input_valid), .valid_b_in(east_input_valid), .valid_c_in(west_input_valid), .valid_d_in(proc_input_valid), .valid_x_in(south_input_valid), .default_ready_in(default_ready_n_to_s), .yummy_in(yummyIn_S_internal));
+dynamic_output_top #(.FLIT_WIDTH(FLIT_WIDTH)) south_output(.data_out(dataOut_S_internal), .thanks_a_out(thanks_s_to_n), .thanks_b_out(thanks_s_to_e), .thanks_c_out(thanks_s_to_w), .thanks_d_out(thanks_s_to_p), .thanks_x_out(thanks_s_to_s), .valid_out(validOut_S_internal),   .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_S), .clk(clk), .reset(reset), .route_req_a_in(route_req_n_to_s), .route_req_b_in(route_req_e_to_s), .route_req_c_in(route_req_w_to_s), .route_req_d_in(route_req_p_to_s), .route_req_x_in(route_req_s_to_s), .tail_a_in(north_input_tail), .tail_b_in(east_input_tail), .tail_c_in(west_input_tail), .tail_d_in(proc_input_tail), .tail_x_in(south_input_tail), .data_a_in(north_input_data), .data_b_in(east_input_data), .data_c_in(west_input_data), .data_d_in(proc_input_data), .data_x_in(south_input_data), .valid_a_in(north_input_valid), .valid_b_in(east_input_valid), .valid_c_in(west_input_valid), .valid_d_in(proc_input_valid), .valid_x_in(south_input_valid), .default_ready_in(default_ready_n_to_s), .yummy_in(yummyIn_S_internal));
 
-dynamic_output_top west_output(.data_out(dataOut_W_internal), .thanks_a_out(thanks_w_to_e), .thanks_b_out(thanks_w_to_s), .thanks_c_out(thanks_w_to_p), .thanks_d_out(thanks_w_to_n), .thanks_x_out(thanks_w_to_w), .valid_out(validOut_W_internal),   .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_W), .clk(clk), .reset(reset), .route_req_a_in(route_req_e_to_w), .route_req_b_in(route_req_s_to_w), .route_req_c_in(route_req_p_to_w), .route_req_d_in(route_req_n_to_w), .route_req_x_in(route_req_w_to_w), .tail_a_in(east_input_tail), .tail_b_in(south_input_tail), .tail_c_in(proc_input_tail), .tail_d_in(north_input_tail), .tail_x_in(west_input_tail), .data_a_in(east_input_data), .data_b_in(south_input_data), .data_c_in(proc_input_data), .data_d_in(north_input_data), .data_x_in(west_input_data), .valid_a_in(east_input_valid), .valid_b_in(south_input_valid), .valid_c_in(proc_input_valid), .valid_d_in(north_input_valid), .valid_x_in(west_input_valid), .default_ready_in(default_ready_e_to_w), .yummy_in(yummyIn_W_internal));
+dynamic_output_top #(.FLIT_WIDTH(FLIT_WIDTH)) west_output(.data_out(dataOut_W_internal), .thanks_a_out(thanks_w_to_e), .thanks_b_out(thanks_w_to_s), .thanks_c_out(thanks_w_to_p), .thanks_d_out(thanks_w_to_n), .thanks_x_out(thanks_w_to_w), .valid_out(validOut_W_internal),   .popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_W), .clk(clk), .reset(reset), .route_req_a_in(route_req_e_to_w), .route_req_b_in(route_req_s_to_w), .route_req_c_in(route_req_p_to_w), .route_req_d_in(route_req_n_to_w), .route_req_x_in(route_req_w_to_w), .tail_a_in(east_input_tail), .tail_b_in(south_input_tail), .tail_c_in(proc_input_tail), .tail_d_in(north_input_tail), .tail_x_in(west_input_tail), .data_a_in(east_input_data), .data_b_in(south_input_data), .data_c_in(proc_input_data), .data_d_in(north_input_data), .data_x_in(west_input_data), .valid_a_in(east_input_valid), .valid_b_in(south_input_valid), .valid_c_in(proc_input_valid), .valid_d_in(north_input_valid), .valid_x_in(west_input_valid), .default_ready_in(default_ready_e_to_w), .yummy_in(yummyIn_W_internal));
 //yanqi change kill headers to 0
-dynamic_output_top #(1'b0) proc_output(.data_out(dataOut_P_internal), .thanks_a_out(thanks_p_to_s), .thanks_b_out(thanks_p_to_w), .thanks_c_out(thanks_p_to_n), .thanks_d_out(thanks_p_to_e), .thanks_x_out(thanks_p_to_p), .valid_out(validOut_P_internal),  .popped_interrupt_mesg_out(external_interrupt), .popped_memory_ack_mesg_out(store_ack_received), .popped_memory_ack_mesg_out_sender(store_ack_addr),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_P), .clk(clk), .reset(reset), .route_req_a_in(route_req_s_to_p), .route_req_b_in(route_req_w_to_p), .route_req_c_in(route_req_n_to_p), .route_req_d_in(route_req_e_to_p), .route_req_x_in(route_req_p_to_p), .tail_a_in(south_input_tail), .tail_b_in(west_input_tail), .tail_c_in(north_input_tail), .tail_d_in(east_input_tail), .tail_x_in(proc_input_tail), .data_a_in(south_input_data), .data_b_in(west_input_data), .data_c_in(north_input_data), .data_d_in(east_input_data), .data_x_in(proc_input_data), .valid_a_in(south_input_valid), .valid_b_in(west_input_valid), .valid_c_in(north_input_valid), .valid_d_in(east_input_valid), .valid_x_in(proc_input_valid), .default_ready_in(default_ready_s_to_p), .yummy_in(yummyIn_P_internal));
+dynamic_output_top #(.KILL_HEADERS(1'b0),.FLIT_WIDTH(FLIT_WIDTH)) proc_output(.data_out(dataOut_P_internal), .thanks_a_out(thanks_p_to_s), .thanks_b_out(thanks_p_to_w), .thanks_c_out(thanks_p_to_n), .thanks_d_out(thanks_p_to_e), .thanks_x_out(thanks_p_to_p), .valid_out(validOut_P_internal),  .popped_interrupt_mesg_out(external_interrupt), .popped_memory_ack_mesg_out(store_ack_received), .popped_memory_ack_mesg_out_sender(store_ack_addr),  .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot_P), .clk(clk), .reset(reset), .route_req_a_in(route_req_s_to_p), .route_req_b_in(route_req_w_to_p), .route_req_c_in(route_req_n_to_p), .route_req_d_in(route_req_e_to_p), .route_req_x_in(route_req_p_to_p), .tail_a_in(south_input_tail), .tail_b_in(west_input_tail), .tail_c_in(north_input_tail), .tail_d_in(east_input_tail), .tail_x_in(proc_input_tail), .data_a_in(south_input_data), .data_b_in(west_input_data), .data_c_in(north_input_data), .data_d_in(east_input_data), .data_x_in(proc_input_data), .valid_a_in(south_input_valid), .valid_b_in(west_input_valid), .valid_c_in(north_input_valid), .valid_d_in(east_input_valid), .valid_x_in(proc_input_valid), .default_ready_in(default_ready_s_to_p), .yummy_in(yummyIn_P_internal));
 
 
 endmodule // dynamic_node

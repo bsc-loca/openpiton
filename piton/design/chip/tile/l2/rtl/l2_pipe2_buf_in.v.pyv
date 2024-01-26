@@ -43,13 +43,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 `define LOCAL_STATE_WIDTH 4
 
-module l2_pipe2_buf_in(
+module l2_pipe2_buf_in #(
+    parameter L15_L1D_LINE_SIZE = 64
+    )(
 
     input wire clk,
     input wire rst_n,
 
     input wire valid_in,
-    input wire [`NOC_DATA_WIDTH-1:0] data_in,
+    input wire [`PITON_NOC3_WIDTH-1:0] data_in,
     output reg ready_in,
 
     output reg msg_header_valid_out,
@@ -63,10 +65,15 @@ module l2_pipe2_buf_in(
 
 
 <%
+import pyhplib
+from pyhplib import *
 L2_P2_HEADER_BUF_IN_SIZE = 4
 L2_P2_DATA_BUF_IN_SIZE = 16
 %>
 
+<%
+if (NOC3_WIDTH == 64) :
+    print('''
 
 localparam msg_data_state_0F = `LOCAL_STATE_WIDTH'd0;
 localparam msg_data_state_1F = `LOCAL_STATE_WIDTH'd1; // NC load ack
@@ -100,7 +107,7 @@ begin
     end
     else if((msg_state_f == msg_state_header0) && valid_in)
     begin
-        if (data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd8) 
+        if (data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd8)
         begin
             msg_data_state_next = msg_data_state_8F;
         end
@@ -420,10 +427,12 @@ always @ (posedge clk)
 begin
     if (!rst_n)
     begin   
-<%
-for i in range(L2_P2_HEADER_BUF_IN_SIZE):
-    print("        header_buf_mem_f[%d] <= 0;" % (i))
-%>
+    ''')
+ 
+
+    for i in range(L2_P2_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    print('''
     end
     else if (msg_header_valid_in && msg_header_ready_in)
     begin
@@ -572,10 +581,10 @@ always @ (posedge clk)
 begin
     if (!rst_n)
     begin   
-<%
-for i in range(L2_P2_DATA_BUF_IN_SIZE):
-    print("        data_buf_mem_f[%d] <= 0;" % (i))
-%>
+    ''')
+    for i in range(L2_P2_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+    print('''
     end
     else if (msg_data_valid_in && msg_data_ready_in)
     begin
@@ -597,8 +606,789 @@ for i in range(L2_P2_DATA_BUF_IN_SIZE):
 `endif
     end
 end
+    ''')
 
 
+
+
+
+
+
+
+
+if (NOC3_WIDTH == 128) :
+    print('''
+
+localparam 
+	IDEAL      = 1,
+	WB_ST1     = 2,
+	GET_DATA   = 4,	
+	STATE_NUM  = 3;
+
+reg [`NOC_DATA_WIDTH-1:0] data_buf_mem_f [`L2_P2_DATA_BUF_IN_SIZE-1:0];
+
+
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_next;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_next;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_next;
+
+
+reg [`NOC_DATA_WIDTH-1:0] header_buf_mem_f [`L2_P2_HEADER_BUF_IN_SIZE-1:0];
+
+
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_next;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_next;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_next;
+
+	
+reg [STATE_NUM-1 : 0] ps_in,ns_in;	
+reg [`MSG_LENGTH_WIDTH-1 : 0 ] remained_data_next,	remained_data_f;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus1 = data_wr_ptr_f + 1;
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0]  header_wr_ptr_plus1 = header_wr_ptr_f + 1;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_plus1 = data_rd_ptr_f + 1;	
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus1 =header_rd_ptr_f +1;
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus2 =header_rd_ptr_f +2;
+
+reg [63: 0] hdr_flit [0: 1];
+reg [63: 0] dat_flit [0: 1];
+reg [1:0] hdr_en,data_en;
+
+wire   header_buf_empty = (header_buf_counter_f == 0);
+wire   header_buf_can_get_1 = !(header_buf_counter_f ==  `L2_P2_HEADER_BUF_IN_SIZE);
+wire   header_buf_can_get_2 = (header_buf_counter_f <  `L2_P2_HEADER_BUF_IN_SIZE-1);
+
+wire   data_buf_can_get_1 = !(data_buf_counter_f == `L2_P2_DATA_BUF_IN_SIZE);
+wire   data_buf_can_get_2 =  (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-1);
+
+wire   [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] msg_header_flits =  (header_buf_mem_f[header_rd_ptr_f][`MSG_TYPE] == `MSG_TYPE_WB_REQ) ? 3 : 1;
+
+always @(*)begin 
+	//default 
+    ns_in = ps_in;
+    hdr_en =2'b00;
+    data_en=2'b00;    
+    hdr_flit [0] = data_in[63 : 0];
+    hdr_flit [1] = data_in[127 : 64];
+    dat_flit [0] = data_in[63 : 0];
+    dat_flit [1] = data_in[127 : 64];
+    ready_in =1'b0;	
+	remained_data_next  = remained_data_f;
+
+	if (valid_in ) begin
+		case(ps_in)
+		IDEAL: begin 
+            dat_flit [0] = data_in[127 : 64];
+			if(data_in[`MSG_TYPE] != `MSG_TYPE_WB_REQ)begin //we have single 64-bit header flit
+				//header_buf_mem_next[header_wr_ptr_f] = data_in[63 : 0];                
+				if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd0) begin
+					if(header_buf_can_get_1) begin 
+                        hdr_en[0]=1'b1;
+                        ready_in=1'b1;
+                    end //not full
+				end else if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd1)begin 
+					// When receive 1 data flit, we store the same data flit in two slots in the buffer.
+					// This is because we always read out 2 flits of data.
+                    if(header_buf_can_get_1 & data_buf_can_get_2)begin
+                        hdr_en[0]=1'b1;                       
+                        data_en=2'b11;  						
+                        ready_in=1'b1;				
+                    end//not full
+				end else begin //len >1                    
+                    if(header_buf_can_get_1 & data_buf_can_get_1)begin
+                        hdr_en[0]=1'b1;                        
+                        data_en [0]=1'b1;                    
+                        ns_in=GET_DATA; 
+                        remained_data_next = data_in[`MSG_LENGTH]-`MSG_LENGTH_WIDTH'd1;	
+                        ready_in=1'b1;
+                    end				
+				end
+			end else begin //write back has 3 header flits and 2 data				
+                if(header_buf_can_get_2) begin
+                    remained_data_next = data_in[`MSG_LENGTH]-`MSG_LENGTH_WIDTH'd1;
+                    hdr_en=2'b11;
+                    ready_in=1'b1;
+                    ns_in = WB_ST1;
+                end//not full
+			end
+		end //ideal
+		WB_ST1 :  begin 
+            dat_flit [0] = data_in[127 : 64];
+            if(header_buf_can_get_1 & data_buf_can_get_1)begin
+                hdr_en[0]=1'b1;
+                ready_in=1'b1;                
+                data_en  [0]=1'b1;  		
+                remained_data_next = remained_data_f - 2;	
+                ns_in=GET_DATA; 
+            end//not full	
+		end//WB_ST1
+		GET_DATA : begin 
+			if(remained_data_f>1) begin 
+                if(data_buf_can_get_2) begin
+                    data_en  =2'b11; 			
+                    remained_data_next = remained_data_f -2;
+                    ready_in=1'b1;
+                    if(remained_data_f == 2) ns_in = IDEAL;
+                end// not full
+			end else begin 
+                if(data_buf_can_get_1) begin
+                    data_en  [0]=1'b1; 			
+				    ns_in = IDEAL;
+                    ready_in=1'b1;
+                end
+			end		
+		end
+		endcase
+    end//valid
+end
+
+
+always @ (*)begin
+    //header pointers
+    header_wr_ptr_next = header_wr_ptr_f + hdr_en[0] + hdr_en[1];
+    header_buf_counter_next = header_buf_counter_f +  hdr_en[0] + hdr_en[1];
+    header_rd_ptr_next = header_rd_ptr_f;
+    if(msg_header_valid_out && msg_header_ready_out) begin 
+        header_buf_counter_next = header_buf_counter_f +  hdr_en[0] + hdr_en[1] - msg_header_flits;
+        header_rd_ptr_next = header_rd_ptr_f + msg_header_flits;
+    end
+
+    //data pointers
+    data_wr_ptr_next = data_wr_ptr_f +  data_en [0] + data_en[1];
+    data_buf_counter_next = data_buf_counter_f + data_en [0] + data_en[1];
+    data_rd_ptr_next = data_rd_ptr_f;
+    if(msg_data_valid_out && msg_data_ready_out) begin 
+        data_buf_counter_next = data_buf_counter_f + data_en [0] + data_en[1] -`L2_P2_DATA_BUF_IN_FLITS;
+        data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
+    end
+end
+
+
+wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_3 = 
+    {header_buf_mem_f[header_rd_ptr_plus2], header_buf_mem_f[header_rd_ptr_plus1], header_buf_mem_f[header_rd_ptr_f]};
+
+wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_1= {{(2*`NOC_DATA_WIDTH){1'b0}},header_buf_mem_f[header_rd_ptr_f]}; 
+
+always @ (*)begin
+    msg_header_valid_out = (!header_buf_empty) && (header_buf_counter_f >= msg_header_flits);
+    msg_header_out = (msg_header_flits == 3) ? msg_header_out_3 : msg_header_out_1;
+    msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
+    msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
+end
+
+
+always @ (posedge clk) begin
+    if (!rst_n) begin 
+    	ps_in<=IDEAL;
+    	data_wr_ptr_f      <= 0;
+		header_wr_ptr_f    <= 0;
+		remained_data_f    <= 0;
+        data_buf_counter_f <= 0;
+        data_rd_ptr_f      <= 0;
+        header_buf_counter_f<=0;
+        header_rd_ptr_f    <=0;
+    end else begin 
+   		ps_in              <= ns_in;   		
+		data_wr_ptr_f      <= data_wr_ptr_next;
+		header_wr_ptr_f    <= header_wr_ptr_next;
+		remained_data_f    <= remained_data_next;
+        data_buf_counter_f <= data_buf_counter_next;
+        data_rd_ptr_f      <= data_rd_ptr_next;
+        header_buf_counter_f<=header_buf_counter_next;
+        header_rd_ptr_f    <= header_rd_ptr_next;
+   	end
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin   
+    ''')
+
+    for i in range(L2_P2_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    for i in range(L2_P2_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+
+    print('''
+    end
+    else 
+    begin
+       if (hdr_en[0]) header_buf_mem_f[header_wr_ptr_f] <= hdr_flit[0];
+       if (hdr_en[1]) header_buf_mem_f[header_wr_ptr_plus1] <= hdr_flit[1];
+       if (data_en [0]) data_buf_mem_f[data_wr_ptr_f] <= dat_flit [0]; 
+       if (data_en [1]) data_buf_mem_f[data_wr_ptr_plus1] <= dat_flit [1]; 
+    end
+   
+end
+
+    ''')   
+
+
+
+
+
+if (NOC3_WIDTH == 256) :
+    print('''
+
+localparam 
+	IDEAL      = 1,
+	GET_DATA   = 2,	
+	STATE_NUM  = 2;
+
+reg [`NOC_DATA_WIDTH-1:0] data_buf_mem_f [`L2_P2_DATA_BUF_IN_SIZE-1:0];
+
+
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_next;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_next;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_next;
+
+
+reg [`NOC_DATA_WIDTH-1:0] header_buf_mem_f [`L2_P2_HEADER_BUF_IN_SIZE-1:0];
+
+
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_next;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_next;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_next;
+
+	
+reg [STATE_NUM-1 : 0] ps_in,ns_in;	
+reg [`MSG_LENGTH_WIDTH-1 : 0 ] remained_data_next,	remained_data_f;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus1 = data_wr_ptr_f + 1;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus2 = data_wr_ptr_f + 2;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus3 = data_wr_ptr_f + 3;
+
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0]  header_wr_ptr_plus1 = header_wr_ptr_f + 1;
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0]  header_wr_ptr_plus2 = header_wr_ptr_f + 2;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_plus1 = data_rd_ptr_f + 1;	
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus1 =header_rd_ptr_f +1;
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus2 =header_rd_ptr_f +2;
+
+reg [63: 0] hdr_flit [0: 2];
+reg [63: 0] dat_flit [0: 3];
+reg [2:0] hdr_en;
+reg [3:0] data_en;
+
+wire   header_buf_empty = (header_buf_counter_f == 0);
+wire   header_buf_can_get_1 = !(header_buf_counter_f ==  `L2_P2_HEADER_BUF_IN_SIZE);
+wire   header_buf_can_get_3 = (header_buf_counter_f <  `L2_P2_HEADER_BUF_IN_SIZE-2);
+
+wire   data_buf_can_get_1 = !(data_buf_counter_f == `L2_P2_DATA_BUF_IN_SIZE);
+wire   data_buf_can_get_2 =  (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-1);
+wire   data_buf_can_get_3 =  (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-2);
+wire   data_buf_can_get_4 =  (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-3);
+
+wire   [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] msg_header_flits =  (header_buf_mem_f[header_rd_ptr_f][`MSG_TYPE] == `MSG_TYPE_WB_REQ) ? 3 : 1;
+  
+
+always @(*)begin 
+	//default 
+    ns_in = ps_in;
+    hdr_en =3'b000;
+    data_en=4'b0000;    
+    hdr_flit [0] = data_in[63 : 0];
+    hdr_flit [1] = data_in[127 : 64];
+    hdr_flit [2] = data_in[191 : 128];
+    {dat_flit [3],dat_flit [2],dat_flit [1],dat_flit [0]} = data_in;
+    ready_in =1'b0;	
+	remained_data_next  = remained_data_f;
+
+	if (valid_in ) begin
+		case(ps_in)
+		IDEAL: begin 
+            dat_flit [0] = data_in[127 : 64];
+            dat_flit [1] = data_in[191 :128];  
+            dat_flit [2] = data_in[255 :192]; 
+
+			if(data_in[`MSG_TYPE] != `MSG_TYPE_WB_REQ)begin //we have single 64-bit header flit
+    			if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd0) begin
+					if(header_buf_can_get_1) begin 
+                        hdr_en[0]=1'b1;
+                        ready_in=1'b1;
+                    end //not full
+				end else if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd1)begin 
+					// When receive 1 data flit, we store the same data flit in two slots in the buffer.
+					// This is because we always read out 2 flits of data.					
+                    if(header_buf_can_get_1 & data_buf_can_get_2)begin
+                        hdr_en[0]=1'b1;
+                        
+                        data_en=4'b0011;  						
+                        ready_in=1'b1;				
+                    end//not full
+				end else if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd2) begin 			                   
+                    if(header_buf_can_get_1 & data_buf_can_get_2)begin
+                        hdr_en[0]=1'b1;                       
+                        data_en=4'b0011;                
+                        ready_in=1'b1;
+                    end				
+				end else begin //>2                   
+                    if(header_buf_can_get_1 & data_buf_can_get_3)begin
+                        hdr_en[0]=1'b1;                       
+                        data_en =4'b0111;
+                        ready_in=1'b1;		                        
+                        if(data_in[`MSG_LENGTH] > `MSG_LENGTH_WIDTH'd3) begin 
+                            ns_in=GET_DATA; 
+                            remained_data_next = data_in[`MSG_LENGTH]-`MSG_LENGTH_WIDTH'd3;	
+                        end
+                    end
+                end //>2
+			end else begin //write back has 3 header flits and 2 data				
+                dat_flit [0] = data_in[255 :192];
+                if(header_buf_can_get_3 & data_buf_can_get_1) begin
+                    hdr_en=3'b111;
+                    data_en  [0]=1'b1; 
+                    ready_in=1'b1;                   
+                    remained_data_next = data_in[`MSG_LENGTH]-`MSG_LENGTH_WIDTH'd3;	
+                    ns_in=GET_DATA; 
+                end//not full
+			end
+		end //ideal		
+		GET_DATA : begin
+			if(remained_data_f > 3) begin				
+                if(data_buf_can_get_4) begin
+                    data_en  =4'b1111; 			
+                    remained_data_next = remained_data_f - 4;
+                    ready_in=1'b1;
+                    if(remained_data_f == 4) ns_in = IDEAL;
+                end// not full
+			end else if(remained_data_f == 3) begin	
+                if(data_buf_can_get_3) begin	
+                    data_en  =4'b0111; 			
+				    ns_in = IDEAL;
+                    ready_in=1'b1;
+                end
+            end else if(remained_data_f == 2) begin	
+                if(data_buf_can_get_2) begin	
+                    data_en  =4'b0011; 			
+				    ns_in = IDEAL;
+                    ready_in=1'b1;
+                end
+            end else begin	
+                if(data_buf_can_get_1) begin	
+                    data_en  =4'b0001; 			
+				    ns_in = IDEAL;
+                    ready_in=1'b1;
+                end
+            end		
+		end //GET_DATA
+		endcase
+    end//valid
+end
+
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] hdr_wr_incr =  
+     (hdr_en == 3'b111) ? 3 : 
+     (hdr_en == 3'b001) ? 1 : 0;
+
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_wr_incr = 
+    (data_en == 4'b1111) ? 4 :
+    (data_en == 4'b0111) ? 3 :
+    (data_en == 4'b0011) ? 2 :
+    (data_en == 4'b0001) ? 1 : 0;
+
+
+always @ (*)begin
+    //header pointers
+    header_wr_ptr_next = header_wr_ptr_f + hdr_wr_incr;
+    header_buf_counter_next = header_buf_counter_f +  hdr_wr_incr;
+    header_rd_ptr_next = header_rd_ptr_f;
+    if(msg_header_valid_out && msg_header_ready_out) begin 
+        header_buf_counter_next = header_buf_counter_f +  hdr_wr_incr - msg_header_flits;
+        header_rd_ptr_next = header_rd_ptr_f + msg_header_flits;
+    end
+
+    //data pointers
+    data_wr_ptr_next = data_wr_ptr_f +  data_wr_incr;
+    data_buf_counter_next = data_buf_counter_f + data_wr_incr;
+    data_rd_ptr_next = data_rd_ptr_f;
+    if(msg_data_valid_out && msg_data_ready_out) begin 
+        data_buf_counter_next = data_buf_counter_f + data_wr_incr -`L2_P2_DATA_BUF_IN_FLITS;
+        data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
+    end
+end
+
+
+wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_3 = 
+    {header_buf_mem_f[header_rd_ptr_plus2], header_buf_mem_f[header_rd_ptr_plus1], header_buf_mem_f[header_rd_ptr_f]};
+
+wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_1= {{(2*`NOC_DATA_WIDTH){1'b0}},header_buf_mem_f[header_rd_ptr_f]}; 
+
+always @ (*)begin
+    msg_header_valid_out = (!header_buf_empty) && (header_buf_counter_f >= msg_header_flits);
+    msg_header_out = (msg_header_flits == 3) ? msg_header_out_3 : msg_header_out_1;
+    msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
+    msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
+end
+
+
+always @ (posedge clk) begin
+    if (!rst_n) begin 
+    	ps_in<=IDEAL;
+    	data_wr_ptr_f      <= 0;
+		header_wr_ptr_f    <= 0;
+		remained_data_f    <= 0;
+        data_buf_counter_f <= 0;
+        data_rd_ptr_f      <= 0;
+        header_buf_counter_f<=0;
+        header_rd_ptr_f    <=0;
+    end else begin 
+   		ps_in              <= ns_in;   		
+		data_wr_ptr_f      <= data_wr_ptr_next;
+		header_wr_ptr_f    <= header_wr_ptr_next;
+		remained_data_f    <= remained_data_next;
+        data_buf_counter_f <= data_buf_counter_next;
+        data_rd_ptr_f      <= data_rd_ptr_next;
+        header_buf_counter_f<=header_buf_counter_next;
+        header_rd_ptr_f    <= header_rd_ptr_next;
+   	end
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin   
+    ''')
+
+    for i in range(L2_P2_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    for i in range(L2_P2_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+
+    print('''
+    end
+    else 
+    begin
+       if (hdr_en[0]) header_buf_mem_f[header_wr_ptr_f] <= hdr_flit[0];
+       if (hdr_en[1]) header_buf_mem_f[header_wr_ptr_plus1] <= hdr_flit[1];
+       if (hdr_en[2]) header_buf_mem_f[header_wr_ptr_plus2] <= hdr_flit[2];
+       if (data_en [0]) data_buf_mem_f[data_wr_ptr_f] <= dat_flit [0]; 
+       if (data_en [1]) data_buf_mem_f[data_wr_ptr_plus1] <= dat_flit [1];
+       if (data_en [2]) data_buf_mem_f[data_wr_ptr_plus2] <= dat_flit [2]; 
+       if (data_en [3]) data_buf_mem_f[data_wr_ptr_plus3] <= dat_flit [3];  
+    end
+   
+end
+
+    ''')   
+
+
+
+if (NOC3_WIDTH == 512) :
+    print('''
+
+localparam 
+	IDEAL      = 1,
+	GET_DATA   = 2,	
+    GET_DATA2  = 4,	
+	STATE_NUM  = 3;
+
+
+reg [`NOC_DATA_WIDTH-1:0] data_buf_mem_f [`L2_P2_DATA_BUF_IN_SIZE-1:0];
+
+
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_next;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_next;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f;
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_next;
+
+
+reg [`NOC_DATA_WIDTH-1:0] header_buf_mem_f [`L2_P2_HEADER_BUF_IN_SIZE-1:0];
+
+
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_next;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_next;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_f;
+reg [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_next;
+
+	
+reg [STATE_NUM-1 : 0] ps_in,ns_in;	
+reg [`MSG_LENGTH_WIDTH-1 : 0 ] remained_data_next,	remained_data_f;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus1 = data_wr_ptr_f + 1;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus2 = data_wr_ptr_f + 2;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus3 = data_wr_ptr_f + 3;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus4 = data_wr_ptr_f + 4;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus5 = data_wr_ptr_f + 5;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_plus6 = data_wr_ptr_f + 6;
+
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0]  header_wr_ptr_plus1 = header_wr_ptr_f + 1;
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0]  header_wr_ptr_plus2 = header_wr_ptr_f + 2;
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_plus1 = data_rd_ptr_f + 1;	
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus1 =header_rd_ptr_f +1;
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus2 =header_rd_ptr_f +2;
+
+reg [63: 0] hdr_flit [0: 2];
+reg [63: 0] dat_flit [0: 6]; // maximum of 7 data flits can be recived in 512 configuration
+reg [2:0] hdr_en;
+reg [6:0] data_en;
+
+wire   header_buf_empty = (header_buf_counter_f == 0);
+wire   header_buf_can_get_1 = !(header_buf_counter_f ==  `L2_P2_HEADER_BUF_IN_SIZE);
+wire   header_buf_can_get_3 = (header_buf_counter_f <  `L2_P2_HEADER_BUF_IN_SIZE-2);
+
+wire   data_buf_can_get_1 = !(data_buf_counter_f ==  `L2_P2_DATA_BUF_IN_SIZE);
+wire   data_buf_can_get_2 = (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-1);
+wire   data_buf_can_get_3 = (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-2);
+wire   data_buf_can_get_4 = (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-3);
+wire   data_buf_can_get_5 = (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-4);
+wire   data_buf_can_get_6 = (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-5);
+wire   data_buf_can_get_7 = (data_buf_counter_f <  `L2_P2_DATA_BUF_IN_SIZE-6);
+
+wire   [`L2_P2_HEADER_BUF_IN_LOG_SIZE:0] msg_header_flits =  (header_buf_mem_f[header_rd_ptr_f][`MSG_TYPE] == `MSG_TYPE_WB_REQ) ? 3 : 1;
+  
+
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_wr_incr;
+
+always @(*)begin 
+	//default 
+    ns_in = ps_in;
+    hdr_en =3'b000;
+    data_en=4'b0000;    
+    hdr_flit [0] = data_in[63 : 0];
+    hdr_flit [1] = data_in[127 : 64];
+    hdr_flit [2] = data_in[191 : 128];
+    {dat_flit [3],dat_flit [2],dat_flit [1],dat_flit [0]} = data_in;
+    ready_in =1'b0;	
+	remained_data_next  = remained_data_f;
+    data_wr_incr =0;
+
+	if (valid_in ) begin
+		case(ps_in)
+		IDEAL: begin 
+            //deafult data location in first flit
+            dat_flit [0] = data_in[2*64-1 : 1*64];
+            dat_flit [1] = data_in[3*64-1 : 2*64];
+            dat_flit [2] = data_in[4*64-1 : 3*64];
+            dat_flit [3] = data_in[5*64-1 : 4*64];
+            dat_flit [4] = data_in[6*64-1 : 5*64];
+            dat_flit [5] = data_in[7*64-1 : 6*64];
+            dat_flit [6] = data_in[8*64-1 : 7*64];
+
+			if(data_in[`MSG_TYPE] != `MSG_TYPE_WB_REQ)begin //we have single 64-bit header flit
+    			if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd0) begin
+					if(header_buf_can_get_1) begin 
+                        hdr_en[0]=1'b1;
+                        ready_in=1'b1;
+                    end //not full
+				end else if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd1)begin 
+					// When receive 1 data flit, we store the same data flit in two slots in the buffer.
+					// This is because we always read out 2 flits of data.					
+                    if(header_buf_can_get_1 & data_buf_can_get_2)begin
+                        hdr_en[0]=1'b1;                        
+                        data_en[1:0]=2'b11;  						
+                        ready_in=1'b1;	
+                        data_wr_incr=2;			
+                    end//not full
+    ''')
+    for i in range(2,8):
+        print('''               end else if(data_in[`MSG_LENGTH] == `MSG_LENGTH_WIDTH'd%d) begin 			                   
+                    if(header_buf_can_get_1 & data_buf_can_get_%d)begin
+                        hdr_en[0]=1'b1;                       
+                        data_en[%d:0]=%d;                
+                        ready_in=1'b1;
+                        data_wr_incr=%d;
+                    end	''' % (i,i,i-1,2**i-1,i)) 
+    
+    print ('''              
+                
+                end else begin 			                   
+                    if(header_buf_can_get_1 & data_buf_can_get_7)begin
+                        hdr_en[0]=1'b1;                       
+                        data_en[6:0]=127; 
+                        data_wr_incr=7;               
+                        ready_in=1'b1;
+                        ns_in=GET_DATA; 
+                    end	
+				end 
+			end else begin //write back has 3 header flits and 2 data				
+                if(L15_L1D_LINE_SIZE == 16 ) begin 
+                    dat_flit [0] = data_in[4*64-1 : 3*64];
+                    dat_flit [1] = data_in[5*64-1 : 4*64];
+                    if(header_buf_can_get_3 & data_buf_can_get_2) begin
+                        hdr_en=3'b111;
+                        data_en  [1:0]=2'b11; 
+                        data_wr_incr=2;
+                        ready_in=1'b1;                   
+                    end
+                end 
+                if(L15_L1D_LINE_SIZE == 32 ) begin 
+                    dat_flit [0] = data_in[4*64-1 : 3*64];
+                    dat_flit [1] = data_in[5*64-1 : 4*64];
+                    dat_flit [2] = data_in[6*64-1 : 5*64];
+                    dat_flit [3] = data_in[7*64-1 : 6*64];
+                    if(header_buf_can_get_3 & data_buf_can_get_4) begin
+                        hdr_en=3'b111;
+                        data_en  [3:0]=4'b1111; 
+                        data_wr_incr=4;
+                        ready_in=1'b1;                   
+                    end
+                end
+                if(L15_L1D_LINE_SIZE == 64 ) begin 
+                    dat_flit [0] = data_in[4*64-1 : 3*64];
+                    dat_flit [1] = data_in[5*64-1 : 4*64];
+                    dat_flit [2] = data_in[6*64-1 : 5*64];
+                    dat_flit [3] = data_in[7*64-1 : 6*64];
+                    dat_flit [4] = data_in[8*64-1 : 7*64];                  
+                    if(header_buf_can_get_3 & data_buf_can_get_5) begin
+                        hdr_en=3'b111;
+                        data_en  [4:0]=5'b11111; 
+                        data_wr_incr=5;
+                        ready_in=1'b1; 
+                        ns_in=GET_DATA2;                   
+                    end
+                end
+			end
+		end //ideal		
+		GET_DATA : begin //only one 64b data remained
+            dat_flit [0] = data_in[63 : 0];           
+            if(data_buf_can_get_1) begin	
+                data_en[0]  =1'b1;
+                data_wr_incr=1; 			
+                ns_in = IDEAL;
+                ready_in=1'b1;
+            end		
+		end //GET_DATA
+        GET_DATA2 : begin //only 3 64b data remained
+            dat_flit [0] = data_in[63 : 0];
+            dat_flit [1] = data_in[2*64-1 : 1*64];
+            dat_flit [2] = data_in[3*64-1 : 2*64];
+            if(data_buf_can_get_3) begin	
+                data_en[2:0]  =3'b111;
+                data_wr_incr=3; 			
+                ns_in = IDEAL;
+                ready_in=1'b1;
+            end		
+		end //GET_DATA2
+
+
+		endcase
+    end//valid
+end
+
+wire [`L2_P2_HEADER_BUF_IN_LOG_SIZE-1:0] hdr_wr_incr =  
+     (hdr_en == 3'b111) ? 3 : 
+     (hdr_en == 3'b001) ? 1 : 0;
+
+
+always @ (*)begin
+    //header pointers
+    header_wr_ptr_next = header_wr_ptr_f + hdr_wr_incr;
+    header_buf_counter_next = header_buf_counter_f +  hdr_wr_incr;
+    header_rd_ptr_next = header_rd_ptr_f;
+    if(msg_header_valid_out && msg_header_ready_out) begin 
+        header_buf_counter_next = header_buf_counter_f +  hdr_wr_incr - msg_header_flits;
+        header_rd_ptr_next = header_rd_ptr_f + msg_header_flits;
+    end
+
+    //data pointers
+    data_wr_ptr_next = data_wr_ptr_f +  data_wr_incr;
+    data_buf_counter_next = data_buf_counter_f + data_wr_incr;
+    data_rd_ptr_next = data_rd_ptr_f;
+    if(msg_data_valid_out && msg_data_ready_out) begin 
+        data_buf_counter_next = data_buf_counter_f + data_wr_incr -`L2_P2_DATA_BUF_IN_FLITS;
+        data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
+    end
+end
+
+
+wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_3 = 
+    {header_buf_mem_f[header_rd_ptr_plus2], header_buf_mem_f[header_rd_ptr_plus1], header_buf_mem_f[header_rd_ptr_f]};
+
+wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_1= {{(2*`NOC_DATA_WIDTH){1'b0}},header_buf_mem_f[header_rd_ptr_f]}; 
+
+always @ (*)begin
+    msg_header_valid_out = (!header_buf_empty) && (header_buf_counter_f >= msg_header_flits);
+    msg_header_out = (msg_header_flits == 3) ? msg_header_out_3 : msg_header_out_1;
+    msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
+    msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
+end
+
+
+always @ (posedge clk) begin
+    if (!rst_n) begin 
+    	ps_in<=IDEAL;
+    	data_wr_ptr_f      <= 0;
+		header_wr_ptr_f    <= 0;
+		remained_data_f    <= 0;
+        data_buf_counter_f <= 0;
+        data_rd_ptr_f      <= 0;
+        header_buf_counter_f<=0;
+        header_rd_ptr_f    <=0;
+    end else begin 
+   		ps_in              <= ns_in;   		
+		data_wr_ptr_f      <= data_wr_ptr_next;
+		header_wr_ptr_f    <= header_wr_ptr_next;
+		remained_data_f    <= remained_data_next;
+        data_buf_counter_f <= data_buf_counter_next;
+        data_rd_ptr_f      <= data_rd_ptr_next;
+        header_buf_counter_f<=header_buf_counter_next;
+        header_rd_ptr_f    <= header_rd_ptr_next;
+   	end
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin   
+    ''')
+
+    for i in range(L2_P2_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    for i in range(L2_P2_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+
+    print('''
+    end
+    else 
+    begin
+       if (hdr_en[0]) header_buf_mem_f[header_wr_ptr_f] <= hdr_flit[0];
+       if (hdr_en[1]) header_buf_mem_f[header_wr_ptr_plus1] <= hdr_flit[1];
+       if (hdr_en[2]) header_buf_mem_f[header_wr_ptr_plus2] <= hdr_flit[2];
+       if (data_en [0]) data_buf_mem_f[data_wr_ptr_f]     <= dat_flit [0]; 
+       if (data_en [1]) data_buf_mem_f[data_wr_ptr_plus1] <= dat_flit [1];
+       if (data_en [2]) data_buf_mem_f[data_wr_ptr_plus2] <= dat_flit [2]; 
+       if (data_en [3]) data_buf_mem_f[data_wr_ptr_plus3] <= dat_flit [3]; 
+       if (data_en [4]) data_buf_mem_f[data_wr_ptr_plus4] <= dat_flit [4];   
+       if (data_en [5]) data_buf_mem_f[data_wr_ptr_plus5] <= dat_flit [5]; 
+       if (data_en [6]) data_buf_mem_f[data_wr_ptr_plus6] <= dat_flit [6];   
+    end
+   
+end
+
+    ''')   
+
+
+
+
+%>
+
+/*
+
+always @(posedge clk) begin
+if(msg_header_valid_out && msg_header_ready_out)
+    $display ("\tmsg_header_out= %h %m",msg_header_out);
+
+    if( msg_data_valid_out && msg_data_ready_out) begin
+        $display ("\tmsg_data_out=%h",msg_data_out);
+        if(msg_data_out=='d0)begin 
+        // $stop;
+        end
+    end
+end
+*/
 
 endmodule
 

@@ -42,7 +42,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `include "l2.tmp.h"
 `include "define.tmp.h"
 
-module l2_pipe2(
+module l2_pipe2 #(
+    parameter L15_L1D_LINE_SIZE =64
+)(
 
     input wire clk,
     input wire rst_n,
@@ -52,7 +54,7 @@ module l2_pipe2(
     //inputs from NOC3
    
     input wire noc_valid_in,
-    input wire [`NOC_DATA_WIDTH-1:0] noc_data_in,
+    input wire [`PITON_NOC3_WIDTH-1:0] noc_data_in,
     output wire noc_ready_in,
 
     input wire [`L2_MSHR_STATE_BITS-1:0] mshr_state_out,
@@ -231,7 +233,9 @@ wire stall_S3;
 assign msg_type_S1 = msg_type;
 
 
-l2_pipe2_buf_in buf_in(
+l2_pipe2_buf_in #(
+    .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
+)buf_in(
     .clk                    (clk),
     .rst_n                  (rst_n),
 

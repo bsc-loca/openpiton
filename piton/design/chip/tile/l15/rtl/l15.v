@@ -104,7 +104,7 @@ module l15 #(
 
     input                                   noc1_out_rdy,
     input                                   noc2_in_val,
-    input [`NOC_DATA_WIDTH-1:0]             noc2_in_data,
+    input [`PITON_NOC2_WIDTH-1:0]           noc2_in_data,
     input                                   noc3_out_rdy,
     input                                   dmbr_l15_stall,
     input [`NOC_CHIPID_WIDTH-1:0]           chipid,
@@ -119,10 +119,10 @@ module l15 #(
     input [`L15_HMT_BASE_ADDR_WIDTH-1:0]    config_hmt_base,
 
     output                                  noc1_out_val,
-    output [`NOC_DATA_WIDTH-1:0]            noc1_out_data,
+    output [`PITON_NOC1_WIDTH-1:0]          noc1_out_data,
     output                                  noc2_in_rdy,
     output                                  noc3_out_val,
-    output [`NOC_DATA_WIDTH-1:0]            noc3_out_data,
+    output [`PITON_NOC3_WIDTH-1:0]          noc3_out_data,
     output                                  l15_dmbr_l1missIn,
     output [`DMBR_TAG_WIDTH-1:0]            l15_dmbr_l1missTag,
     output                                  l15_dmbr_l2responseIn,

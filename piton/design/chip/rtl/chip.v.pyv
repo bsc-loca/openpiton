@@ -119,23 +119,23 @@ module chip (
 `endif // endif PITON_CHIP_FPGA
 `else // ifdef PITON_NO_CHIP_BRIDGE
    output                                       processor_offchip_noc1_valid,
-   output [`NOC_DATA_WIDTH-1:0]                 processor_offchip_noc1_data,
+   output [`PITON_NOC1_WIDTH-1:0]               processor_offchip_noc1_data,
    input                                        processor_offchip_noc1_yummy,
    output                                       processor_offchip_noc2_valid,
-   output [`NOC_DATA_WIDTH-1:0]                 processor_offchip_noc2_data,
+   output [`PITON_NOC2_WIDTH-1:0]               processor_offchip_noc2_data,
    input                                        processor_offchip_noc2_yummy,
    output                                       processor_offchip_noc3_valid,
-   output [`NOC_DATA_WIDTH-1:0]                 processor_offchip_noc3_data,
+   output [`PITON_NOC3_WIDTH-1:0]               processor_offchip_noc3_data,
    input                                        processor_offchip_noc3_yummy,
 
    input                                        offchip_processor_noc1_valid,
-   input  [`NOC_DATA_WIDTH-1:0]                 offchip_processor_noc1_data,
+   input  [`PITON_NOC1_WIDTH-1:0]               offchip_processor_noc1_data,
    output                                       offchip_processor_noc1_yummy,
    input                                        offchip_processor_noc2_valid,
-   input  [`NOC_DATA_WIDTH-1:0]                 offchip_processor_noc2_data,
+   input  [`PITON_NOC2_WIDTH-1:0]               offchip_processor_noc2_data,
    output                                       offchip_processor_noc2_yummy,
    input                                        offchip_processor_noc3_valid,
-   input  [`NOC_DATA_WIDTH-1:0]                 offchip_processor_noc3_data,
+   input  [`PITON_NOC3_WIDTH-1:0]               offchip_processor_noc3_data,
    output                                       offchip_processor_noc3_yummy
 `endif // endif PITON_NO_CHIP_BRIDGE
 
@@ -266,70 +266,70 @@ module chip (
 
    // Chip bridge val/rdy interface
    wire                                         chip_intf_noc1_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   chip_intf_noc1_data;
+   wire [`PITON_NOC1_WIDTH-1:0]                 chip_intf_noc1_data;
    wire                                         chip_intf_noc1_rdy;
    wire                                         chip_intf_noc2_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   chip_intf_noc2_data;
+   wire [`PITON_NOC2_WIDTH-1:0]                 chip_intf_noc2_data;
    wire                                         chip_intf_noc2_rdy;
    wire                                         chip_intf_noc3_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   chip_intf_noc3_data;
+   wire [`PITON_NOC3_WIDTH-1:0]                 chip_intf_noc3_data;
    wire                                         chip_intf_noc3_rdy;
 
    wire                                         intf_chip_noc1_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   intf_chip_noc1_data;
+   wire [`PITON_NOC1_WIDTH-1:0]                 intf_chip_noc1_data;
    wire                                         intf_chip_noc1_rdy;
    wire                                         intf_chip_noc2_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   intf_chip_noc2_data;
+   wire [`PITON_NOC2_WIDTH-1:0]                 intf_chip_noc2_data;
    wire                                         intf_chip_noc2_rdy;
    wire                                         intf_chip_noc3_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   intf_chip_noc3_data;
+   wire [`PITON_NOC3_WIDTH-1:0]                 intf_chip_noc3_data;
    wire                                         intf_chip_noc3_rdy;
 
 `ifndef PITON_NO_CHIP_BRIDGE
    // Need to convert a chip bridge interface to these if PITON_NO_CHIP_BRIDGE
    // is not specified
    wire                                         processor_offchip_noc1_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   processor_offchip_noc1_data;
+   wire [`PITON_NOC1_WIDTH-1:0]                 processor_offchip_noc1_data;
    wire                                         processor_offchip_noc1_yummy;
    wire                                         processor_offchip_noc2_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   processor_offchip_noc2_data;
+   wire [`PITON_NOC2_WIDTH-1:0]                 processor_offchip_noc2_data;
    wire                                         processor_offchip_noc2_yummy;
    wire                                         processor_offchip_noc3_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   processor_offchip_noc3_data;
+   wire [`PITON_NOC3_WIDTH-1:0]                 processor_offchip_noc3_data;
    wire                                         processor_offchip_noc3_yummy;
 
    wire                                         offchip_processor_noc1_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   offchip_processor_noc1_data;
+   wire [`PITON_NOC1_WIDTH-1:0]                 offchip_processor_noc1_data;
    wire                                         offchip_processor_noc1_yummy;
    wire                                         offchip_processor_noc2_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   offchip_processor_noc2_data;
+   wire [`PITON_NOC2_WIDTH-1:0]                 offchip_processor_noc2_data;
    wire                                         offchip_processor_noc2_yummy;
    wire                                         offchip_processor_noc3_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   offchip_processor_noc3_data;
+   wire [`PITON_NOC3_WIDTH-1:0]                 offchip_processor_noc3_data;
    wire                                         offchip_processor_noc3_yummy;
 `endif // endif PITON_NO_CHIP_BRIDGE
 
    // ORAM muxed outputs
    reg                                          proc_oram_yummy;
    reg                                          oram_proc_valid;
-   reg  [`NOC_DATA_WIDTH-1:0]                   oram_proc_data;
+   reg  [`PITON_NOC3_WIDTH-1:0]                 oram_proc_data;
    reg                                          offchip_oram_yummy;
    reg                                          oram_offchip_valid;
-   reg  [`NOC_DATA_WIDTH-1:0]                   oram_offchip_data;
+   reg  [`PITON_NOC2_WIDTH-1:0]                 oram_offchip_data;
 
    // ORAM Signals
    wire                                         proc_oram_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   proc_oram_data;
+   wire [`PITON_NOC2_WIDTH-1:0]                 proc_oram_data;
    wire                                         proc_oram_yummy_oram;
    wire                                         oram_proc_valid_oram;
-   wire [`NOC_DATA_WIDTH-1:0]                   oram_proc_data_oram;
+   wire [`PITON_NOC3_WIDTH-1:0]                 oram_proc_data_oram;
    wire                                         oram_proc_yummy;
 
    wire                                         offchip_oram_valid;
-   wire [`NOC_DATA_WIDTH-1:0]                   offchip_oram_data;
+   wire [`PITON_NOC3_WIDTH-1:0]                 offchip_oram_data;
    wire                                         offchip_oram_yummy_oram;
    wire                                         oram_offchip_valid_oram;
-   wire [`NOC_DATA_WIDTH-1:0]                   oram_offchip_data_oram;
+   wire [`PITON_NOC2_WIDTH-1:0]                 oram_offchip_data_oram;
    wire                                         oram_offchip_yummy;
 
    // ORAM JTAG Signals
@@ -386,10 +386,10 @@ module chip (
                flatid = i + (j * PITON_X_TILES);
                for k in [1,2,3]:
                    # print "`ifdef RTL_SPARC%d" % flatid
-                   print("wire [`DATA_WIDTH-1:0] tile_%d_%d_out_N_noc%d_data;" % (j,i,k))
-                   print("wire [`DATA_WIDTH-1:0] tile_%d_%d_out_S_noc%d_data;" % (j,i,k))
-                   print("wire [`DATA_WIDTH-1:0] tile_%d_%d_out_E_noc%d_data;" % (j,i,k))
-                   print("wire [`DATA_WIDTH-1:0] tile_%d_%d_out_W_noc%d_data;" % (j,i,k))
+                   print("wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_N_noc%d_data;" % (k,j,i,k))
+                   print("wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_S_noc%d_data;" % (k,j,i,k))
+                   print("wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_E_noc%d_data;" % (k,j,i,k))
+                   print("wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_W_noc%d_data;" % (k,j,i,k))
                    print("wire tile_%d_%d_out_N_noc%d_valid;" % (j,i,k))
                    print("wire tile_%d_%d_out_S_noc%d_valid;" % (j,i,k))
                    print("wire tile_%d_%d_out_E_noc%d_valid;" % (j,i,k))
@@ -399,10 +399,10 @@ module chip (
                    print("wire tile_%d_%d_out_E_noc%d_yummy;" % (j,i,k))
                    print("wire tile_%d_%d_out_W_noc%d_yummy;" % (j,i,k))
                    # print "`else"
-                   # print "wire [`DATA_WIDTH-1:0] tile_%d_%d_out_N_noc%d_data = `DATA_WIDTH'b0;" % (j,i,k)
-                   # print "wire [`DATA_WIDTH-1:0] tile_%d_%d_out_S_noc%d_data = `DATA_WIDTH'b0;" % (j,i,k)
-                   # print "wire [`DATA_WIDTH-1:0] tile_%d_%d_out_E_noc%d_data = `DATA_WIDTH'b0;" % (j,i,k)
-                   # print "wire [`DATA_WIDTH-1:0] tile_%d_%d_out_W_noc%d_data = `DATA_WIDTH'b0;" % (j,i,k)
+                   # print "wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_N_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,j,i,k,k)
+                   # print "wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_S_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,j,i,k,k)
+                   # print "wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_E_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,j,i,k,k)
+                   # print "wire [`PITON_NOC%d_WIDTH-1:0] tile_%d_%d_out_W_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,j,i,k,k)
                    # print "wire tile_%d_%d_out_N_noc%d_valid = 1'b0;" % (j,i,k)
                    # print "wire tile_%d_%d_out_S_noc%d_valid = 1'b0;" % (j,i,k)
                    # print "wire tile_%d_%d_out_E_noc%d_valid = 1'b0;" % (j,i,k)
@@ -414,10 +414,10 @@ module chip (
                    # print "`endif"
        # make some dummy signals
        for k in [1,2,3]:
-           print("wire [`DATA_WIDTH-1:0] dummy_out_N_noc%d_data = `DATA_WIDTH'b0;" % (k))
-           print("wire [`DATA_WIDTH-1:0] dummy_out_S_noc%d_data = `DATA_WIDTH'b0;" % (k))
-           print("wire [`DATA_WIDTH-1:0] dummy_out_E_noc%d_data = `DATA_WIDTH'b0;" % (k))
-           print("wire [`DATA_WIDTH-1:0] dummy_out_W_noc%d_data = `DATA_WIDTH'b0;" % (k))
+           print("wire [`PITON_NOC%d_WIDTH-1:0] dummy_out_N_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,k,k))
+           print("wire [`PITON_NOC%d_WIDTH-1:0] dummy_out_S_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,k,k))
+           print("wire [`PITON_NOC%d_WIDTH-1:0] dummy_out_E_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,k,k))
+           print("wire [`PITON_NOC%d_WIDTH-1:0] dummy_out_W_noc%d_data = `PITON_NOC%d_WIDTH'b0;" % (k,k,k))
            print("wire dummy_out_N_noc%d_valid = 1'b0;" % (k))
            print("wire dummy_out_S_noc%d_valid = 1'b0;" % (k))
            print("wire dummy_out_E_noc%d_valid = 1'b0;" % (k))
@@ -428,8 +428,8 @@ module chip (
            print("wire dummy_out_W_noc%d_yummy = 1'b0;" % (k))
        # make offchip signals
        for k in [1,2,3]:
-           # print "wire [`DATA_WIDTH-1:0] offchip_out_S_noc%d_data;" % (k)
-           print("wire [`DATA_WIDTH-1:0] offchip_out_E_noc%d_data;" % (k))
+           # print "wire [`PITON_NOC%d_WIDTH-1:0] offchip_out_S_noc%d_data;" % (k,k)
+           print("wire [`PITON_NOC%d_WIDTH-1:0] offchip_out_E_noc%d_data;" % (k,k))
            # print "wire offchip_out_S_noc%d_valid;" % (k)
            print("wire offchip_out_E_noc%d_valid;" % (k))
            # print "wire offchip_out_S_noc%d_yummy;" % (k)
@@ -858,7 +858,11 @@ module chip (
 
    // Chip Bridge val/rdy to credit
 
-   valrdy_to_credit #(4, 3) chip_from_intf_noc1_v2c(
+   valrdy_to_credit #(
+      .BUFFER_SIZE(4),
+      .BUFFER_BITS(3),
+      .FLIT_WIDTH(`PITON_NOC1_WIDTH)
+   ) chip_from_intf_noc1_v2c(
       .clk(clk_muxed),
       .reset(~rst_n_inter_sync_f),
       .data_in(intf_chip_noc1_data),
@@ -870,7 +874,7 @@ module chip (
       .yummy_out(offchip_processor_noc1_yummy)    // Yummy signal
    );
 
-   credit_to_valrdy chip_to_intf_noc1_c2v(
+   credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC1_WIDTH)) chip_to_intf_noc1_c2v(
       .clk(clk_muxed),
       .reset(~rst_n_inter_sync_f),
       .data_in(processor_offchip_noc1_data),
@@ -882,7 +886,11 @@ module chip (
       .ready_out(chip_intf_noc1_rdy)    // Rdy signal from processor to dynamic network
    );
 
-   valrdy_to_credit #(4, 3) chip_from_intf_noc2_v2c(
+   valrdy_to_credit #(
+      .BUFFER_SIZE(4),
+      .BUFFER_BITS(3),
+      .FLIT_WIDTH(`PITON_NOC2_WIDTH)
+   ) chip_from_intf_noc2_v2c(
       .clk(clk_muxed),
       .reset(~rst_n_inter_sync_f),
       .data_in(intf_chip_noc2_data),
@@ -894,7 +902,7 @@ module chip (
       .yummy_out(offchip_processor_noc2_yummy)    // Yummy signal
    );
 
-   credit_to_valrdy chip_to_intf_noc2_c2v(
+   credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) chip_to_intf_noc2_c2v(
       .clk(clk_muxed),
       .reset(~rst_n_inter_sync_f),
       .data_in(processor_offchip_noc2_data),
@@ -906,7 +914,11 @@ module chip (
       .ready_out(chip_intf_noc2_rdy)    // Rdy signal from processor to dynamic network
    );
 
-   valrdy_to_credit #(4, 3) chip_from_intf_noc3_v2c(
+   valrdy_to_credit #(
+      .BUFFER_SIZE(4),
+      .BUFFER_BITS(3),
+      .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+   ) chip_from_intf_noc3_v2c(
       .clk(clk_muxed),
       .reset(~rst_n_inter_sync_f),
       .data_in(intf_chip_noc3_data),
@@ -918,7 +930,7 @@ module chip (
       .yummy_out(offchip_processor_noc3_yummy)    // Yummy signal
    );
 
-   credit_to_valrdy chip_to_intf_noc3_c2v(
+   credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) chip_to_intf_noc3_c2v(
       .clk(clk_muxed),
       .reset(~rst_n_inter_sync_f),
       .data_in(processor_offchip_noc3_data),
@@ -1000,7 +1012,7 @@ module chip (
 <%
    if (PITON_NETWORK_CONFIG == "xbar_config"):
        xbartemplate = r'''
-       dynamic_node_top_wrap_para xbar_noc1(
+       dynamic_node_top_wrap_para #(.FLIT_WIDTH(FLIT_WIDTH)) xbar_noc1(
            .clk                (clk_muxed),
            .reset_in           (~rst_n_inter_sync),
 

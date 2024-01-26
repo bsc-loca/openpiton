@@ -455,23 +455,23 @@ wire [2:0]          chip_intf_credit_back;
 // Chip interface signals without a chip bridge
 // the three NoCs are not decoded. Optimization for FPGA
 wire                         processor_offchip_noc1_valid;
-wire [`NOC_DATA_WIDTH-1:0]   processor_offchip_noc1_data;
+wire [`PITON_NOC1_WIDTH-1:0] processor_offchip_noc1_data;
 wire                         processor_offchip_noc1_yummy;
 wire                         processor_offchip_noc2_valid;
-wire [`NOC_DATA_WIDTH-1:0]   processor_offchip_noc2_data;
+wire [`PITON_NOC2_WIDTH-1:0] processor_offchip_noc2_data;
 wire                         processor_offchip_noc2_yummy;
 wire                         processor_offchip_noc3_valid;
-wire [`NOC_DATA_WIDTH-1:0]   processor_offchip_noc3_data;
+wire [`PITON_NOC3_WIDTH-1:0] processor_offchip_noc3_data;
 wire                         processor_offchip_noc3_yummy;
 
 wire                         offchip_processor_noc1_valid;
-wire [`NOC_DATA_WIDTH-1:0]   offchip_processor_noc1_data;
+wire [`PITON_NOC1_WIDTH-1:0] offchip_processor_noc1_data;
 wire                         offchip_processor_noc1_yummy;
 wire                         offchip_processor_noc2_valid;
-wire [`NOC_DATA_WIDTH-1:0]   offchip_processor_noc2_data;
+wire [`PITON_NOC2_WIDTH-1:0] offchip_processor_noc2_data;
 wire                         offchip_processor_noc2_yummy;
 wire                         offchip_processor_noc3_valid;
-wire [`NOC_DATA_WIDTH-1:0]   offchip_processor_noc3_data;
+wire [`PITON_NOC3_WIDTH-1:0] offchip_processor_noc3_data;
 wire                         offchip_processor_noc3_yummy;
 
 // Passthru<->chipset source synchronous differential clocks

@@ -49,15 +49,20 @@ module fake_mem_ctrl(
     input wire rst_n,
 
     input wire noc_valid_in,
-    input wire [`NOC_DATA_WIDTH-1:0] noc_data_in,
+    input wire [`PITON_NOC2_WIDTH-1:0] noc_data_in,
     output reg noc_ready_in,
 
 
     output reg noc_valid_out,
-    output reg [`NOC_DATA_WIDTH-1:0] noc_data_out,
+    output  [`PITON_NOC3_WIDTH-1:0] noc_data_out,
     input wire noc_ready_out
 
 );
+localparam 
+    //each word is 64 bit 
+    NOC2_WORD_NUM = `PITON_NOC2_WIDTH/`NOC_DATA_WIDTH,
+    NOC3_WORD_NUM = `PITON_NOC3_WIDTH/`NOC_DATA_WIDTH;
+
 
 reg mem_valid_in;
 reg [3*`NOC_DATA_WIDTH-1:0] mem_header_in;
@@ -82,7 +87,7 @@ always @ *
 begin
     if (noc_valid_in && noc_ready_in)
     begin
-        buf_in_counter_next = buf_in_counter_f + 1;
+        buf_in_counter_next = buf_in_counter_f + NOC2_WORD_NUM;
     end
     else if (mem_valid_in && mem_ready_in)
     begin
@@ -115,7 +120,7 @@ begin
     end
     else if (noc_valid_in && noc_ready_in)
     begin
-        buf_in_wr_ptr_next = buf_in_wr_ptr_f + 1;
+        buf_in_wr_ptr_next = buf_in_wr_ptr_f + NOC2_WORD_NUM;
     end
     else
     begin
@@ -136,40 +141,41 @@ begin
     end
 end
 
+wire [`NOC_DATA_WIDTH-1 : 0] data_in_64b  [0: NOC2_WORD_NUM-1];
 
-always @ *
-begin
-    if (noc_valid_in && noc_ready_in)
-    begin
-        buf_in_mem_next = noc_data_in;
-    end
-    else
-    begin
-        buf_in_mem_next = buf_in_mem_f[buf_in_wr_ptr_f];
-    end
+genvar i;
+generate 
+for (i=0;i<NOC2_WORD_NUM;i=i+1) begin : N2_
+    assign data_in_64b[i] = noc_data_in[(i+1)*`NOC_DATA_WIDTH-1: i*`NOC_DATA_WIDTH];
+
 end
-
-always @ (posedge clk)
-begin
+for (i=0;i<11;i=i+1) begin : IN_ 
+    integer k;
+    always @ (posedge clk) begin
     if (!rst_n)
     begin
-        buf_in_mem_f[buf_in_wr_ptr_f] <= 0;
+            buf_in_mem_f[i] <= 0;
     end
-    else
+        else if (noc_valid_in && noc_ready_in)
     begin
-        buf_in_mem_f[buf_in_wr_ptr_f] <= buf_in_mem_next;
+            for(k=0; k<NOC2_WORD_NUM;k=k+1)begin
+                buf_in_mem_f[buf_in_wr_ptr_f+k] <=   data_in_64b[k];
+    end
+end
     end
 end
 
+endgenerate
+
 
 always @ *
 begin
-    mem_valid_in = (buf_in_counter_f != 0) && (buf_in_counter_f == (buf_in_mem_f[0][`MSG_LENGTH]+1));
+    mem_valid_in = (buf_in_counter_f != 0) && (buf_in_counter_f >= (buf_in_mem_f[0][`MSG_LENGTH]+1));
 end
 
 always @ *
 begin
-    mem_header_in = {buf_in_mem_f[2], buf_in_mem_f[1], buf_in_mem_f[0]};
+     mem_header_in = (mem_valid_in)? {buf_in_mem_f[2], buf_in_mem_f[1], buf_in_mem_f[0]} : {`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0} ;
 end
 
 //Memory read/write
@@ -600,6 +606,11 @@ reg [`MSG_LENGTH_WIDTH-1:0] buf_out_counter_next;
 reg [3:0] buf_out_rd_ptr_f;
 reg [3:0] buf_out_rd_ptr_next;
 
+generate
+for (i=0;i<NOC3_WORD_NUM;i=i+1) begin : N3_
+    assign noc_data_out [(i+1)*`NOC_DATA_WIDTH-1: i*`NOC_DATA_WIDTH] =(buf_out_rd_ptr_f+i<9)? buf_out_mem_f[buf_out_rd_ptr_f+i] :`NOC_DATA_WIDTH'd0 ;
+end
+endgenerate
 always @ *
 begin
     noc_valid_out = (buf_out_counter_f != 0);
@@ -615,7 +626,7 @@ always @ *
 begin
     if (noc_valid_out && noc_ready_out)
     begin
-        buf_out_counter_next = buf_out_counter_f - 1;
+        buf_out_counter_next = (buf_out_counter_f > NOC3_WORD_NUM) ? buf_out_counter_f - NOC3_WORD_NUM : 0;
     end
     else if (mem_valid_in && mem_ready_in)
     begin
@@ -648,7 +659,7 @@ begin
     end
     else if (noc_valid_out && noc_ready_out)
     begin
-        buf_out_rd_ptr_next = buf_out_rd_ptr_f + 1;
+        buf_out_rd_ptr_next = buf_out_rd_ptr_f + NOC3_WORD_NUM;
     end
     else
     begin
@@ -732,6 +743,7 @@ begin
     noc_valid_out = (buf_out_counter_f != 0);
 end
 
+/*
 always @ *
 begin
     // Tri: another quick fix for x
@@ -739,7 +751,7 @@ begin
     if (buf_out_rd_ptr_f < 9)
         noc_data_out = buf_out_mem_f[buf_out_rd_ptr_f];
 end
-
+*/
 `ifndef MINIMAL_MONITORING
 always @(posedge clk) begin
     if (noc_valid_in & noc_ready_in) begin

@@ -39,9 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module dynamic_output_top(data_out, thanks_a_out, thanks_b_out, thanks_c_out, thanks_d_out, thanks_x_out, valid_out, popped_interrupt_mesg_out, popped_memory_ack_mesg_out, popped_memory_ack_mesg_out_sender, ec_wants_to_send_but_cannot, clk, reset, route_req_a_in, route_req_b_in, route_req_c_in, route_req_d_in, route_req_x_in, tail_a_in, tail_b_in, tail_c_in, tail_d_in, tail_x_in, data_a_in, data_b_in, data_c_in, data_d_in, data_x_in, valid_a_in, valid_b_in, valid_c_in, valid_d_in, valid_x_in, default_ready_in, yummy_in);
 
 parameter KILL_HEADERS = 1'b0;
+parameter FLIT_WIDTH=64;
 
 // begin port declarations
-output [`DATA_WIDTH-1:0] data_out;
+output [FLIT_WIDTH-1:0] data_out;
 
 output thanks_a_out;
 output thanks_b_out;
@@ -72,11 +73,11 @@ input tail_c_in;
 input tail_d_in;
 input tail_x_in;
 
-input [`DATA_WIDTH-1:0] data_a_in;
-input [`DATA_WIDTH-1:0] data_b_in;
-input [`DATA_WIDTH-1:0] data_c_in;
-input [`DATA_WIDTH-1:0] data_d_in;
-input [`DATA_WIDTH-1:0] data_x_in;
+input [FLIT_WIDTH-1:0] data_a_in;
+input [FLIT_WIDTH-1:0] data_b_in;
+input [FLIT_WIDTH-1:0] data_c_in;
+input [FLIT_WIDTH-1:0] data_d_in;
+input [FLIT_WIDTH-1:0] data_x_in;
 input valid_a_in;
 input valid_b_in;
 input valid_c_in;
@@ -108,15 +109,25 @@ wire valid_out_pre;
 wire data_out_len_zero;
 wire data_out_interrupt_user_bits_set;
 wire data_out_memory_ack_user_bits_set;
-wire [`DATA_WIDTH-1:0] data_out_internal;
+wire [FLIT_WIDTH-1:0] data_out_internal;
 wire valid_out_internal;
 
 //wire regs
 reg current_route_req;
+// length_in is the number of 64-bits flit. we need to modify it for larger FLIT_WIDTH
+localparam OFFSET_LEN =  $clog2(FLIT_WIDTH / 64);
+reg [`PAYLOAD_LEN-1:0]  length_flit;
+wire  [`PAYLOAD_LEN-1:0]  length_in;
+assign length_in = data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-5:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-4-`PAYLOAD_LEN];
+
+always @(*) begin 
+  length_flit = `PAYLOAD_LEN'd0;
+  length_flit=length_in[`PAYLOAD_LEN-1:OFFSET_LEN];
+end
 
 //assigns
 assign valid_out_internal = valid_out_pre & ~(KILL_HEADERS & current_route_req);
-assign data_out_len_zero = data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-4:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-3-`PAYLOAD_LEN] == `PAYLOAD_LEN'd0;
+assign data_out_len_zero = length_flit == `PAYLOAD_LEN'd0;
 assign data_out_interrupt_user_bits_set = data_out_internal[23:20] == 4'b1111;
 assign data_out_memory_ack_user_bits_set = data_out_internal[23:20] == 4'b1110;
 //assign popped_zero_len_mesg_out = data_out_len_zero & valid_out_pre & (KILL_HEADERS & current_route_req);
@@ -129,7 +140,7 @@ assign valid_out = valid_out_internal;
 
 //instantiations
 space_avail_top space(.valid(valid_out_internal), .clk(clk), .reset(reset), .yummy(yummy_in),.spc_avail(space_avail_connection));
-dynamic_output_datapath datapath(.data_out(data_out_internal), .valid_out_temp(valid_out_temp_connection), .data_a_in(data_a_in), .data_b_in(data_b_in), .data_c_in(data_c_in), .data_d_in(data_d_in), .data_x_in(data_x_in), .valid_a_in(valid_a_in), .valid_b_in(valid_b_in), .valid_c_in(valid_c_in), .valid_d_in(valid_d_in), .valid_x_in(valid_x_in), .current_route_in(current_route_connection));
+dynamic_output_datapath #(.FLIT_WIDTH(FLIT_WIDTH)) datapath(.data_out(data_out_internal), .valid_out_temp(valid_out_temp_connection), .data_a_in(data_a_in), .data_b_in(data_b_in), .data_c_in(data_c_in), .data_d_in(data_d_in), .data_x_in(data_x_in), .valid_a_in(valid_a_in), .valid_b_in(valid_b_in), .valid_c_in(valid_c_in), .valid_d_in(valid_d_in), .valid_x_in(valid_x_in), .current_route_in(current_route_connection));
 
 dynamic_output_control control(.thanks_a(thanks_a_out), .thanks_b(thanks_b_out), .thanks_c(thanks_c_out), .thanks_d(thanks_d_out), .thanks_x(thanks_x_out), .valid_out(valid_out_pre), .current_route(current_route_connection), .ec_wants_to_send_but_cannot(ec_wants_to_send_but_cannot), .clk(clk), .reset(reset), .route_req_a_in(route_req_a_in), .route_req_b_in(route_req_b_in), .route_req_c_in(route_req_c_in), .route_req_d_in(route_req_d_in), .route_req_x_in(route_req_x_in), .tail_a_in(tail_a_in), .tail_b_in(tail_b_in), .tail_c_in(tail_c_in), .tail_d_in(tail_d_in), .tail_x_in(tail_x_in), .valid_out_temp(valid_out_temp_connection), .default_ready(default_ready_in), .space_avail(space_avail_connection));
 //NOTE TO READER.  I like the way that these instantiations look so if it

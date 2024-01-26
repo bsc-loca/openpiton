@@ -69,31 +69,36 @@ module noc3encoder #(
 
     output reg noc3encoder_l15_req_ack,
 
-    output reg noc3encoder_noc3out_val,
-    output reg [63:0] noc3encoder_noc3out_data
+    output noc3encoder_noc3out_val,
+    output [`PITON_NOC3_WIDTH-1:0] noc3encoder_noc3out_data
    );
 
 localparam L15_MAX_DATA_PACKETS = L15_L1D_LINE_SIZE/`NOC_BYTES_WIDTH;
 
-reg [63:0] flit;
+localparam 
+    NOC_WIDTH = `PITON_NOC3_WIDTH,
+    NOC3_WORDS_NUM = NOC_WIDTH /64;
+
+
+reg [`PITON_NOC3_WIDTH-1:0] flit;
 reg [`NOC3_FLIT_STATE_WIDTH-1:0] flit_state;
 reg [`NOC3_FLIT_STATE_WIDTH-1:0] flit_state_next;
 
-reg [`PHY_ADDR_WIDTH-1:0] address;
-reg [`NOC_X_WIDTH-1:0] dest_l2_xpos;
-reg [`NOC_Y_WIDTH-1:0] dest_l2_ypos;
-reg [`NOC_CHIPID_WIDTH-1:0] dest_chipid;
-reg [`NOC_FBITS_WIDTH-1:0] dest_fbits;
-reg [`NOC_X_WIDTH-1:0] src_l2_xpos;
-reg [`NOC_Y_WIDTH-1:0] src_l2_ypos;
-reg [`NOC_CHIPID_WIDTH-1:0] src_chipid;
-reg [`NOC_FBITS_WIDTH-1:0] src_fbits;
+wire [`PHY_ADDR_WIDTH-1:0] address;
+wire [`NOC_X_WIDTH-1:0] dest_l2_xpos;
+wire [`NOC_Y_WIDTH-1:0] dest_l2_ypos;
+wire [`NOC_CHIPID_WIDTH-1:0] dest_chipid;
+wire [`NOC_FBITS_WIDTH-1:0] dest_fbits;
+wire [`NOC_X_WIDTH-1:0] src_l2_xpos;
+wire [`NOC_Y_WIDTH-1:0] src_l2_ypos;
+wire [`NOC_CHIPID_WIDTH-1:0] src_chipid;
+wire [`NOC_FBITS_WIDTH-1:0] src_fbits;
 reg [`MSG_LENGTH_WIDTH-1:0] msg_length;
 reg [`MSG_TYPE_WIDTH-1:0] msg_type;
-reg [`MSG_MSHRID_WIDTH-1:0] msg_mshrid;
+wire [`MSG_MSHRID_WIDTH-1:0] msg_mshrid;
 reg [`MSG_MESI_BITS-1:0] msg_mesi;
 // reg [`MSG_SUBLINE_ID_WIDTH-1:0] msg_subline_id;
-reg [`MSG_LAST_SUBLINE_WIDTH-1:0] msg_last_subline;
+wire [`MSG_LAST_SUBLINE_WIDTH-1:0] msg_last_subline;
 reg [`MSG_OPTIONS_1] msg_options_1;
 reg [`MSG_OPTIONS_2_] msg_options_2;
 reg [`MSG_OPTIONS_3_] msg_options_3;
@@ -102,43 +107,162 @@ reg [`MSG_CACHE_TYPE_WIDTH-1:0] msg_cache_type;
 reg [`MSG_SUBLINE_VECTOR_WIDTH-1:0] msg_subline_vector;
 reg [`MSG_DATA_SIZE_WIDTH-1:0] msg_data_size;
 
-reg sending;
-reg is_request;
-reg is_response;
+
+wire is_request;
+wire is_response;
 // reg msg_last_subline;
-reg [1:0] last_subcacheline_id;
+wire [1:0] last_subcacheline_id;
 
-
+reg send_done;
 // 9/24/14: add buffer between dcache and output
-reg [63:0] l15_noc3encoder_req_data_0_f;
-// reg [63:0] l15_noc3encoder_req_data_1_f;
-integer n_data_packet;
-always @ (posedge clk)
-begin
-    if (!rst_n)
-    begin
-        l15_noc3encoder_req_data_0_f <= 0;
-    end
-    else
-    begin
-        if (l15_noc3encoder_req_val) begin
-            if(is_response) begin
-                if(flit_state_next == `NOC3_RES_DATA_1) 
-                    l15_noc3encoder_req_data_0_f <= l15_noc3encoder_req_data[`L15_UNPARAM_63_0];
-                else if(flit_state_next == `NOC3_RES_DATA_2)
-                    l15_noc3encoder_req_data_0_f <= l15_noc3encoder_req_data[`L15_UNPARAM_127_64];
-            end
-            else if(is_request)
-            begin
-                for (n_data_packet=0;n_data_packet<L15_MAX_DATA_PACKETS;n_data_packet=n_data_packet+1) begin
-                    if(flit_state_next == n_data_packet+`NOC3_REQ_DATA_1)  begin
-                        l15_noc3encoder_req_data_0_f <= l15_noc3encoder_req_data[(n_data_packet*64)+:64];
-                    end
-                end
-            end
+localparam 
+    BUFFER_WIDTH = 
+    (`PITON_NOC3_WIDTH == 64  ) ?  1 :
+    (`PITON_NOC3_WIDTH == 128 || L15_MAX_DATA_PACKETS <= 2 ) ?  2 : 
+    (`PITON_NOC3_WIDTH == 256 || L15_MAX_DATA_PACKETS <= 4 ) ?  4 : 8 ,
+    SUB_FLIT_WIDTH = (NOC3_WORDS_NUM<4)? 4 : NOC3_WORDS_NUM;
+
+reg [63:0] l15_noc3encoder_req_data_f [0 : BUFFER_WIDTH-1]; // The buffer between dcache and output
+wire [63 : 0] l15_noc3encoder_req_data_array [0 : L15_MAX_DATA_PACKETS-1];
+
+wire  [`NOC3_FLIT_STATE_WIDTH-1:0] ptr; // point to where data flit should be captured from buffer
+wire [`NOC3_FLIT_STATE_WIDTH-1:0] data_ptr = (is_response)? `NOC3_RES_DATA_1 :`NOC3_REQ_DATA_1 ; //point to where the data flit starts
+
+wire sending_hdr = flit_state < data_ptr;
+wire [`NOC3_FLIT_STATE_WIDTH-1:0] flit_state_incr;
+
+
+assign ptr = (flit_state_next > data_ptr) ? flit_state_next - data_ptr : 0;
+
+/*
+always @ (posedge clk)    begin
+    if (!rst_n) ptr <= 0;
+    else begin  
+        if (l15_noc3encoder_req_val ) begin
+            if(send_done) ptr <= 0;
+            else
+                if(flit_state_next < data_ptr )   ptr<= (flit_state_next > data_ptr) ? flit_state_next - data_ptr : 0;
+                else ptr<=ptr + NOC3_WORDS_NUM;                      
         end
+    end//else
+end //always
+*/
+
+genvar i;
+generate 
+    for (i=0; i< L15_MAX_DATA_PACKETS; i=i+1) begin : sep 
+        assign l15_noc3encoder_req_data_array [i] = l15_noc3encoder_req_data [(i+1)*64-1 : i*64];
     end
-end            
+    for (i=0; i<BUFFER_WIDTH; i=i+1) begin : buff
+         always @ (posedge clk)    begin
+              if (!rst_n) l15_noc3encoder_req_data_f [i] <= 0;
+              else begin  
+                 if(ptr < L15_MAX_DATA_PACKETS-i ) l15_noc3encoder_req_data_f [i] <= l15_noc3encoder_req_data_array[ptr + i ];
+                        
+              end//else
+           end //always
+    end
+endgenerate
+
+
+
+
+reg [63:0] sub_flit [SUB_FLIT_WIDTH-1 : 0];
+integer ii;
+
+always @ (*) begin
+    // so that the flit is not a latch
+    sub_flit[0]=64'd0; 
+    sub_flit[1]=64'd0;   
+    sub_flit[2]=64'd0;   
+  
+   if(is_request) begin 
+        sub_flit[0][`MSG_DST_CHIPID] = dest_chipid;
+        sub_flit[0][`MSG_DST_X] = dest_l2_xpos;
+        sub_flit[0][`MSG_DST_Y] = dest_l2_ypos;
+        sub_flit[0][`MSG_DST_FBITS] = dest_fbits;
+        sub_flit[0][`MSG_LENGTH] = msg_length;
+        sub_flit[0][`MSG_TYPE] = msg_type;
+        sub_flit[0][`MSG_MSHRID] = msg_mshrid;
+        sub_flit[0][`MSG_OPTIONS_1] = msg_options_1;    
+        
+        if (msg_length > 0) begin 
+            sub_flit[1][`MSG_ADDR_] = address;
+            sub_flit[1][`MSG_OPTIONS_2_] = msg_options_2;
+        end
+    
+        if (msg_length > 1) begin       
+            sub_flit[2][`MSG_SRC_CHIPID_] = src_chipid;
+            sub_flit[2][`MSG_SRC_X_] = src_l2_xpos;
+            sub_flit[2][`MSG_SRC_Y_] = src_l2_ypos;
+            sub_flit[2][`MSG_SRC_FBITS_] = src_fbits;
+            sub_flit[2][`MSG_OPTIONS_3_] = msg_options_3;
+        end
+   end else begin 
+        sub_flit[0][`MSG_DST_CHIPID] = dest_chipid;
+        sub_flit[0][`MSG_DST_X] = dest_l2_xpos;
+        sub_flit[0][`MSG_DST_Y] = dest_l2_ypos;
+        sub_flit[0][`MSG_DST_FBITS] = dest_fbits;
+        sub_flit[0][`MSG_LENGTH] = msg_length;
+        sub_flit[0][`MSG_TYPE] = msg_type;
+        sub_flit[0][`MSG_MSHRID] = msg_mshrid;
+        sub_flit[0][`MSG_OPTIONS_4] = msg_options_4;
+
+
+        if (msg_length > 0)sub_flit[1][`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_f [0];
+
+        if (msg_length > 1)sub_flit[2][`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_f [1];
+    end
+    
+    for (ii=3;ii< SUB_FLIT_WIDTH; ii=ii+1) begin : lp2
+        sub_flit[ii]=64'd0; 
+        if (msg_length > ii-1) sub_flit[ii][`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_f[(ii-3) % BUFFER_WIDTH]; 
+    end //for    
+end
+
+reg  delay, delay_next; // incase data is gona be send via first flit we need one cycle delay for buffer updating
+wire stall;
+
+generate 
+for (i=0; i< NOC3_WORDS_NUM; i=i+1) begin 
+    always @ (*) begin
+       flit [(i+1)*64-1 : i*64] = 0;
+       if(sending_hdr) flit [(i+1)*64-1 : i*64] = sub_flit[flit_state + i];
+       else flit [(i+1)*64-1 : i*64] = l15_noc3encoder_req_data_f[i]; 
+    end       
+end
+
+
+if(NOC_WIDTH == 64) begin : W64
+
+    assign flit_state_incr = flit_state + 1;
+    always @ (*) begin        
+          send_done =    (flit_state ==  msg_length);
+          
+    end
+    assign stall = 1'b0;
+end else begin : NOT_W64
+      // need to wait one-cycle for data pipe register
+      always @(posedge clk) begin 
+        if(!rst_n)delay<=1'b0;
+        delay <=delay_next;
+      end
+
+      assign flit_state_incr =  flit_state + NOC3_WORDS_NUM;
+
+      always @ (*) begin        
+         delay_next = 1'b0;
+         send_done =    (msg_length < flit_state  +  NOC3_WORDS_NUM); 
+         if (l15_noc3encoder_req_val == 1'b1 && flit_state == 0 &&  NOC3_WORDS_NUM > data_ptr ) begin
+            delay_next = 1'b1;
+         end
+      end
+      
+      assign stall =(l15_noc3encoder_req_val == 1'b1 && flit_state == 0 &&  NOC3_WORDS_NUM > data_ptr )? ~delay  : 1'b0;
+
+end 
+endgenerate
+
 
 
 always @ (posedge clk)
@@ -153,41 +277,59 @@ begin
     end
 end
 
-always @ *
-begin
-    is_request = (l15_noc3encoder_req_type == `L15_NOC3_REQTYPE_WRITEBACK);
-    is_response = !is_request;
 
-    last_subcacheline_id =  (l15_noc3encoder_req_fwdack_vector[3] == 1'b1) ? 2'b11 :
+assign is_request = (l15_noc3encoder_req_type == `L15_NOC3_REQTYPE_WRITEBACK);
+assign is_response = !is_request;
+assign dest_chipid = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_CHIP_MASK];
+assign address = l15_noc3encoder_req_address;
+assign dest_l2_xpos = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_X_MASK];
+assign dest_l2_ypos = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_Y_MASK];
+assign dest_fbits = `NOC_FBITS_L2;
+assign msg_mshrid = {l15_noc3encoder_req_threadid, l15_noc3encoder_req_mshrid};
+
+assign src_l2_xpos = coreid_x;
+assign src_l2_ypos = coreid_y;
+assign src_chipid = chipid;
+assign src_fbits = `NOC_FBITS_L1;
+
+assign last_subcacheline_id =  (l15_noc3encoder_req_fwdack_vector[3] == 1'b1) ? 2'b11 :
                             (l15_noc3encoder_req_fwdack_vector[2] == 1'b1) ? 2'b10 :
                             (l15_noc3encoder_req_fwdack_vector[1] == 1'b1) ? 2'b01 :
                                                                              2'b00 ;
-    msg_last_subline = last_subcacheline_id == l15_noc3encoder_req_sequenceid;
+assign  msg_last_subline = last_subcacheline_id == l15_noc3encoder_req_sequenceid;
+assign  noc3encoder_noc3out_val = l15_noc3encoder_req_val & ~stall;
+assign  noc3encoder_noc3out_data = flit;
 
-    address = l15_noc3encoder_req_address;
+always @ (*)begin 
+    msg_options_1 = 0;
+    msg_options_2 = 0;
+    msg_options_3 = 0;
+    msg_options_4 = 0;
 
-    dest_l2_xpos = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_X_MASK];
-    dest_l2_ypos = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_Y_MASK];
-    dest_chipid = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_CHIP_MASK];
-    dest_fbits = `NOC_FBITS_L2;
+    // trin: line coverage: 16B transaction apparently does not happen with the T1 core
+    msg_options_2[`MSG_DATA_SIZE_] = msg_data_size;
+    msg_options_2[`MSG_CACHE_TYPE_] = msg_cache_type;
+    msg_options_2[`MSG_SUBLINE_VECTOR_] = msg_subline_vector;
 
-    src_l2_xpos = coreid_x;
-    src_l2_ypos = coreid_y;
-    src_chipid = chipid;
-    src_fbits = `NOC_FBITS_L1;
+    msg_options_4[`MSG_LAST_SUBLINE] = msg_last_subline || (l15_noc3encoder_req_type == `L15_NOC3_REQTYPE_ICACHE_INVAL_ACK);
+    msg_options_4[`MSG_SUBLINE_ID] = l15_noc3encoder_req_sequenceid;
+
+end
+
+
+
+always @ *
+begin    
 
     msg_length = 0;
-    msg_type = 0;
-    msg_mshrid = {l15_noc3encoder_req_threadid, l15_noc3encoder_req_mshrid};
+    msg_type = 0;    
     msg_mesi = 0;
     // msg_l2_miss = 0;
     // msg_subline_id = 0;
     msg_cache_type = 0;
     msg_subline_vector = 0; // always 0 for requests
     msg_data_size = 0;
-
-    sending = l15_noc3encoder_req_val;
-    noc3encoder_noc3out_val = sending;
+    
 
     case (l15_noc3encoder_req_type)
         `L15_NOC3_REQTYPE_WRITEBACK:
@@ -230,91 +372,29 @@ begin
             msg_type = `MSG_TYPE_INV_FWDACK;
             msg_length = 0;
         end
+        default: begin 
+            msg_length = 0;
+            msg_type = 0;
+        end
     endcase
 
-    msg_options_1 = 0;
-    msg_options_2 = 0;
-    msg_options_3 = 0;
-    msg_options_4 = 0;
-
-    // trin: line coverage: 16B transaction apparently does not happen with the T1 core
-    msg_options_2[`MSG_DATA_SIZE_] = msg_data_size;
-    msg_options_2[`MSG_CACHE_TYPE_] = msg_cache_type;
-    msg_options_2[`MSG_SUBLINE_VECTOR_] = msg_subline_vector;
-
-    msg_options_4[`MSG_LAST_SUBLINE] = msg_last_subline || (l15_noc3encoder_req_type == `L15_NOC3_REQTYPE_ICACHE_INVAL_ACK);
-    msg_options_4[`MSG_SUBLINE_ID] = l15_noc3encoder_req_sequenceid;
+    
     // does not need to specify cache line state
     // no l2miss
 
 
-    // flit filling logic
-    flit[`NOC_DATA_WIDTH-1:0] = 0; // so that the flit is not a latch
-    if (is_request)
-    begin
-        if (flit_state == `NOC3_REQ_HEADER_1)
-        begin
-            flit[`MSG_DST_CHIPID] = dest_chipid;
-            flit[`MSG_DST_X] = dest_l2_xpos;
-            flit[`MSG_DST_Y] = dest_l2_ypos;
-            flit[`MSG_DST_FBITS] = dest_fbits;
-            flit[`MSG_LENGTH] = msg_length;
-            flit[`MSG_TYPE] = msg_type;
-            flit[`MSG_MSHRID] = msg_mshrid;
-            flit[`MSG_OPTIONS_1] = msg_options_1;
-        end
-        else if (flit_state == `NOC3_REQ_HEADER_2)
-        begin
-            flit[`MSG_ADDR_] = address;
-            flit[`MSG_OPTIONS_2_] = msg_options_2;
-        end
-        else if (flit_state == `NOC3_REQ_HEADER_3)
-        begin
-            flit[`MSG_SRC_CHIPID_] = src_chipid;
-            flit[`MSG_SRC_X_] = src_l2_xpos;
-            flit[`MSG_SRC_Y_] = src_l2_ypos;
-            flit[`MSG_SRC_FBITS_] = src_fbits;
-            flit[`MSG_OPTIONS_3_] = msg_options_3;
-        end
-        else // (flit_state == `NOC3_REQ_DATA_1 ~ 8)
-        begin
-            flit[`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_0_f;
-        end
-    end
-    else if (is_response)
-    begin
-        if (flit_state == `NOC3_RES_HEADER_1)
-        begin
-            flit[`MSG_DST_CHIPID] = dest_chipid;
-            flit[`MSG_DST_X] = dest_l2_xpos;
-            flit[`MSG_DST_Y] = dest_l2_ypos;
-            flit[`MSG_DST_FBITS] = dest_fbits;
-            flit[`MSG_LENGTH] = msg_length;
-            flit[`MSG_TYPE] = msg_type;
-            flit[`MSG_MSHRID] = msg_mshrid;
-            flit[`MSG_OPTIONS_4] = msg_options_4;
-        end
-        else if (flit_state == `NOC3_RES_DATA_1)
-        begin
-            flit[`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_0_f;
-        end
-        else if (flit_state == `NOC3_RES_DATA_2)
-        begin
-            flit[`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_0_f;
-        end
-    end
+   
 
-    noc3encoder_noc3out_data = flit;
+    
 
     // next flit state logic
     flit_state_next = flit_state;
-    if (sending)
+    if (l15_noc3encoder_req_val & ~stall)
     begin
-        if (is_request || is_response)
             if (noc3out_ready)
             begin
-                if (flit_state != msg_length)
-                    flit_state_next = flit_state + 1;
+                if (~send_done)
+                    flit_state_next = flit_state_incr;  
                 else
                     flit_state_next = `NOC1_REQ_HEADER_1;
             end
@@ -322,10 +402,10 @@ begin
                 flit_state_next = flit_state;
     end
     else
-        flit_state_next = `NOC1_REQ_HEADER_1;
+        if(~stall) flit_state_next = `NOC1_REQ_HEADER_1;
 
     // ack logic to L2
-    if (l15_noc3encoder_req_val && flit_state == msg_length && noc3out_ready)
+    if (l15_noc3encoder_req_val && send_done==1'b1 && noc3out_ready && stall == 1'b0)
         noc3encoder_l15_req_ack = 1'b1;
     else
         noc3encoder_l15_req_ack = 1'b0;

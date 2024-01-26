@@ -2713,6 +2713,25 @@ sub parse_args
     }
   }
 
+my @nocs_width = (
+    "noc1_width",
+    "noc2_width",
+    "noc3_width"
+  );
+  my @nocs_valid_width = (64,128,256,512);
+  foreach my $config (@nocs_width) {
+    GetOptions (\%opt,
+            "${config}=s",
+    );
+    my $ucn = uc($config);
+    if ($opt{$config}) {
+        my $value = $opt{$config};
+        unless ( grep( /^$value$/, @nocs_valid_width ) ) {
+             die (" Error $value is not avalid width for $config. The valid values are @nocs_valid_width\n");
+        }
+        $ENV{$ucn} = $opt{$config};    
+    }
+  }
   $ENV{PROTOSYN_RUNTIME_DESIGN_PATH} = $ENV{DV_ROOT} . "/verif/env/manycore";
   $ENV{PROTOSYN_RUNTIME_BOARD} = "";
 

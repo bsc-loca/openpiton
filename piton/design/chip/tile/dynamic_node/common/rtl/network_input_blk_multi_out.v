@@ -29,23 +29,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 `include "network_define.v"
 module network_input_blk_multi_out 
-   #(parameter LOG2_NUMBER_FIFO_ELEMENTS = 2)
+   #(parameter FLIT_WIDTH = 64,parameter LOG2_NUMBER_FIFO_ELEMENTS = 2)
 (
    input wire clk, 
    input wire reset,
-   input wire [`DATA_WIDTH-1:0] data_in, 
+   input wire [FLIT_WIDTH-1:0] data_in, 
    input wire valid_in, 
    input wire thanks_in,
 
    output wire yummy_out, 
    // data_val and data_val1 are the same, this is just done for buffering to
    // convince the synthesis tool to buffer up these high fanout nets
-   output wire [`DATA_WIDTH-1:0] data_val, 
-   output wire [`DATA_WIDTH-1:0] data_val1, 
+   output wire [FLIT_WIDTH-1:0] data_val, 
+   output wire [FLIT_WIDTH-1:0] data_val1, 
    output wire data_avail 
 );
 
-reg [`DATA_WIDTH-1:0] storage_data_f [0:(1<<LOG2_NUMBER_FIFO_ELEMENTS)-1];
+reg [FLIT_WIDTH-1:0] storage_data_f [0:(1<<LOG2_NUMBER_FIFO_ELEMENTS)-1];
 
 reg [LOG2_NUMBER_FIFO_ELEMENTS-1:0] head_ptr_f;
 reg [LOG2_NUMBER_FIFO_ELEMENTS-1:0] tail_ptr_f;

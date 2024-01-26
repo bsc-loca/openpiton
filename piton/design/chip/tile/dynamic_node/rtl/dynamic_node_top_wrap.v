@@ -40,16 +40,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 `include "define.tmp.h"
 
-module dynamic_node_top_wrap
-(
+module dynamic_node_top_wrap #(
+  parameter FLIT_WIDTH = 64
+)(
     input clk,
     input reset_in,
        
-    input [`DATA_WIDTH-1:0] dataIn_N,   // data inputs from neighboring tiles
-    input [`DATA_WIDTH-1:0] dataIn_E,
-    input [`DATA_WIDTH-1:0] dataIn_S,
-    input [`DATA_WIDTH-1:0] dataIn_W,
-     input [`DATA_WIDTH-1:0] dataIn_P,   // data input from processor
+    input [FLIT_WIDTH-1:0] dataIn_N,   // data inputs from neighboring tiles
+    input [FLIT_WIDTH-1:0] dataIn_E,
+    input [FLIT_WIDTH-1:0] dataIn_S,
+    input [FLIT_WIDTH-1:0] dataIn_W,
+    input [FLIT_WIDTH-1:0] dataIn_P,   // data input from processor
        
     input validIn_N,        // valid signals from neighboring tiles
     input validIn_E,
@@ -67,11 +68,11 @@ module dynamic_node_top_wrap
     input [`XY_WIDTH-1:0] myLocY,
     input [`CHIP_ID_WIDTH-1:0] myChipID,
 
-    output [`DATA_WIDTH-1:0] dataOut_N, // data outputs to neighbors
-    output [`DATA_WIDTH-1:0] dataOut_E,
-    output [`DATA_WIDTH-1:0] dataOut_S,
-     output [`DATA_WIDTH-1:0] dataOut_W,
-     output [`DATA_WIDTH-1:0] dataOut_P, // data output to processor
+    output [FLIT_WIDTH-1:0] dataOut_N, // data outputs to neighbors
+    output [FLIT_WIDTH-1:0] dataOut_E,
+    output [FLIT_WIDTH-1:0] dataOut_S,
+    output [FLIT_WIDTH-1:0] dataOut_W,
+    output [FLIT_WIDTH-1:0] dataOut_P, // data output to processor
     
     output validOut_N,      // valid outputs to neighbors
     output validOut_E,
@@ -89,7 +90,10 @@ module dynamic_node_top_wrap
     output thanksIn_P      // thanksIn to processor's space_avail
 );
 
-    dynamic_node_top dynamic_node_top
+    dynamic_node_top #(
+      .FLIT_WIDTH(FLIT_WIDTH)
+    )
+    dynamic_node_top
     (
         .clk(clk),
         .reset_in(reset_in),

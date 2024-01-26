@@ -64,9 +64,10 @@ module dynamic_output_top_para(data_out,
                           default_ready_in, yummy_in);
 
 parameter KILL_HEADERS = 1'b0;
+parameter FLIT_WIDTH   = 64;
 
 // begin port declarations
-output [`DATA_WIDTH-1:0] data_out;
+output [FLIT_WIDTH-1:0] data_out;
 
 <%
 for a in range (DYNAMIC_NODE_PORT):
@@ -91,7 +92,7 @@ for a in range (DYNAMIC_NODE_PORT):
   print("input tail_%d_in;" % a)
 print("")
 for a in range (DYNAMIC_NODE_PORT):
-  print("input [`DATA_WIDTH-1:0] data_%d_in;" % a)
+  print("input [FLIT_WIDTH-1:0] data_%d_in;" % a)
 for a in range (DYNAMIC_NODE_PORT):
   print("input valid_%d_in;" % a)
 %>
@@ -119,15 +120,25 @@ wire valid_out_pre;
 wire data_out_len_zero;
 wire data_out_interrupt_user_bits_set;
 wire data_out_memory_ack_user_bits_set;
-wire [`DATA_WIDTH-1:0] data_out_internal;
+wire [FLIT_WIDTH-1:0] data_out_internal;
 wire valid_out_internal;
 
 //wire regs
 reg current_route_req;
+// length_in is the number of 64-bits flit. we need to modify it for larger FLIT_WIDTH
+localparam OFFSET_LEN =  $clog2(FLIT_WIDTH / 64);
+reg [`PAYLOAD_LEN-1:0]  length_flit;
+wire  [`PAYLOAD_LEN-1:0]  length_in;
+assign length_in = data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-5:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-4-`PAYLOAD_LEN];
+
+always @(*) begin 
+  length_flit = `PAYLOAD_LEN'd0;
+  length_flit=length_in[`PAYLOAD_LEN-1:OFFSET_LEN];
+end
 
 //assigns
 assign valid_out_internal = valid_out_pre & ~(KILL_HEADERS & current_route_req);
-assign data_out_len_zero = data_out_internal[`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-4:`DATA_WIDTH-`CHIP_ID_WIDTH-2*`XY_WIDTH-3-`PAYLOAD_LEN] == `PAYLOAD_LEN'd0;
+assign data_out_len_zero = length_flit == `PAYLOAD_LEN'd0;
 assign data_out_interrupt_user_bits_set = data_out_internal[23:20] == 4'b1111;
 assign data_out_memory_ack_user_bits_set = data_out_internal[23:20] == 4'b1110;
 //assign popped_zero_len_mesg_out = data_out_len_zero & valid_out_pre & (KILL_HEADERS & current_route_req);
@@ -147,7 +158,9 @@ for a in range (DYNAMIC_NODE_PORT):
   data_ins = data_ins + (".data_%d_in(data_%d_in), " % (a, a))
   valid_ins = valid_ins + (".valid_%d_in(valid_%d_in), " % (a,a))
 %>
-dynamic_output_datapath_para datapath(.data_out(data_out_internal), .valid_out_temp(valid_out_temp_connection), <%= data_ins%><%= valid_ins%>.current_route_in(current_route_connection));
+dynamic_output_datapath_para #(.FLIT_WIDTH(FLIT_WIDTH))
+
+datapath(.data_out(data_out_internal), .valid_out_temp(valid_out_temp_connection), <%= data_ins%><%= valid_ins%>.current_route_in(current_route_connection));
 
 <%
 route_req_ins = ""

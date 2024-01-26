@@ -49,23 +49,23 @@ DYNAMIC_NODE_PORT_LOG2 = dynamic_node_para_define.DYNAMIC_NODE_PORT_LOG2
 DYNAMIC_NODE_PORT_P_3 = dynamic_node_para_define.DYNAMIC_NODE_PORT_P_3
 DYNAMIC_NODE_PORT_P_3_LOG2 = dynamic_node_para_define.DYNAMIC_NODE_PORT_P_3_LOG2
 %>
-module dynamic_node_top_wrap_para
+module dynamic_node_top_wrap_para #(parameter FLIT_WIDTH=64) 
 (
     input clk,
     input reset_in,
     <%
     print("")
-    dynamic_node_para_define.print_ports_nl ("    input [`DATA_WIDTH-1:0] dataIn_%d,")
+    dynamic_node_para_define.print_ports_nl ("    input [FLIT_WIDTH-1:0] dataIn_%d,")
     dynamic_node_para_define.print_ports_nl ("    input validIn_%d,")
     dynamic_node_para_define.print_ports ("    input yummyIn_%d,")
     %>
     /*
     //original
-    input [`DATA_WIDTH-1:0] dataIn_N,   // data inputs from neighboring tiles
-    input [`DATA_WIDTH-1:0] dataIn_E,
-    input [`DATA_WIDTH-1:0] dataIn_S,
-    input [`DATA_WIDTH-1:0] dataIn_W,
-    input [`DATA_WIDTH-1:0] dataIn_P,   // data input from processor
+    input [FLIT_WIDTH-1:0] dataIn_N,   // data inputs from neighboring tiles
+    input [FLIT_WIDTH-1:0] dataIn_E,
+    input [FLIT_WIDTH-1:0] dataIn_S,
+    input [FLIT_WIDTH-1:0] dataIn_W,
+    input [FLIT_WIDTH-1:0] dataIn_P,   // data input from processor
        
     input validIn_N,        // valid signals from neighboring tiles
     input validIn_E,
@@ -84,17 +84,17 @@ module dynamic_node_top_wrap_para
     input [`CHIP_ID_WIDTH-1:0] myChipID,
     <%
     print("")
-    dynamic_node_para_define.print_ports_nl ("    output [`DATA_WIDTH-1:0] dataOut_%d,")
+    dynamic_node_para_define.print_ports_nl ("    output [FLIT_WIDTH-1:0] dataOut_%d,")
     dynamic_node_para_define.print_ports_nl ("    output validOut_%d,")
     dynamic_node_para_define.print_ports_nl ("    output yummyOut_%d,")
     %>
     /*
     //original
-    output [`DATA_WIDTH-1:0] dataOut_N, // data outputs to neighbors
-    output [`DATA_WIDTH-1:0] dataOut_E,
-    output [`DATA_WIDTH-1:0] dataOut_S,
-    output [`DATA_WIDTH-1:0] dataOut_W,
-    output [`DATA_WIDTH-1:0] dataOut_P, // data output to processor
+    output [FLIT_WIDTH-1:0] dataOut_N, // data outputs to neighbors
+    output [FLIT_WIDTH-1:0] dataOut_E,
+    output [FLIT_WIDTH-1:0] dataOut_S,
+    output [FLIT_WIDTH-1:0] dataOut_W,
+    output [FLIT_WIDTH-1:0] dataOut_P, // data output to processor
     
     output validOut_N,      // valid outputs to neighbors
     output validOut_E,
@@ -112,7 +112,7 @@ module dynamic_node_top_wrap_para
     output thanksIn_<%= DYNAMIC_NODE_PORT - 1%>      // thanksIn to processor's space_avail
 );
 
-    dynamic_node_top_para dynamic_node_top
+    dynamic_node_top_para #(.FLIT_WIDTH(FLIT_WIDTH)) dynamic_node_top
     (
         .clk(clk),
         .reset_in(reset_in),

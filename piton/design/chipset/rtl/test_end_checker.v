@@ -34,7 +34,7 @@ module test_end_checker(
     // for this module. instead it's observing the interface
     // from the chip to the packet filter
     input                       src_checker_noc2_val,
-    input [`NOC_DATA_WIDTH-1:0] src_checker_noc2_data,
+    input [`PITON_NOC2_WIDTH-1:0] src_checker_noc2_data,
     input                       src_checker_noc2_rdy,
 
     input                       uart_boot_en,
@@ -42,6 +42,8 @@ module test_end_checker(
     output                      test_bad_end
 );
 
+generate 
+if(`PITON_NOC2_WIDTH == `NOC_DATA_WIDTH) begin : Def
     localparam IDLE = 2'b00;
     localparam TWOFLITS = 2'b01;
     localparam COUNTDOWN = 2'b10;
@@ -173,4 +175,54 @@ module test_end_checker(
             future_bad_end_reg  <= future_bad_end_next;
         end
     end
+end else begin : other
+
+    wire is_tail,is_hdr;
+                          
+    tail_hdr_detect #(
+        .FLIT_WIDTH(`PITON_NOC2_WIDTH )
+    ) detect_in (
+        .reset      (~rst_n),
+        .clk        (clk ),
+        .flit_in    (src_checker_noc2_data),
+        .valid      (src_checker_noc2_val ),
+        .ready      (src_checker_noc2_rdy ),
+        .is_tail    (is_tail),
+        .is_header  (is_hdr )
+    );
+
+    wire [`NOC_DATA_WIDTH-1 : 0] second_flit =  src_checker_noc2_data [2*`NOC_DATA_WIDTH-1 : `NOC_DATA_WIDTH];
+    wire good_comp = (second_flit[`MSG_ADDR_] == `PITON_TEST_GOOD_END) & uart_boot_en;
+    wire bad_comp  = (second_flit[`MSG_ADDR_] == `PITON_TEST_BAD_END) & uart_boot_en;
+    
+    wire test_good_end_next,test_bad_end_next;
+    reg test_good_end_reg,  test_bad_end_reg, future_good_end,future_bad_end;
+
+    assign {test_good_end_next, test_bad_end_next}= 
+        (is_hdr & is_tail)? {good_comp,bad_comp} :
+        (is_tail) ? {future_good_end,future_bad_end} : {test_good_end,test_bad_end};
+ 
+     always @(posedge clk) begin
+        if (!rst_n) begin      
+            test_good_end_reg   <= 1'b0;
+            test_bad_end_reg    <= 1'b0;
+            future_good_end <= 1'b0;
+            future_bad_end  <= 1'b0;
+        end
+        else begin
+		test_good_end_reg   <= test_good_end_next;
+                test_bad_end_reg    <= test_bad_end_next;
+            if (src_checker_noc2_val & src_checker_noc2_rdy) begin                
+                if(is_hdr) future_good_end <= good_comp;
+                if(is_hdr) future_bad_end  <= bad_comp;
+            end
+        end
+    end
+    assign test_good_end = test_good_end_reg;
+    assign test_bad_end  = test_bad_end_reg;
+
+end 
+endgenerate
+
+
 endmodule

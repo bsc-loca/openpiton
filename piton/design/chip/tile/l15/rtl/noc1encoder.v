@@ -74,7 +74,7 @@ module noc1encoder(
    // ready at noc1
    input wire noc1out_ready,
    output reg noc1encoder_noc1out_val,
-   output reg [63:0] noc1encoder_noc1out_data,
+   output reg [`PITON_NOC1_WIDTH-1:0] noc1encoder_noc1out_data,
 
    // dmbr stall interface
    input wire dmbr_l15_stall,
@@ -91,7 +91,7 @@ module noc1encoder(
    output reg noc1encoder_csm_req_ack
 );
 // The flit sending out this cycle
-reg [63:0] flit;
+reg [`PITON_NOC1_WIDTH-1:0] flit;
 reg [`NOC1_FLIT_STATE_WIDTH-1:0] flit_state;
 reg [`NOC1_FLIT_STATE_WIDTH-1:0] flit_state_next;
 
@@ -443,52 +443,111 @@ end
 
 // flit filling logic
 // translate msg_ -> flit
-always @ *
-begin
-   flit[`NOC_DATA_WIDTH-1:0] = 0; // so that the flit is not a latch
-   if (flit_state == `NOC1_REQ_HEADER_1)
-   begin
-      flit[`MSG_DST_CHIPID] = msg_dest_chipid;
-      flit[`MSG_DST_X] = msg_dest_l2_xpos;
-      flit[`MSG_DST_Y] = msg_dest_l2_ypos;
-      flit[`MSG_DST_FBITS] = msg_dest_fbits;
-      flit[`MSG_LENGTH] = msg_length;
-      flit[`MSG_TYPE] = msg_type;
-      flit[`MSG_MSHRID] = msg_mshrid;
-      flit[`MSG_OPTIONS_1] = msg_options_1;
-   end
-   else if (flit_state == `NOC1_REQ_HEADER_2)
-   begin
-      if (control_raw_data_flit1)
-      begin
-         flit[`NOC_DATA_WIDTH-1:0] = req_data0;
+
+reg [63:0] sub_flit [4 : 0];
+wire [`NOC1_FLIT_STATE_WIDTH-1:0]  flit_state_incr;
+reg send_done;
+
+always @ (*) begin
+    sub_flit[0] =64'd0;  // so that the flit is not a latch
+    sub_flit[0][`MSG_DST_CHIPID] = msg_dest_chipid;
+    sub_flit[0][`MSG_DST_X] = msg_dest_l2_xpos;
+    sub_flit[0][`MSG_DST_Y] = msg_dest_l2_ypos;
+    sub_flit[0][`MSG_DST_FBITS] = msg_dest_fbits;
+    sub_flit[0][`MSG_LENGTH] = msg_length;
+    sub_flit[0][`MSG_TYPE] = msg_type;
+    sub_flit[0][`MSG_MSHRID] = msg_mshrid;
+    sub_flit[0][`MSG_OPTIONS_1] = msg_options_1;
+
+    sub_flit[1] =64'd0;  // so that the flit is not a latch
+    if (control_raw_data_flit1) begin
+        sub_flit[1][`NOC_DATA_WIDTH-1:0] = req_data0;
          // also need to suppress cpuid before sending
-         flit[15:9] = 0;
+        sub_flit[1][15:9] = 0;
+      end else   begin
+        sub_flit[1][`MSG_ADDR_] = msg_address;
+        sub_flit[1][`MSG_CACHE_TYPE_] = msg_cache_type;
+        sub_flit[1][`MSG_OPTIONS_2_] = msg_options_2;
+    end
+
+    sub_flit[2] =64'd0;  // so that the flit is not a latch
+    sub_flit[2][`MSG_SRC_CHIPID_] = msg_src_chipid;
+    sub_flit[2][`MSG_SRC_X_] = msg_src_xpos;
+    sub_flit[2][`MSG_SRC_Y_] = msg_src_ypos;
+    sub_flit[2][`MSG_SRC_FBITS_] = msg_src_fbits;
+    sub_flit[2][`MSG_OPTIONS_3_] = msg_options_3;
+
+    sub_flit[3] = req_data0;
+
+    sub_flit[4] = req_data1;
       end
-      else
-      begin
-         flit[`MSG_ADDR_] = msg_address;
-         flit[`MSG_CACHE_TYPE_] = msg_cache_type;
-         flit[`MSG_OPTIONS_2_] = msg_options_2;
-      end
+
+localparam
+   NOC_WIDTH = `PITON_NOC1_WIDTH;
+
+generate
+   if(NOC_WIDTH == 64) begin : W64
+     
+      assign flit_state_incr = flit_state + 1;
+      always @ (*) begin
+          flit = sub_flit[flit_state];
+          send_done =    (flit_state ==  msg_length);
    end
-   else if (flit_state == `NOC1_REQ_HEADER_3)
-   begin
-      flit[`MSG_SRC_CHIPID_] = msg_src_chipid;
-      flit[`MSG_SRC_X_] = msg_src_xpos;
-      flit[`MSG_SRC_Y_] = msg_src_ypos;
-      flit[`MSG_SRC_FBITS_] = msg_src_fbits;
-      flit[`MSG_OPTIONS_3_] = msg_options_3;
+
+   end else if (NOC_WIDTH == 128) begin : W128
+
+      assign flit_state_incr = (send_done) ? msg_length : flit_state + 2;
+      always @ (*) begin
+         flit = `PITON_NOC1_WIDTH'b0;
+         send_done = 1'b0;
+         if (flit_state == `NOC1_REQ_HEADER_1) begin
+            flit [63 :0  ] = sub_flit[`NOC1_REQ_HEADER_1];
+            flit [127:64 ] = sub_flit[`NOC1_REQ_HEADER_2];
+            send_done =    (msg_length ==`NOC1_REQ_HEADER_1 || msg_length ==`NOC1_REQ_HEADER_2);
+         end else if (flit_state == `NOC1_REQ_HEADER_3) begin
+            flit [63 :0  ] = sub_flit[`NOC1_REQ_HEADER_3];
+            flit [127:64 ] = sub_flit[`NOC1_REQ_DATA_1];
+            send_done =    (msg_length ==`NOC1_REQ_HEADER_3 || msg_length ==`NOC1_REQ_DATA_1 );
+         end  else begin
+            flit [63 :0 ] = sub_flit[`NOC1_REQ_HEADER_3]; //garbage data. Avoid extra logic to make it zero
+            flit [127:64] = sub_flit[`NOC1_REQ_DATA_2]; 
+            send_done =    1'b1;
+   end  
    end
-   else if (flit_state == `NOC1_REQ_DATA_1)
-   begin
-      flit[`NOC_DATA_WIDTH-1:0] = req_data0;
-   end
-   else if (flit_state == `NOC1_REQ_DATA_2)
-   begin
-      flit[`NOC_DATA_WIDTH-1:0] = req_data1;
+
+   end else if (NOC_WIDTH == 256) begin : W256
+            
+      assign flit_state_incr = (send_done) ? msg_length : flit_state + 4;
+      always @ (*) begin
+         flit [63 :0  ] = sub_flit[`NOC1_REQ_HEADER_1];
+         flit [127:64 ] = sub_flit[`NOC1_REQ_HEADER_2];
+         flit [191:128] = sub_flit[`NOC1_REQ_HEADER_3];
+         if (flit_state == `NOC1_REQ_HEADER_1) begin            
+            flit [255:192] = sub_flit[`NOC1_REQ_DATA_1];
+            send_done =   (msg_length != `NOC1_REQ_DATA_2);
+         end else begin
+            flit [255:192] = sub_flit[`NOC1_REQ_DATA_2];
+            send_done =    1'b1;
    end
 end
+
+   end else begin : W512
+     
+      assign flit_state_incr = `NOC1_REQ_HEADER_1;
+      always @ (*) begin
+         flit = `PITON_NOC1_WIDTH'b0;
+         flit [63 :0  ] = sub_flit[`NOC1_REQ_HEADER_1];
+         flit [127:64 ] = sub_flit[`NOC1_REQ_HEADER_2];
+         flit [191:128] = sub_flit[`NOC1_REQ_HEADER_3];
+         flit [255:192] = sub_flit[`NOC1_REQ_DATA_1];
+         flit [319:256] = sub_flit[`NOC1_REQ_DATA_2];
+         send_done =    1'b1;
+      end
+
+   end
+endgenerate
+
+
 
 always @ *
 begin
@@ -497,8 +556,8 @@ begin
    begin
       if (noc1out_ready)
       begin
-         if (flit_state != msg_length)
-            flit_state_next = flit_state + 1;
+         if (~send_done)            
+            flit_state_next = flit_state_incr;           
          else
             flit_state_next = `NOC1_REQ_HEADER_1;
       end
@@ -513,7 +572,7 @@ always @ *
 begin
    // ack logic to L1.5
    noc1encoder_noc1buffer_req_ack = 0;
-   if (noc1buffer_noc1encoder_req_val && (flit_state == msg_length) && noc1out_ready
+   if (noc1buffer_noc1encoder_req_val && (send_done & sending) && noc1out_ready
    && (req_source == `L15_NOC1ENCODER_SOURCE_L15))
       noc1encoder_noc1buffer_req_ack = 1'b1;
    else
@@ -521,7 +580,7 @@ begin
 
    // ack logic to CSM
    noc1encoder_csm_req_ack = 0;
-   if (csm_noc1encoder_req_val && (flit_state == msg_length) && noc1out_ready 
+   if (csm_noc1encoder_req_val && (send_done & sending) && noc1out_ready 
    && (req_source == `L15_NOC1ENCODER_SOURCE_CSM))
       noc1encoder_csm_req_ack = 1'b1;
    else

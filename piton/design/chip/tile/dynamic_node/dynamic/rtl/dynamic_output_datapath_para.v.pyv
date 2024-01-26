@@ -47,15 +47,16 @@ for a in range (DYNAMIC_NODE_PORT):
   data_ins = data_ins + ("data_%d_in, " % a)
   valid_ins = valid_ins + ("valid_%d_in, " % a)
 %>
-module dynamic_output_datapath_para(data_out, valid_out_temp, <%= data_ins%><%= valid_ins%>current_route_in);
+module dynamic_output_datapath_para #(parameter FLIT_WIDTH=64)
+      (data_out, valid_out_temp, <%= data_ins%><%= valid_ins%>current_route_in);
 
 // begin port declarations
 
-output [`DATA_WIDTH-1:0] data_out;
+output [FLIT_WIDTH-1:0] data_out;
 output valid_out_temp;
 <%
 for a in range (DYNAMIC_NODE_PORT):
-  s = "input [`DATA_WIDTH-1:0] data_%d_in;" % a
+  s = "input [FLIT_WIDTH-1:0] data_%d_in;" % a
   print(s)
 for a in range (DYNAMIC_NODE_PORT):
   s = "input valid_%d_in;" % a
@@ -91,7 +92,7 @@ for a in range (DYNAMIC_NODE_PORT):
   data_ins_inst = data_ins_inst + (".in%d(data_%d_in), " % (a, a))
   valid_ins_inst = valid_ins_inst + (".in%d(valid_%d_in), " % (a, a))
 %>
-one_of_n #(`DATA_WIDTH) data_mux(<%= data_ins_inst%>.sel(current_route_in), .out(data_out));
+one_of_n #(FLIT_WIDTH) data_mux(<%= data_ins_inst%>.sel(current_route_in), .out(data_out));
 one_of_n #(1) valid_mux(<%= valid_ins_inst%>.sel(current_route_in), .out(valid_out_temp));
 
 endmodule

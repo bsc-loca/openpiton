@@ -52,16 +52,17 @@ module valrdy_to_credit (
 
 parameter BUFFER_SIZE = 4;
 parameter BUFFER_BITS = 3;
+parameter FLIT_WIDTH  = 64;
    
 input clk;
 input reset;
 
  
-input [`DATA_WIDTH-1:0]	 data_in;
+input [FLIT_WIDTH-1:0]	 data_in;
  input valid_in;			// sending data to the output
  input yummy_out;			// output consumed data
 
-output [`DATA_WIDTH-1:0]  data_out;
+output [FLIT_WIDTH-1:0]  data_out;
  output valid_out;
  output ready_in;		// is there space available?
 

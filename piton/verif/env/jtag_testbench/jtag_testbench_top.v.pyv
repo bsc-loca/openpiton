@@ -270,7 +270,11 @@ module jtag_testbench_top_helper
 
 
 
-    valrdy_to_credit #(4, 3) fpga_to_intf_noc1_v2c(
+    valrdy_to_credit #(
+        .BUFFER_SIZE(4),
+        .BUFFER_BITS(3),
+        .FLIT_WIDTH(`PITON_NOC1_WIDTH)
+    ) fpga_to_intf_noc1_v2c(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(intf_fpga_noc1_data),
@@ -282,7 +286,7 @@ module jtag_testbench_top_helper
         .yummy_out(fpga_offfpga_noc1_yummy)    // Yummy signal
     );
 
-    credit_to_valrdy fpga_from_intf_noc1_c2v(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC1_WIDTH)) fpga_from_intf_noc1_c2v(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(fpga_offfpga_noc1_data),
@@ -294,7 +298,11 @@ module jtag_testbench_top_helper
         .ready_out(intf_fpga_noc1_rdy)    // Rdy signal from processor to dynamic network
     );
 
-    valrdy_to_credit #(4, 3) fpga_to_intf_noc2_v2c(
+    valrdy_to_credit #(
+        .BUFFER_SIZE(4),
+        .BUFFER_BITS(3),
+        .FLIT_WIDTH(`PITON_NOC2_WIDTH)
+    ) fpga_to_intf_noc2_v2c(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(intf_fpga_noc2_data),
@@ -306,7 +314,7 @@ module jtag_testbench_top_helper
         .yummy_out(fpga_offfpga_noc2_yummy)    // Yummy signal
     );
 
-    credit_to_valrdy fpga_from_intf_noc2_c2v(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) fpga_from_intf_noc2_c2v(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(fpga_offfpga_noc2_data),
@@ -318,7 +326,11 @@ module jtag_testbench_top_helper
         .ready_out(intf_fpga_noc2_rdy)    // Rdy signal from processor to dynamic network
     );
 
-    valrdy_to_credit #(4, 3) fpga_to_intf_noc3_v2c(
+    valrdy_to_credit #(
+        .BUFFER_SIZE(4),
+        .BUFFER_BITS(3),
+        .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+    ) fpga_to_intf_noc3_v2c(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(intf_fpga_noc3_data),
@@ -330,7 +342,7 @@ module jtag_testbench_top_helper
         .yummy_out(fpga_offfpga_noc3_yummy)    // Yummy signal
     );
 
-    credit_to_valrdy fpga_from_intf_noc3_c2v(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) fpga_from_intf_noc3_c2v(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(fpga_offfpga_noc3_data),
@@ -387,7 +399,11 @@ module jtag_testbench_top_helper
     wire mem_noc3_ready_out;
     wire [`NOC_DATA_WIDTH-1:0] mem_noc3_data_out;
 
-    valrdy_to_credit #(4, 3) cgno_blk_mem(
+    valrdy_to_credit #(
+        .BUFFER_SIZE(4),
+        .BUFFER_BITS(3),
+        .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+    ) cgno_blk_mem(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(mem_noc3_data_out),
@@ -398,7 +414,7 @@ module jtag_testbench_top_helper
         .valid_out(fpga_offfpga_noc3_valid),       // Val signal
         .yummy_out(offfpga_fpga_noc3_yummy)    // Yummy signal
     );
-    credit_to_valrdy cgni_blk_mem(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) cgni_blk_mem(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(offfpga_fpga_noc2_data),
@@ -433,7 +449,11 @@ module jtag_testbench_top_helper
     wire iob_noc2_ready_out;
     wire [`NOC_DATA_WIDTH-1:0] iob_noc2_data_out;
 
-    valrdy_to_credit #(4, 3) cgno_blk_iob(
+    valrdy_to_credit #(
+        .BUFFER_SIZE(4),
+        .BUFFER_BITS(3),
+        .FLIT_WIDTH(`PITON_NOC2_WIDTH)
+    ) cgno_blk_iob(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(iob_noc2_data_out),
@@ -443,7 +463,7 @@ module jtag_testbench_top_helper
         .valid_out(fpga_offfpga_noc2_valid),       // Val signal
         .yummy_out(offfpga_fpga_noc2_yummy)    // Yummy signal
     );
-    credit_to_valrdy cgni_blk_iob(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC1_WIDTH)) cgni_blk_iob(
         .clk(fpga_clk),
         .reset(~chip_rst_n),
         .data_in(offfpga_fpga_noc1_data),

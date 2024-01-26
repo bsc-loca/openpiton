@@ -52,7 +52,9 @@ for a in range (DYNAMIC_NODE_PORT):
   validOuts = validOuts + ("validOut_%d, " % a)
   yummyOuts = yummyOuts + ("yummyOut_%d," % a)
 %>
-module io_xbar_top(clk,
+module io_xbar_top #(
+		    parameter FLIT_WIDTH = 64
+)(		  clk,
 		    reset_in,
         <%= dataIns%>
         <%= validIns%>
@@ -79,7 +81,7 @@ input reset_in;
 
 <%
 for a in range (DYNAMIC_NODE_PORT):
-  print("input [`DATA_WIDTH-1:0] dataIn_%d;" % a)
+  print("input [FLIT_WIDTH-1:0] dataIn_%d;" % a)
 print("")
 for a in range (DYNAMIC_NODE_PORT):
   print("input validIn_%d;" % a)
@@ -89,11 +91,11 @@ for a in range (DYNAMIC_NODE_PORT):
 %>
 /*
 //original 
-input [`DATA_WIDTH-1:0] dataIn_N;	// data inputs from neighboring tiles
-input [`DATA_WIDTH-1:0] dataIn_E;
-input [`DATA_WIDTH-1:0] dataIn_S;
-input [`DATA_WIDTH-1:0] dataIn_W;
-input [`DATA_WIDTH-1:0] dataIn_P;	// data input from processor
+input [FLIT_WIDTH-1:0] dataIn_N;	// data inputs from neighboring tiles
+input [FLIT_WIDTH-1:0] dataIn_E;
+input [FLIT_WIDTH-1:0] dataIn_S;
+input [FLIT_WIDTH-1:0] dataIn_W;
+input [FLIT_WIDTH-1:0] dataIn_P;	// data input from processor
    
 input validIn_N;		// valid signals from neighboring tiles
 input validIn_E;
@@ -118,7 +120,7 @@ input [<%= DYNAMIC_NODE_PORT * DYNAMIC_NODE_PORT_P_3_LOG2 - 1%>:0] ec_cfg;      
 
 <%
 for a in range (DYNAMIC_NODE_PORT):
-  print("output [`DATA_WIDTH-1:0] dataOut_%d;" % a)
+  print("output [FLIT_WIDTH-1:0] dataOut_%d;" % a)
 print("")
 for a in range (DYNAMIC_NODE_PORT):
   print("output validOut_%d;" % a)
@@ -128,11 +130,11 @@ for a in range (DYNAMIC_NODE_PORT):
 %>
 /*
 //original
-output [`DATA_WIDTH-1:0] dataOut_N;	// data outputs to neighbors
-output [`DATA_WIDTH-1:0] dataOut_E;
-output [`DATA_WIDTH-1:0] dataOut_S;
-output [`DATA_WIDTH-1:0] dataOut_W;
-output [`DATA_WIDTH-1:0] dataOut_P;	// data output to processor
+output [FLIT_WIDTH-1:0] dataOut_N;	// data outputs to neighbors
+output [FLIT_WIDTH-1:0] dataOut_E;
+output [FLIT_WIDTH-1:0] dataOut_S;
+output [FLIT_WIDTH-1:0] dataOut_W;
+output [FLIT_WIDTH-1:0] dataOut_P;	// data output to processor
 
 output validOut_N;		// valid outputs to neighbors
 output validOut_E;
@@ -171,7 +173,7 @@ io_xbar_node_define.print_ports("wire   ec_wants_to_send_but_cannot_%d;")
 //wires
 <%
 io_xbar_node_define.print_ports_nl ("wire node_%d_input_tail;")
-io_xbar_node_define.print_ports_nl ("wire [`DATA_WIDTH-1:0] node_%d_input_data;")
+io_xbar_node_define.print_ports_nl ("wire [FLIT_WIDTH-1:0] node_%d_input_data;")
 io_xbar_node_define.print_ports_nl ("wire node_%d_input_valid;")
 for a in range (DYNAMIC_NODE_PORT):
   for b in range (DYNAMIC_NODE_PORT):
@@ -186,16 +188,16 @@ for a in range (DYNAMIC_NODE_PORT):
 print("")
 io_xbar_node_define.print_ports_nl ("wire yummyOut_%d_internal;")
 io_xbar_node_define.print_ports_nl ("wire validOut_%d_internal;")
-io_xbar_node_define.print_ports_nl ("wire [`DATA_WIDTH-1:0] dataOut_%d_internal;")
+io_xbar_node_define.print_ports_nl ("wire [FLIT_WIDTH-1:0] dataOut_%d_internal;")
 io_xbar_node_define.print_ports_nl_nm1("wire yummyOut_%d_flip1_out;")
 io_xbar_node_define.print_ports_nl_nm1("wire validOut_%d_flip1_out;")
-io_xbar_node_define.print_ports_nl_nm1("wire [`DATA_WIDTH-1:0] dataOut_%d_flip1_out;")
+io_xbar_node_define.print_ports_nl_nm1("wire [FLIT_WIDTH-1:0] dataOut_%d_flip1_out;")
 io_xbar_node_define.print_ports_nl ("wire yummyIn_%d_internal;")
 io_xbar_node_define.print_ports_nl_nm1 ("wire validIn_%d_internal;")
-io_xbar_node_define.print_ports_nl_nm1 ("wire [`DATA_WIDTH-1:0] dataIn_%d_internal;")
+io_xbar_node_define.print_ports_nl_nm1 ("wire [FLIT_WIDTH-1:0] dataIn_%d_internal;")
 io_xbar_node_define.print_ports_nl_nm1 ("wire yummyIn_%d_flip1_out;")
 io_xbar_node_define.print_ports_nl_nm1 ("wire validIn_%d_flip1_out;")
-io_xbar_node_define.print_ports_nm1 ("wire [`DATA_WIDTH-1:0] dataIn_%d_flip1_out;")
+io_xbar_node_define.print_ports_nm1 ("wire [FLIT_WIDTH-1:0] dataIn_%d_flip1_out;")
 %>
 /*
 //original
@@ -218,11 +220,11 @@ wire validOut_S_internal;
 wire validOut_W_internal;
 wire validOut_P_internal;
 
-wire [`DATA_WIDTH-1:0] dataOut_N_internal;
-wire [`DATA_WIDTH-1:0] dataOut_E_internal;
-wire [`DATA_WIDTH-1:0] dataOut_S_internal;
-wire [`DATA_WIDTH-1:0] dataOut_W_internal;
-wire [`DATA_WIDTH-1:0] dataOut_P_internal;
+wire [FLIT_WIDTH-1:0] dataOut_N_internal;
+wire [FLIT_WIDTH-1:0] dataOut_E_internal;
+wire [FLIT_WIDTH-1:0] dataOut_S_internal;
+wire [FLIT_WIDTH-1:0] dataOut_W_internal;
+wire [FLIT_WIDTH-1:0] dataOut_P_internal;
 
 wire yummyOut_N_flip1_out;
 wire yummyOut_E_flip1_out;
@@ -236,11 +238,11 @@ wire validOut_S_flip1_out;
 wire validOut_W_flip1_out;
 //wire validOut_P_flip1_out;
 
-wire [`DATA_WIDTH-1:0] dataOut_N_flip1_out;
-wire [`DATA_WIDTH-1:0] dataOut_E_flip1_out;
-wire [`DATA_WIDTH-1:0] dataOut_S_flip1_out;
-wire [`DATA_WIDTH-1:0] dataOut_W_flip1_out;
-//wire [`DATA_WIDTH-1:0] dataOut_P_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_N_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_E_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_S_flip1_out;
+wire [FLIT_WIDTH-1:0] dataOut_W_flip1_out;
+//wire [FLIT_WIDTH-1:0] dataOut_P_flip1_out;
 
 wire yummyIn_N_internal;
 wire yummyIn_E_internal;
@@ -254,11 +256,11 @@ wire validIn_S_internal;
 wire validIn_W_internal;
 //wire validIn_P_internal;
 
-wire [`DATA_WIDTH-1:0] dataIn_N_internal;
-wire [`DATA_WIDTH-1:0] dataIn_E_internal;
-wire [`DATA_WIDTH-1:0] dataIn_S_internal;
-wire [`DATA_WIDTH-1:0] dataIn_W_internal;
-//wire [`DATA_WIDTH-1:0] dataIn_P_internal;
+wire [FLIT_WIDTH-1:0] dataIn_N_internal;
+wire [FLIT_WIDTH-1:0] dataIn_E_internal;
+wire [FLIT_WIDTH-1:0] dataIn_S_internal;
+wire [FLIT_WIDTH-1:0] dataIn_W_internal;
+//wire [FLIT_WIDTH-1:0] dataIn_P_internal;
 
 wire yummyIn_N_flip1_out;
 wire yummyIn_E_flip1_out;
@@ -272,11 +274,11 @@ wire validIn_S_flip1_out;
 wire validIn_W_flip1_out;
 //wire validIn_P_flip1_out;
 
-wire [`DATA_WIDTH-1:0] dataIn_N_flip1_out;
-wire [`DATA_WIDTH-1:0] dataIn_E_flip1_out;
-wire [`DATA_WIDTH-1:0] dataIn_S_flip1_out;
-wire [`DATA_WIDTH-1:0] dataIn_W_flip1_out;
-//wire [`DATA_WIDTH-1:0] dataIn_P_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_N_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_E_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_S_flip1_out;
+wire [FLIT_WIDTH-1:0] dataIn_W_flip1_out;
+//wire [FLIT_WIDTH-1:0] dataIn_P_flip1_out;
 */
 //state
 reg [`XY_WIDTH-1:0] myLocX_f;
@@ -485,11 +487,11 @@ end
    rDUMMY #(1) valid_out_west(.A(validOut_W_internal));
    rDUMMY #(1) valid_out_proc(.A(validOut_P_internal));
 
-   rDUMMY #(`DATA_WIDTH) data_out_north(.A(dataOut_N_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_east(.A(dataOut_E_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_south(.A(dataOut_S_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_west(.A(dataOut_W_internal));
-   rDUMMY #(`DATA_WIDTH) data_out_proc(.A(dataOut_P_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_north(.A(dataOut_N_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_east(.A(dataOut_E_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_south(.A(dataOut_S_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_west(.A(dataOut_W_internal));
+   rDUMMY #(FLIT_WIDTH) data_out_proc(.A(dataOut_P_internal));
 `endif*/
 
 //wire regs
@@ -523,14 +525,14 @@ io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 14) yummyOut_%d_
 io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 21) yummyOut_%d_flip2(yummyOut_%d_flip1_out, yummyOut_%d);")
 io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 14) validOut_%d_flip1(validOut_%d_internal, validOut_%d_flip1_out);")
 io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 21) validOut_%d_flip2(validOut_%d_flip1_out, validOut_%d);")
-io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(`DATA_WIDTH, 14) dataOut_%d_flip1(dataOut_%d_internal, dataOut_%d_flip1_out);")
-io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(`DATA_WIDTH, 21) dataOut_%d_flip2(dataOut_%d_flip1_out, dataOut_%d);")
+io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(FLIT_WIDTH, 14) dataOut_%d_flip1(dataOut_%d_internal, dataOut_%d_flip1_out);")
+io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(FLIT_WIDTH, 21) dataOut_%d_flip2(dataOut_%d_flip1_out, dataOut_%d);")
 io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 14) yummyIn_%d_flip1(yummyIn_%d, yummyIn_%d_flip1_out);")
 io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 10) yummyIn_%d_flip2(yummyIn_%d_flip1_out, yummyIn_%d_internal);")
 io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 14) validIn_%d_flip1(validIn_%d, validIn_%d_flip1_out);")
 io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(1, 10) validIn_%d_flip2(validIn_%d_flip1_out, validIn_%d_internal);")
-io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(`DATA_WIDTH, 14) dataIn_%d_flip1(dataIn_%d, dataIn_%d_flip1_out);")
-io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(`DATA_WIDTH, 10) dataIn_%d_flip2(dataIn_%d_flip1_out, dataIn_%d_internal);")
+io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(FLIT_WIDTH, 14) dataIn_%d_flip1(dataIn_%d, dataIn_%d_flip1_out);")
+io_xbar_node_define.print_ports_nm1_3_nl("io_xbar_flip_bus #(FLIT_WIDTH, 10) dataIn_%d_flip2(dataIn_%d_flip1_out, dataIn_%d_internal);")
 %>
 /*
 //original
@@ -557,16 +559,16 @@ io_xbar_flip_bus #(1, 21) validOut_S_flip2(validOut_S_flip1_out, validOut_S);
 io_xbar_flip_bus #(1, 21) validOut_W_flip2(validOut_W_flip1_out, validOut_W);
 //io_xbar_flip_bus #(1, 21) validOut_P_flip2(validOut_P_flip1_out, validOut_P);
 
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataOut_N_flip1(dataOut_N_internal, dataOut_N_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataOut_E_flip1(dataOut_E_internal, dataOut_E_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataOut_S_flip1(dataOut_S_internal, dataOut_S_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataOut_W_flip1(dataOut_W_internal, dataOut_W_flip1_out);
-//io_xbar_flip_bus #(`DATA_WIDTH, 14) dataOut_P_flip1(dataOut_P_internal, dataOut_P_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 21) dataOut_N_flip2(dataOut_N_flip1_out, dataOut_N);
-io_xbar_flip_bus #(`DATA_WIDTH, 21) dataOut_E_flip2(dataOut_E_flip1_out, dataOut_E);
-io_xbar_flip_bus #(`DATA_WIDTH, 21) dataOut_S_flip2(dataOut_S_flip1_out, dataOut_S);
-io_xbar_flip_bus #(`DATA_WIDTH, 21) dataOut_W_flip2(dataOut_W_flip1_out, dataOut_W);
-//io_xbar_flip_bus #(`DATA_WIDTH, 21) dataOut_P_flip2(dataOut_P_flip1_out, dataOut_P);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataOut_N_flip1(dataOut_N_internal, dataOut_N_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataOut_E_flip1(dataOut_E_internal, dataOut_E_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataOut_S_flip1(dataOut_S_internal, dataOut_S_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataOut_W_flip1(dataOut_W_internal, dataOut_W_flip1_out);
+//io_xbar_flip_bus #(FLIT_WIDTH, 14) dataOut_P_flip1(dataOut_P_internal, dataOut_P_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 21) dataOut_N_flip2(dataOut_N_flip1_out, dataOut_N);
+io_xbar_flip_bus #(FLIT_WIDTH, 21) dataOut_E_flip2(dataOut_E_flip1_out, dataOut_E);
+io_xbar_flip_bus #(FLIT_WIDTH, 21) dataOut_S_flip2(dataOut_S_flip1_out, dataOut_S);
+io_xbar_flip_bus #(FLIT_WIDTH, 21) dataOut_W_flip2(dataOut_W_flip1_out, dataOut_W);
+//io_xbar_flip_bus #(FLIT_WIDTH, 21) dataOut_P_flip2(dataOut_P_flip1_out, dataOut_P);
 
 // two sets of inverters for input signals (buffering for timing purposes)
 io_xbar_flip_bus #(1, 14) yummyIn_N_flip1(yummyIn_N, yummyIn_N_flip1_out);
@@ -591,16 +593,16 @@ io_xbar_flip_bus #(1, 10) validIn_S_flip2(validIn_S_flip1_out, validIn_S_interna
 io_xbar_flip_bus #(1, 10) validIn_W_flip2(validIn_W_flip1_out, validIn_W_internal);
 //io_xbar_flip_bus #(1, 10) validIn_P_flip2(validIn_P_flip1_out, validIn_P_internal);
 
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataIn_N_flip1(dataIn_N, dataIn_N_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataIn_E_flip1(dataIn_E, dataIn_E_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataIn_S_flip1(dataIn_S, dataIn_S_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 14) dataIn_W_flip1(dataIn_W, dataIn_W_flip1_out);
-//io_xbar_flip_bus #(`DATA_WIDTH, 14) dataIn_P_flip1(dataIn_P, dataIn_P_flip1_out);
-io_xbar_flip_bus #(`DATA_WIDTH, 10) dataIn_N_flip2(dataIn_N_flip1_out, dataIn_N_internal);
-io_xbar_flip_bus #(`DATA_WIDTH, 10) dataIn_E_flip2(dataIn_E_flip1_out, dataIn_E_internal);
-io_xbar_flip_bus #(`DATA_WIDTH, 10) dataIn_S_flip2(dataIn_S_flip1_out, dataIn_S_internal);
-io_xbar_flip_bus #(`DATA_WIDTH, 10) dataIn_W_flip2(dataIn_W_flip1_out, dataIn_W_internal);
-//io_xbar_flip_bus #(`DATA_WIDTH, 10) dataIn_P_flip2(dataIn_P_flip1_out, dataIn_P_internal);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataIn_N_flip1(dataIn_N, dataIn_N_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataIn_E_flip1(dataIn_E, dataIn_E_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataIn_S_flip1(dataIn_S, dataIn_S_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 14) dataIn_W_flip1(dataIn_W, dataIn_W_flip1_out);
+//io_xbar_flip_bus #(FLIT_WIDTH, 14) dataIn_P_flip1(dataIn_P, dataIn_P_flip1_out);
+io_xbar_flip_bus #(FLIT_WIDTH, 10) dataIn_N_flip2(dataIn_N_flip1_out, dataIn_N_internal);
+io_xbar_flip_bus #(FLIT_WIDTH, 10) dataIn_E_flip2(dataIn_E_flip1_out, dataIn_E_internal);
+io_xbar_flip_bus #(FLIT_WIDTH, 10) dataIn_S_flip2(dataIn_S_flip1_out, dataIn_S_internal);
+io_xbar_flip_bus #(FLIT_WIDTH, 10) dataIn_W_flip2(dataIn_W_flip1_out, dataIn_W_internal);
+//io_xbar_flip_bus #(FLIT_WIDTH, 10) dataIn_P_flip2(dataIn_P_flip1_out, dataIn_P_internal);
 */
 
 //instantiations
@@ -616,11 +618,11 @@ io_xbar_flip_bus #(`DATA_WIDTH, 10) dataIn_W_flip2(dataIn_W_flip1_out, dataIn_W_
 <%
 for a in range (DYNAMIC_NODE_PORT):
   if (a == DYNAMIC_NODE_PORT - 1):
-    s_init = "io_xbar_input_top_4 node_%d_input(" % a
+    s_init = "io_xbar_input_top_4 #(.FLIT_WIDTH(FLIT_WIDTH)) node_%d_input(" % a
     s_1 = "validIn_%d" % a
     s_2 = "dataIn_%d" % a
   else:
-    s_init = "io_xbar_input_top_4 node_%d_input(" % a
+    s_init = "io_xbar_input_top_4 #(.FLIT_WIDTH(FLIT_WIDTH)) node_%d_input(" % a
     s_1 = "validIn_%d_internal" % a
     s_2 = "dataIn_%d_internal" % a  
   s_route_req_out = io_xbar_node_define.string_ports_oneline_2("", ".route_req_%%d_out(route_req_%d_to_%%d), " % a)
@@ -656,11 +658,11 @@ for a in range (DYNAMIC_NODE_PORT):
   default_dir = 0
   if (a == DYNAMIC_NODE_PORT - 1):
     default_dir = int((0 + (DYNAMIC_NODE_PORT - 1) / 2) % (DYNAMIC_NODE_PORT - 1))
-    s_init = "io_xbar_output_top #(1'b0) node_%d_output(" % a
+    s_init = "io_xbar_output_top #(.FLIT_WIDTH(FLIT_WIDTH) , .KILL_HEADERS(1'b0)) node_%d_output(" % a
     s_1 = ".popped_interrupt_mesg_out(external_interrupt), .popped_memory_ack_mesg_out(store_ack_received), .popped_memory_ack_mesg_out_sender(store_ack_addr), "
   else:
     default_dir = int((a + (DYNAMIC_NODE_PORT - 1) / 2) % (DYNAMIC_NODE_PORT - 1))
-    s_init = "io_xbar_output_top node_%d_output(" % a
+    s_init = "io_xbar_output_top #(.FLIT_WIDTH(FLIT_WIDTH)) node_%d_output(" % a
     s_1 = ".popped_interrupt_mesg_out(), .popped_memory_ack_mesg_out(), .popped_memory_ack_mesg_out_sender(), "
   # sequence for input output mapping
   map_list = []

@@ -34,7 +34,9 @@
 
 `include "network_define.v"
 
-module credit_to_valrdy (
+module credit_to_valrdy #(
+   parameter FLIT_WIDTH = 64
+)(
    clk,
    reset,
    //credit based interface	
@@ -50,13 +52,13 @@ module credit_to_valrdy (
 
    input	 clk;
    input	 reset;
-   input [`DATA_WIDTH-1:0]	 data_in;
+   input [FLIT_WIDTH-1:0]	 data_in;
    input	 valid_in;
    input     ready_out;
     
    output	 yummy_in;
    output	 valid_out;
-   output [`DATA_WIDTH-1:0] data_out;
+   output [FLIT_WIDTH-1:0] data_out;
    
    wire	 thanksIn;
 
@@ -64,7 +66,10 @@ module credit_to_valrdy (
 
    assign valid_out = valid_out_temp;
 
-   network_input_blk_multi_out #(.LOG2_NUMBER_FIFO_ELEMENTS(2)) data(
+   network_input_blk_multi_out #(
+      .FLIT_WIDTH(FLIT_WIDTH),
+      .LOG2_NUMBER_FIFO_ELEMENTS(2)
+   ) data(
       .clk(clk),
       .reset(reset),
       .data_in(data_in),

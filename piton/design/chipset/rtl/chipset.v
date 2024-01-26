@@ -162,23 +162,23 @@ module chipset(
 `ifdef PITON_NO_CHIP_BRIDGE
     // Synchronous with core_ref_clk (same as io_clk in this case) and no virtual channels
     input                                       processor_offchip_noc1_valid,
-    input  [`NOC_DATA_WIDTH-1:0]                processor_offchip_noc1_data,
+    input  [`PITON_NOC1_WIDTH-1:0]              processor_offchip_noc1_data,
     output                                      processor_offchip_noc1_yummy,
     input                                       processor_offchip_noc2_valid,
-    input  [`NOC_DATA_WIDTH-1:0]                processor_offchip_noc2_data,
+    input  [`PITON_NOC2_WIDTH-1:0]              processor_offchip_noc2_data,
     output                                      processor_offchip_noc2_yummy,
     input                                       processor_offchip_noc3_valid,
-    input  [`NOC_DATA_WIDTH-1:0]                processor_offchip_noc3_data,
+    input  [`PITON_NOC3_WIDTH-1:0]              processor_offchip_noc3_data,
     output                                      processor_offchip_noc3_yummy,
 
     output                                      offchip_processor_noc1_valid,
-    output [`NOC_DATA_WIDTH-1:0]                offchip_processor_noc1_data,
+    output [`PITON_NOC1_WIDTH-1:0]              offchip_processor_noc1_data,
     input                                       offchip_processor_noc1_yummy,
     output                                      offchip_processor_noc2_valid,
-    output [`NOC_DATA_WIDTH-1:0]                offchip_processor_noc2_data,
+    output [`PITON_NOC2_WIDTH-1:0]              offchip_processor_noc2_data,
     input                                       offchip_processor_noc2_yummy,
     output                                      offchip_processor_noc3_valid,
-    output [`NOC_DATA_WIDTH-1:0]                offchip_processor_noc3_data,
+    output [`PITON_NOC3_WIDTH-1:0]              offchip_processor_noc3_data,
     input                                       offchip_processor_noc3_yummy,
 `elsif PITONSYS_INC_PASSTHRU
     // Source synchronous differential interface with virtual channels
@@ -563,18 +563,18 @@ wire                                            uart_timeout_en;
 wire  [3:0]                                     noc_power_test_hop_count;
 
 // Intermediate val/rdy signals from fpga_bridge, not used if no chip bridge
-wire  [`NOC_DATA_WIDTH-1:0]                     fpga_intf_data_noc1;
-wire  [`NOC_DATA_WIDTH-1:0]                     fpga_intf_data_noc2;
-wire  [`NOC_DATA_WIDTH-1:0]                     fpga_intf_data_noc3;
+wire  [`PITON_NOC1_WIDTH-1:0]                   fpga_intf_data_noc1;
+wire  [`PITON_NOC2_WIDTH-1:0]                   fpga_intf_data_noc2;
+wire  [`PITON_NOC3_WIDTH-1:0]                   fpga_intf_data_noc3;
 wire                                            fpga_intf_val_noc1;
 wire                                            fpga_intf_val_noc2;
 wire                                            fpga_intf_val_noc3;
 wire                                            fpga_intf_rdy_noc1;
 wire                                            fpga_intf_rdy_noc2;
 wire                                            fpga_intf_rdy_noc3;
-wire  [`NOC_DATA_WIDTH-1:0]                     intf_fpga_data_noc1;
-wire  [`NOC_DATA_WIDTH-1:0]                     intf_fpga_data_noc2;
-wire  [`NOC_DATA_WIDTH-1:0]                     intf_fpga_data_noc3;
+wire  [`PITON_NOC1_WIDTH-1:0]                   intf_fpga_data_noc1;
+wire  [`PITON_NOC2_WIDTH-1:0]                   intf_fpga_data_noc2;
+wire  [`PITON_NOC3_WIDTH-1:0]                   intf_fpga_data_noc3;
 wire                                            intf_fpga_val_noc1;
 wire                                            intf_fpga_val_noc2;
 wire                                            intf_fpga_val_noc3;
@@ -586,30 +586,30 @@ wire                                            intf_fpga_rdy_noc3;
 // Need to convert a chip bridge interface to these if PITON_NO_CHIP_BRIDGE
 // is not specified
 wire                                            processor_offchip_noc1_valid;
-wire  [`NOC_DATA_WIDTH-1:0]                     processor_offchip_noc1_data;
+wire  [`PITON_NOC1_WIDTH-1:0]                   processor_offchip_noc1_data;
 wire                                            processor_offchip_noc1_yummy;
 wire                                            processor_offchip_noc2_valid;
-wire  [`NOC_DATA_WIDTH-1:0]                     processor_offchip_noc2_data;
+wire  [`PITON_NOC2_WIDTH-1:0]                   processor_offchip_noc2_data;
 wire                                            processor_offchip_noc2_yummy;
 wire                                            processor_offchip_noc3_valid;
-wire  [`NOC_DATA_WIDTH-1:0]                     processor_offchip_noc3_data;
+wire  [`PITON_NOC3_WIDTH-1:0]                   processor_offchip_noc3_data;
 wire                                            processor_offchip_noc3_yummy;
 
 wire                                            offchip_processor_noc1_valid;
-wire  [`NOC_DATA_WIDTH-1:0]                     offchip_processor_noc1_data;
+wire  [`PITON_NOC1_WIDTH-1:0]                   offchip_processor_noc1_data;
 wire                                            offchip_processor_noc1_yummy;
 wire                                            offchip_processor_noc2_valid;
-wire  [`NOC_DATA_WIDTH-1:0]                     offchip_processor_noc2_data;
+wire  [`PITON_NOC2_WIDTH-1:0]                   offchip_processor_noc2_data;
 wire                                            offchip_processor_noc2_yummy;
 wire                                            offchip_processor_noc3_valid;
-wire  [`NOC_DATA_WIDTH-1:0]                     offchip_processor_noc3_data;
+wire  [`PITON_NOC3_WIDTH-1:0]                   offchip_processor_noc3_data;
 wire                                            offchip_processor_noc3_yummy;
 `endif // endif PITON_NO_CHIP_BRIDGE
 
 // Val/rdy version of aboive signals (renamed from chipset point of view)
-wire  [`NOC_DATA_WIDTH-1:0]                     chipset_intf_data_noc1;
-wire  [`NOC_DATA_WIDTH-1:0]                     chipset_intf_data_noc2;
-wire  [`NOC_DATA_WIDTH-1:0]                     chipset_intf_data_noc3;
+wire  [`PITON_NOC1_WIDTH-1:0]                   chipset_intf_data_noc1;
+wire  [`PITON_NOC2_WIDTH-1:0]                   chipset_intf_data_noc2;
+wire  [`PITON_NOC3_WIDTH-1:0]                   chipset_intf_data_noc3;
 wire                                            chipset_intf_val_noc1;
 wire                                            chipset_intf_val_noc2;
 wire                                            chipset_intf_val_noc3;
@@ -617,9 +617,9 @@ wire                                            chipset_intf_rdy_noc1;
 wire                                            chipset_intf_rdy_noc2;
 wire                                            chipset_intf_rdy_noc3;
 
-wire  [`NOC_DATA_WIDTH-1:0]                     intf_chipset_data_noc1;
-wire  [`NOC_DATA_WIDTH-1:0]                     intf_chipset_data_noc2;
-wire  [`NOC_DATA_WIDTH-1:0]                     intf_chipset_data_noc3;
+wire  [`PITON_NOC1_WIDTH-1:0]                   intf_chipset_data_noc1;
+wire  [`PITON_NOC2_WIDTH-1:0]                   intf_chipset_data_noc2;
+wire  [`PITON_NOC3_WIDTH-1:0]                   intf_chipset_data_noc3;
 wire                                            intf_chipset_val_noc1;
 wire                                            intf_chipset_val_noc2;
 wire                                            intf_chipset_val_noc3;
@@ -1064,7 +1064,7 @@ fpga_bridge(
 );
 
 // Convert from val/rdy to credit for transmission to rest of chipset
-credit_to_valrdy offchip_processor_noc1_c2v(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC1_WIDTH)) offchip_processor_noc1_c2v(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1076,7 +1076,7 @@ credit_to_valrdy offchip_processor_noc1_c2v(
     .valid_out(fpga_intf_val_noc1),
     .ready_out(fpga_intf_rdy_noc1)
 );
-credit_to_valrdy offchip_processor_noc2_c2v(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) offchip_processor_noc2_c2v(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1088,7 +1088,7 @@ credit_to_valrdy offchip_processor_noc2_c2v(
     .valid_out(fpga_intf_val_noc2),
     .ready_out(fpga_intf_rdy_noc2)
 );
-credit_to_valrdy offchip_processor_noc3_c2v(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) offchip_processor_noc3_c2v(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1100,7 +1100,11 @@ credit_to_valrdy offchip_processor_noc3_c2v(
     .valid_out(fpga_intf_val_noc3),
     .ready_out(fpga_intf_rdy_noc3)
 );
-valrdy_to_credit #(4, 3) processor_offchip_noc1_v2c(
+valrdy_to_credit #(
+    .BUFFER_SIZE(4),
+    .BUFFER_BITS(3),
+    .FLIT_WIDTH(`PITON_NOC1_WIDTH)
+) processor_offchip_noc1_v2c(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1112,7 +1116,11 @@ valrdy_to_credit #(4, 3) processor_offchip_noc1_v2c(
     .valid_out(processor_offchip_noc1_valid),
     .yummy_out(processor_offchip_noc1_yummy)
 );
-valrdy_to_credit #(4, 3) processor_offchip_noc2_v2c(
+valrdy_to_credit #(
+    .BUFFER_SIZE(4),
+    .BUFFER_BITS(3),
+    .FLIT_WIDTH(`PITON_NOC2_WIDTH)
+) processor_offchip_noc2_v2c(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1124,7 +1132,11 @@ valrdy_to_credit #(4, 3) processor_offchip_noc2_v2c(
     .valid_out(processor_offchip_noc2_valid),
     .yummy_out(processor_offchip_noc2_yummy)
 );
-valrdy_to_credit #(4, 3) processor_offchip_noc3_v2c(
+valrdy_to_credit #(
+    .BUFFER_SIZE(4),
+    .BUFFER_BITS(3),
+    .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+) processor_offchip_noc3_v2c(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1139,7 +1151,11 @@ valrdy_to_credit #(4, 3) processor_offchip_noc3_v2c(
 `endif // endif PITON_NO_CHIP_BRIDGE
 
 // Convert chipset val/rdy interface back to credit for transmission to fpga_bridge
-valrdy_to_credit #(4, 3) offchip_processor_noc1_v2c(
+valrdy_to_credit #(
+    .BUFFER_SIZE(4),
+    .BUFFER_BITS(3),
+    .FLIT_WIDTH(`PITON_NOC1_WIDTH)
+) offchip_processor_noc1_v2c(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1151,7 +1167,11 @@ valrdy_to_credit #(4, 3) offchip_processor_noc1_v2c(
     .valid_out(offchip_processor_noc1_valid),
     .yummy_out(offchip_processor_noc1_yummy)
 );
-valrdy_to_credit #(4, 3) offchip_processor_noc2_v2c(
+valrdy_to_credit #(
+    .BUFFER_SIZE(4),
+    .BUFFER_BITS(3),
+    .FLIT_WIDTH(`PITON_NOC2_WIDTH)
+) offchip_processor_noc2_v2c(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1163,7 +1183,11 @@ valrdy_to_credit #(4, 3) offchip_processor_noc2_v2c(
     .valid_out(offchip_processor_noc2_valid),
     .yummy_out(offchip_processor_noc2_yummy)
 );
-valrdy_to_credit #(4, 3) offchip_processor_noc3_v2c(
+valrdy_to_credit #(
+    .BUFFER_SIZE(4),
+    .BUFFER_BITS(3),
+    .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+) offchip_processor_noc3_v2c(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1175,7 +1199,7 @@ valrdy_to_credit #(4, 3) offchip_processor_noc3_v2c(
     .valid_out(offchip_processor_noc3_valid),
     .yummy_out(offchip_processor_noc3_yummy)
 );
-credit_to_valrdy processor_offchip_noc1_c2v(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC1_WIDTH)) processor_offchip_noc1_c2v(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1187,7 +1211,7 @@ credit_to_valrdy processor_offchip_noc1_c2v(
     .valid_out(intf_chipset_val_noc1),
     .ready_out(intf_chipset_rdy_noc1)
 );
-credit_to_valrdy processor_offchip_noc2_c2v(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) processor_offchip_noc2_c2v(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 
@@ -1199,7 +1223,7 @@ credit_to_valrdy processor_offchip_noc2_c2v(
     .valid_out(intf_chipset_val_noc2),
     .ready_out(intf_chipset_rdy_noc2)
 );
-credit_to_valrdy processor_offchip_noc3_c2v(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) processor_offchip_noc3_c2v(
     .clk(chipset_clk),
     .reset(~chipset_rst_n_ff),
 

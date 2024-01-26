@@ -58,10 +58,10 @@ module tile #(
 <%
 s = '''
     // Dynamic Network Inputs 0 (User Dynamic Network)
-    input [`NOC_DATA_WIDTH-1:0]         dyn0_dataIn_N,
-    input [`NOC_DATA_WIDTH-1:0]         dyn0_dataIn_E,
-    input [`NOC_DATA_WIDTH-1:0]         dyn0_dataIn_W,
-    input [`NOC_DATA_WIDTH-1:0]         dyn0_dataIn_S,
+    input [`PITON_NOC1_WIDTH-1:0]       dyn0_dataIn_N,
+    input [`PITON_NOC1_WIDTH-1:0]       dyn0_dataIn_E,
+    input [`PITON_NOC1_WIDTH-1:0]       dyn0_dataIn_W,
+    input [`PITON_NOC1_WIDTH-1:0]       dyn0_dataIn_S,
     input                               dyn0_validIn_N,
     input                               dyn0_validIn_E,
     input                               dyn0_validIn_W,
@@ -72,10 +72,10 @@ s = '''
     input                               dyn0_dSo_yummy,
 
     // Dynamic Network Inputs 1 (User Dynamic Network)
-    input [`NOC_DATA_WIDTH-1:0]         dyn1_dataIn_N,
-    input [`NOC_DATA_WIDTH-1:0]         dyn1_dataIn_E,
-    input [`NOC_DATA_WIDTH-1:0]         dyn1_dataIn_W,
-    input [`NOC_DATA_WIDTH-1:0]         dyn1_dataIn_S,
+    input [`PITON_NOC2_WIDTH-1:0]       dyn1_dataIn_N,
+    input [`PITON_NOC2_WIDTH-1:0]       dyn1_dataIn_E,
+    input [`PITON_NOC2_WIDTH-1:0]       dyn1_dataIn_W,
+    input [`PITON_NOC2_WIDTH-1:0]       dyn1_dataIn_S,
     input                               dyn1_validIn_N,
     input                               dyn1_validIn_E,
     input                               dyn1_validIn_W,
@@ -86,10 +86,10 @@ s = '''
     input                               dyn1_dSo_yummy,
 
     // Dynamic Network 2 Inputs (User Dynamic Network)
-    input [`NOC_DATA_WIDTH-1:0]         dyn2_dataIn_N,
-    input [`NOC_DATA_WIDTH-1:0]         dyn2_dataIn_E,
-    input [`NOC_DATA_WIDTH-1:0]         dyn2_dataIn_W,
-    input [`NOC_DATA_WIDTH-1:0]         dyn2_dataIn_S,
+    input [`PITON_NOC3_WIDTH-1:0]       dyn2_dataIn_N,
+    input [`PITON_NOC3_WIDTH-1:0]       dyn2_dataIn_E,
+    input [`PITON_NOC3_WIDTH-1:0]       dyn2_dataIn_W,
+    input [`PITON_NOC3_WIDTH-1:0]       dyn2_dataIn_S,
     input                               dyn2_validIn_N,
     input                               dyn2_validIn_E,
     input                               dyn2_validIn_W,
@@ -100,10 +100,10 @@ s = '''
     input                               dyn2_dSo_yummy,
 
     // Dynamic network Outputs 0
-    output [`NOC_DATA_WIDTH-1:0]        dyn0_dNo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn0_dEo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn0_dWo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn0_dSo,
+    output [`PITON_NOC1_WIDTH-1:0]      dyn0_dNo,
+    output [`PITON_NOC1_WIDTH-1:0]      dyn0_dEo,
+    output [`PITON_NOC1_WIDTH-1:0]      dyn0_dWo,
+    output [`PITON_NOC1_WIDTH-1:0]      dyn0_dSo,
     output                              dyn0_dNo_valid,
     output                              dyn0_dEo_valid,
     output                              dyn0_dWo_valid,
@@ -115,10 +115,10 @@ s = '''
     //output [4:0]                        ec_dyn0,
 
     // Dynamic network Outputs 1
-    output [`NOC_DATA_WIDTH-1:0]        dyn1_dNo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn1_dEo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn1_dWo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn1_dSo,
+    output [`PITON_NOC2_WIDTH-1:0]      dyn1_dNo,
+    output [`PITON_NOC2_WIDTH-1:0]      dyn1_dEo,
+    output [`PITON_NOC2_WIDTH-1:0]      dyn1_dWo,
+    output [`PITON_NOC2_WIDTH-1:0]      dyn1_dSo,
     output                              dyn1_dNo_valid,
     output                              dyn1_dEo_valid,
     output                              dyn1_dWo_valid,
@@ -130,10 +130,10 @@ s = '''
     //output [4:0]                        ec_dyn1,
 
     // Dynamic network Outputs 2
-    output [`NOC_DATA_WIDTH-1:0]        dyn2_dNo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn2_dEo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn2_dWo,
-    output [`NOC_DATA_WIDTH-1:0]        dyn2_dSo,
+    output [`PITON_NOC3_WIDTH-1:0]      dyn2_dNo,
+    output [`PITON_NOC3_WIDTH-1:0]      dyn2_dEo,
+    output [`PITON_NOC3_WIDTH-1:0]      dyn2_dWo,
+    output [`PITON_NOC3_WIDTH-1:0]      dyn2_dSo,
     output                              dyn2_dNo_valid,
     output                              dyn2_dEo_valid,
     output                              dyn2_dWo_valid,
@@ -147,27 +147,27 @@ s = '''
 if (PITON_NETWORK_CONFIG == "xbar_config"):
   s = '''
     //condensed signals
-    input [`NOC_DATA_WIDTH-1:0]         dyn0_dataIn,
+    input [`PITON_NOC1_WIDTH-1:0]       dyn0_dataIn,
     input                               dyn0_validIn,
     input                               dyn0_do_yummy,
 
-    input [`NOC_DATA_WIDTH-1:0]         dyn1_dataIn,
+    input [`PITON_NOC2_WIDTH-1:0]       dyn1_dataIn,
     input                               dyn1_validIn,
     input                               dyn1_do_yummy,
 
-    input [`NOC_DATA_WIDTH-1:0]         dyn2_dataIn,
+    input [`PITON_NOC3_WIDTH-1:0]       dyn2_dataIn,
     input                               dyn2_validIn,
     input                               dyn2_do_yummy,
 
-    output [`NOC_DATA_WIDTH-1:0]        dyn0_do,
+    output [`PITON_NOC1_WIDTH-1:0]      dyn0_do,
     output                              dyn0_do_valid,
     output                              dyn0_yummyOut,
 
-    output [`NOC_DATA_WIDTH-1:0]        dyn1_do,
+    output [`PITON_NOC2_WIDTH-1:0]      dyn1_do,
     output                              dyn1_do_valid,
     output                              dyn1_yummyOut,
 
-    output [`NOC_DATA_WIDTH-1:0]        dyn2_do,
+    output [`PITON_NOC3_WIDTH-1:0]      dyn2_do,
     output                              dyn2_do_valid,
     output                              dyn2_yummyOut\
 '''
@@ -217,9 +217,9 @@ print(s)
     wire [`NOC_X_WIDTH-1:0]             config_coreid_x;
     wire [`NOC_Y_WIDTH-1:0]             config_coreid_y;
 
-    wire [`DATA_WIDTH-1:0]              buffer_processor_data_noc1;
-    wire [`DATA_WIDTH-1:0]              buffer_processor_data_noc2;
-    wire [`DATA_WIDTH-1:0]              buffer_processor_data_noc3;
+    wire [`PITON_NOC1_WIDTH-1:0]        buffer_processor_data_noc1;
+    wire [`PITON_NOC2_WIDTH-1:0]        buffer_processor_data_noc2;
+    wire [`PITON_NOC3_WIDTH-1:0]        buffer_processor_data_noc3;
 
     wire                                buffer_processor_valid_noc1;
     wire                                buffer_processor_valid_noc2;
@@ -234,40 +234,40 @@ print(s)
 
     // Processor val/rdy interface
 
-    wire [`NOC_DATA_WIDTH-1:0]          processor_router_data_noc1;
+    wire [`PITON_NOC1_WIDTH-1:0]        processor_router_data_noc1;
     wire                                processor_router_valid_noc1;
     wire                                buffer_router_yummy_noc1;
 
-    wire [`NOC_DATA_WIDTH-1:0]          buffer_router_data_noc1;
+    wire [`PITON_NOC1_WIDTH-1:0]        buffer_router_data_noc1;
     wire                                buffer_router_valid_noc1;
 
 
-    wire [`NOC_DATA_WIDTH-1:0]          processor_router_data_noc2;
+    wire [`PITON_NOC2_WIDTH-1:0]        processor_router_data_noc2;
     wire                                processor_router_valid_noc2;
     wire                                buffer_router_yummy_noc2;
 
-    wire [`NOC_DATA_WIDTH-1:0]          buffer_router_data_noc2;
+    wire [`PITON_NOC2_WIDTH-1:0]        buffer_router_data_noc2;
     wire                                buffer_router_valid_noc2;
 
-    wire [`NOC_DATA_WIDTH-1:0]          processor_router_data_noc3;
+    wire [`PITON_NOC3_WIDTH-1:0]        processor_router_data_noc3;
     wire                                processor_router_valid_noc3;
     wire                                buffer_router_yummy_noc3;
 
-    wire [`NOC_DATA_WIDTH-1:0]          buffer_router_data_noc3;
+    wire [`PITON_NOC3_WIDTH-1:0]        buffer_router_data_noc3;
     wire                                buffer_router_valid_noc3;
 
-    wire [`NOC_DATA_WIDTH-1:0]          router_buffer_data_noc1;
+    wire [`PITON_NOC1_WIDTH-1:0]        router_buffer_data_noc1;
     wire                                router_buffer_data_val_noc1;
     wire                                router_buffer_consumed_noc1;
     wire                                thanksIn_CGNO0;
 
-    wire [`NOC_DATA_WIDTH-1:0]          router_buffer_data_noc2;
+    wire [`PITON_NOC2_WIDTH-1:0]        router_buffer_data_noc2;
     wire                                router_buffer_data_val_noc2;
     wire                                router_buffer_consumed_noc2;
     wire                                thanksIn_CGNO1;
 
 
-    wire [`NOC_DATA_WIDTH-1:0]          router_buffer_data_noc3;
+    wire [`PITON_NOC3_WIDTH-1:0]        router_buffer_data_noc3;
     wire                                router_buffer_data_val_noc3;
     wire                                router_buffer_consumed_noc3;
     wire                                thanksIn_CGNO2;
@@ -414,7 +414,7 @@ print(s)
     // //////////
 <%
 s = '''
-    dynamic_node_top_wrap user_dynamic_network0
+    dynamic_node_top_wrap #(.FLIT_WIDTH(`PITON_NOC1_WIDTH)) user_dynamic_network0
       (.clk(clk_gated),
        .reset_in(~rst_n_f),
        // dataIn (to input blocks)
@@ -467,7 +467,7 @@ s = '''
        //.store_meter_ack_non_partner(),
        //.ec_out(ec_dyn0));
 
-    dynamic_node_top_wrap user_dynamic_network1
+    dynamic_node_top_wrap #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) user_dynamic_network1
       (.clk(clk_gated),
        .reset_in(~rst_n_f),
        // dataIn (to input blocks)
@@ -520,7 +520,7 @@ s = '''
        //.store_meter_ack_non_partner(),
        //.ec_out(ec_dyn1));
 
-    dynamic_node_top_wrap user_dynamic_network2
+    dynamic_node_top_wrap #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) user_dynamic_network2
       (.clk(clk_gated),
        .reset_in(~rst_n_f),
        // dataIn (to input blocks)
@@ -607,7 +607,7 @@ if (PITON_NETWORK_CONFIG == "xbar_config"):
   NIB_SIZE_LOG2 = 2
 NIB_SIZE = pow(2, NIB_SIZE_LOG2)
 %>
-    valrdy_to_credit #(<%= NIB_SIZE%>, <%= NIB_SIZE_LOG2 + 1%>) cgno_blk1(
+    valrdy_to_credit #(.BUFFER_SIZE(<%= NIB_SIZE%>),.BUFFER_BITS(<%= NIB_SIZE_LOG2 + 1%>),.FLIT_WIDTH(`PITON_NOC1_WIDTH) ) cgno_blk1(
         .clk(clk_gated),
         .reset(~rst_n_f),
         .data_in(processor_router_data_noc1),
@@ -619,7 +619,7 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
         .yummy_out(router_buffer_consumed_noc1)    // Yummy signal
     );
 
-    valrdy_to_credit #(<%= NIB_SIZE%>, <%= NIB_SIZE_LOG2 + 1%>) cgno_blk2(
+    valrdy_to_credit #(.BUFFER_SIZE(<%= NIB_SIZE%>),.BUFFER_BITS(<%= NIB_SIZE_LOG2 + 1%>),.FLIT_WIDTH(`PITON_NOC2_WIDTH) ) cgno_blk2(
         .clk(clk_gated),
         .reset(~rst_n_f),
         .data_in(processor_router_data_noc2),
@@ -631,7 +631,7 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
         .yummy_out(router_buffer_consumed_noc2)    // Yummy signal
     );
 
-    valrdy_to_credit #(<%= NIB_SIZE%>, <%= NIB_SIZE_LOG2 + 1%>) cgno_blk3(
+    valrdy_to_credit #(.BUFFER_SIZE(<%= NIB_SIZE%>),.BUFFER_BITS(<%= NIB_SIZE_LOG2 + 1%>),.FLIT_WIDTH(`PITON_NOC3_WIDTH) ) cgno_blk3(
         .clk(clk_gated),
         .reset(~rst_n_f),
         .data_in(processor_router_data_noc3),
@@ -644,7 +644,7 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
     );
 
 
-    credit_to_valrdy cgni_blk1(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC1_WIDTH)) cgni_blk1(
         .clk(clk_gated),
         .reset(~rst_n_f),
         .data_in(router_buffer_data_noc1),
@@ -656,7 +656,7 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
         .ready_out(processor_router_ready_noc1)    // Rdy signal from processor to dynamic network
     );
 
-    credit_to_valrdy cgni_blk2(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) cgni_blk2(
         .clk(clk_gated),
         .reset(~rst_n_f),
         .data_in(router_buffer_data_noc2),
@@ -668,7 +668,7 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
         .ready_out(processor_router_ready_noc2)    // Rdy signal from processor to dynamic network
     );
 
-    credit_to_valrdy cgni_blk3(
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) cgni_blk3(
         .clk(clk_gated),
         .reset(~rst_n_f),
         .data_in(router_buffer_data_noc3),
@@ -680,6 +680,93 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
         .ready_out(processor_router_ready_noc3)    // Rdy signal from processor to dynamic network
     );
 
+`ifdef PITON_PCK_MON
+
+    piton_pck_monitor #(
+        .MAX_PCK_SIZ(16),
+        .INPUT_WIDTH(`PITON_NOC1_WIDTH),
+        .DIR ("IN"),
+        .NAME("N1")
+    )mn1_in(
+        .id (flat_tileid),
+        .valid(buffer_processor_valid_noc1),
+        .flit_in(buffer_processor_data_noc1),
+        .ready(processor_router_ready_noc1),
+        .reset(~rst_n_f),
+        .clk(clk_gated)
+    );
+
+    piton_pck_monitor #(
+        .MAX_PCK_SIZ(16),
+        .INPUT_WIDTH(`PITON_NOC2_WIDTH),
+        .DIR ("IN"),
+        .NAME("N2")
+    )mn2_in(
+        .id (flat_tileid),
+        .valid(buffer_processor_valid_noc2),
+        .flit_in(buffer_processor_data_noc2),
+        .ready(processor_router_ready_noc2),
+        .reset(~rst_n_f),
+        .clk(clk_gated)
+    );
+
+    piton_pck_monitor #(
+        .MAX_PCK_SIZ(16),
+        .INPUT_WIDTH(`PITON_NOC3_WIDTH),
+        .DIR ("IN"),
+        .NAME("N3")
+    )mn3_in(
+        .id (flat_tileid),
+        .valid(buffer_processor_valid_noc3),
+        .flit_in(buffer_processor_data_noc3),
+        .ready(processor_router_ready_noc3),
+        .reset(~rst_n_f),
+        .clk(clk_gated)
+    );
+
+
+    piton_pck_monitor #(
+        .MAX_PCK_SIZ(16),
+        .INPUT_WIDTH(`PITON_NOC1_WIDTH),
+        .DIR ("OUT"),
+        .NAME("N1")
+    )mn1_out(
+        .id (flat_tileid),
+        .valid(processor_router_valid_noc1),
+        .flit_in(processor_router_data_noc1),
+        .ready(router_processor_ready_noc1),
+        .reset(~rst_n_f),
+        .clk(clk_gated)
+    );
+
+    piton_pck_monitor #(
+        .MAX_PCK_SIZ(16),
+        .INPUT_WIDTH(`PITON_NOC2_WIDTH),
+        .DIR ("OUT"),
+        .NAME("N2")
+    )mn2_out(
+        .id (flat_tileid),
+        .valid(processor_router_valid_noc2),
+        .flit_in(processor_router_data_noc2),
+        .ready(router_processor_ready_noc2),
+        .reset(~rst_n_f),
+        .clk(clk_gated)
+    );
+
+    piton_pck_monitor #(
+        .MAX_PCK_SIZ(16),
+        .INPUT_WIDTH(`PITON_NOC3_WIDTH),
+        .DIR ("OUT"),
+        .NAME("N3")
+    )mn3_out(
+        .id (flat_tileid),
+        .valid(processor_router_valid_noc3),
+        .flit_in(processor_router_data_noc3),
+        .ready(router_processor_ready_noc3),
+        .reset(~rst_n_f),
+        .clk(clk_gated)
+    );
+`endif
 ///////////////////////
 // Instantiate Cores //
 ///////////////////////
@@ -1324,7 +1411,9 @@ print(str)
     // L2 //
     ////////
 
-    l2 l2(
+    l2 #(
+        .L15_L1D_LINE_SIZE( L15_L1D_LINE_SIZE)
+    )l2(
         .clk(clk_gated),
         .rst_n(rst_n_f),
         .chipid(config_chipid),

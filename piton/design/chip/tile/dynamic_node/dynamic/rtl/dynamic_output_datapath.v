@@ -35,18 +35,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 `include "network_define.v"
 
-module dynamic_output_datapath(data_out, valid_out_temp, data_a_in, data_b_in, data_c_in, data_d_in, data_x_in, valid_a_in, valid_b_in, valid_c_in, valid_d_in, valid_x_in, current_route_in);
+module dynamic_output_datapath #(parameter FLIT_WIDTH=64)
+(data_out, valid_out_temp, data_a_in, data_b_in, data_c_in, data_d_in, data_x_in, valid_a_in, valid_b_in, valid_c_in, valid_d_in, valid_x_in, current_route_in);
 
 // begin port declarations
 
-output [`DATA_WIDTH-1:0] data_out;
+output [FLIT_WIDTH-1:0] data_out;
 output valid_out_temp;
 
-input [`DATA_WIDTH-1:0] data_a_in;
-input [`DATA_WIDTH-1:0] data_b_in;
-input [`DATA_WIDTH-1:0] data_c_in;
-input [`DATA_WIDTH-1:0] data_d_in;
-input [`DATA_WIDTH-1:0] data_x_in;
+input [FLIT_WIDTH-1:0] data_a_in;
+input [FLIT_WIDTH-1:0] data_b_in;
+input [FLIT_WIDTH-1:0] data_c_in;
+input [FLIT_WIDTH-1:0] data_d_in;
+input [FLIT_WIDTH-1:0] data_x_in;
 input valid_a_in;
 input valid_b_in;
 input valid_c_in;
@@ -75,7 +76,7 @@ input [2:0] current_route_in;
 //assigns
 
 //instantiations
-one_of_five #(`DATA_WIDTH) data_mux(.in0(data_a_in), .in1(data_b_in), .in2(data_c_in), .in3(data_d_in), .in4(data_x_in), .sel(current_route_in), .out(data_out));
+one_of_five #(FLIT_WIDTH) data_mux(.in0(data_a_in), .in1(data_b_in), .in2(data_c_in), .in3(data_d_in), .in4(data_x_in), .sel(current_route_in), .out(data_out));
 one_of_five #(1) valid_mux(.in0(valid_a_in), .in1(valid_b_in), .in2(valid_c_in), .in3(valid_d_in), .in4(valid_x_in), .sel(current_route_in), .out(valid_out_temp));
 
 endmodule

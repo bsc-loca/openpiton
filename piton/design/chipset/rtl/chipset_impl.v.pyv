@@ -101,9 +101,9 @@ module chipset_impl(
 `endif // endif PITONSYS_NO_MC
 
     // Main chip interface
-    output [`NOC_DATA_WIDTH-1:0]                chipset_intf_data_noc1,
-    output [`NOC_DATA_WIDTH-1:0]                chipset_intf_data_noc2,
-    output [`NOC_DATA_WIDTH-1:0]                chipset_intf_data_noc3,
+    output [`PITON_NOC1_WIDTH-1:0]              chipset_intf_data_noc1,
+    output [`PITON_NOC2_WIDTH-1:0]              chipset_intf_data_noc2,
+    output [`PITON_NOC3_WIDTH-1:0]              chipset_intf_data_noc3,
     output                                      chipset_intf_val_noc1,
     output                                      chipset_intf_val_noc2,
     output                                      chipset_intf_val_noc3,
@@ -111,9 +111,9 @@ module chipset_impl(
     input                                       chipset_intf_rdy_noc2,
     input                                       chipset_intf_rdy_noc3,
 
-    input  [`NOC_DATA_WIDTH-1:0]                intf_chipset_data_noc1,
-    input  [`NOC_DATA_WIDTH-1:0]                intf_chipset_data_noc2,
-    input  [`NOC_DATA_WIDTH-1:0]                intf_chipset_data_noc3,
+    input  [`PITON_NOC1_WIDTH-1:0]              intf_chipset_data_noc1,
+    input  [`PITON_NOC2_WIDTH-1:0]              intf_chipset_data_noc2,
+    input  [`PITON_NOC3_WIDTH-1:0]              intf_chipset_data_noc3,
     input                                       intf_chipset_val_noc1,
     input                                       intf_chipset_val_noc2,
     input                                       intf_chipset_val_noc3,
@@ -320,10 +320,10 @@ wire                                            uart_timeout_en;
 
 wire                                            cpu_mem_traffic;
 wire                                            chip_filter_noc2_valid;
-wire    [`NOC_DATA_WIDTH-1:0]                   chip_filter_noc2_data;
+wire    [`PITON_NOC2_WIDTH-1:0]                 chip_filter_noc2_data;
 wire                                            filter_chip_noc2_ready;
 wire                                            filter_chip_noc3_valid;
-wire    [`NOC_DATA_WIDTH-1:0]                   filter_chip_noc3_data;
+wire    [`PITON_NOC3_WIDTH-1:0]                 filter_chip_noc3_data;
 wire                                            chip_filter_noc3_ready;
 
 
@@ -336,18 +336,18 @@ for i in range(len(devices)):
             continue
 # wires for the noc2 crossbar
     print("""
-wire [`DATA_WIDTH-1:0] %s_buf_xbar_noc2_data;
+wire [`PITON_NOC2_WIDTH-1:0] %s_buf_xbar_noc2_data;
 wire                   %s_buf_xbar_noc2_valid;
 wire                   %s_buf_xbar_noc2_yummy;
-wire [`DATA_WIDTH-1:0] xbar_buf_%s_noc2_data;
+wire [`PITON_NOC2_WIDTH-1:0] xbar_buf_%s_noc2_data;
 wire                   xbar_buf_%s_noc2_valid;
 wire                   xbar_buf_%s_noc2_yummy;
 
-wire [`DATA_WIDTH-1:0] buf_%s_noc2_data;
+wire [`PITON_NOC2_WIDTH-1:0] buf_%s_noc2_data;
 wire                   buf_%s_noc2_valid;
 wire                   %s_buf_noc2_ready;
 
-wire [`DATA_WIDTH-1:0] %s_buf_noc2_data;
+wire [`PITON_NOC2_WIDTH-1:0] %s_buf_noc2_data;
 wire                   %s_buf_noc2_valid;
 wire                   buf_%s_noc2_ready;
 """ % (devices[i]["name"], devices[i]["name"], devices[i]["name"],
@@ -357,18 +357,18 @@ wire                   buf_%s_noc2_ready;
 
 # wires for the noc3 crossbar
     print("""
-wire [`DATA_WIDTH-1:0] %s_buf_xbar_noc3_data;
+wire [`PITON_NOC3_WIDTH-1:0] %s_buf_xbar_noc3_data;
 wire                   %s_buf_xbar_noc3_valid;
 wire                   %s_buf_xbar_noc3_yummy;
-wire [`DATA_WIDTH-1:0] xbar_buf_%s_noc3_data;
+wire [`PITON_NOC3_WIDTH-1:0] xbar_buf_%s_noc3_data;
 wire                   xbar_buf_%s_noc3_valid;
 wire                   xbar_buf_%s_noc3_yummy;
 
-wire [`DATA_WIDTH-1:0] buf_%s_noc3_data;
+wire [`PITON_NOC3_WIDTH-1:0] buf_%s_noc3_data;
 wire                   buf_%s_noc3_valid;
 wire                   %s_buf_noc3_ready;
 
-wire [`DATA_WIDTH-1:0] %s_buf_noc3_data;
+wire [`PITON_NOC3_WIDTH-1:0] %s_buf_noc3_data;
 wire                   %s_buf_noc3_valid;
 wire                   buf_%s_noc3_ready;
 """ % (devices[i]["name"], devices[i]["name"], devices[i]["name"],
@@ -378,19 +378,19 @@ wire                   buf_%s_noc3_ready;
     # if the device doesn't have a noc2 input, tie off unused wires
     if not (devices[i]["noc2_in"]):
         print("""
-assign %s_buf_noc2_data = `DATA_WIDTH'b0;
+assign %s_buf_noc2_data = `PITON_NOC2_WIDTH'b0;
 assign %s_buf_noc2_valid = 1'b0;
 assign %s_buf_noc3_ready = 1'b0;
 """ % (devices[i]["name"], devices[i]["name"], devices[i]["name"]))
     # otherwise, give it a set of packet filter wires except for the chip (for now)
     elif (i > 0):
         print("""
-wire [`DATA_WIDTH-1:0]            %s_filter_noc2_data;
+wire [`PITON_NOC2_WIDTH-1:0]      %s_filter_noc2_data;
 wire                              %s_filter_noc2_valid;
 wire                              filter_%s_noc2_ready;
 """ % (devices[i]["name"], devices[i]["name"], devices[i]["name"]))
         print("""
-wire [`DATA_WIDTH-1:0]             filter_%s_noc3_data;
+wire [`PITON_NOC3_WIDTH-1:0]       filter_%s_noc3_data;
 wire                               filter_%s_noc3_valid;
 wire                               %s_filter_noc3_ready;
 """ % (devices[i]["name"], devices[i]["name"], devices[i]["name"]))
@@ -419,21 +419,21 @@ end
 
 // Currently NoC 1 from chipset to interface is not used
 // by any chipset implementation
-assign chipset_intf_data_noc1 = {`NOC_DATA_WIDTH{1'b0}};
+assign chipset_intf_data_noc1 = {`PITON_NOC1_WIDTH{1'b0}};
 assign chipset_intf_val_noc1 = 1'b0;
 
 // Currently NoC 3 from interface to chipset is not used
 // by any chipset implementation
 assign intf_chipset_rdy_noc3 = 1'b0;
 assign chip_buf_noc3_valid = 1'b0;
-assign chip_buf_noc3_data = {`NOC_DATA_WIDTH{1'b0}};
+assign chip_buf_noc3_data = {`PITON_NOC3_WIDTH{1'b0}};
 
 `ifdef PITONSYS_NO_MC
 `ifndef PITON_FPGA_SYNTH
     // Tie off splitter memory interface
     assign mem_buf_noc2_ready = 1'b0;
     assign mem_buf_noc3_valid = 1'b0;
-    assign mem_buf_noc3_data = {`NOC_DATA_WIDTH{1'b0}};
+    assign mem_buf_noc3_data = {`PITON_NOC3_WIDTH{1'b0}};
 `endif // endif PITON_FPGA_SYNTH
 `endif // endif PITONSYS_NO_MC
 
@@ -572,7 +572,7 @@ packet_filter %s_packet_filter(
 <%
 
 xbartemplate = r'''
-io_xbar_top_wrap io_xbar_noc2 (
+io_xbar_top_wrap #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) io_xbar_noc2 (
     .clk                (chipset_clk),
     .reset_in           (~chipset_rst_n),
 
@@ -598,7 +598,7 @@ xbartemplate = xbartemplate[:-3] + r'''
 print(xbartemplate)
 
 xbartemplate = r'''
-io_xbar_top_wrap io_xbar_noc3 (
+io_xbar_top_wrap #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) io_xbar_noc3 (
     .clk                (chipset_clk),
     .reset_in           (~chipset_rst_n),
 
@@ -632,7 +632,7 @@ for i in range(len(devices)):
         continue
 
     valrdy_credit_template = r'''
-valrdy_to_credit noc2_%s_to_xbar (
+valrdy_to_credit #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) noc2_%s_to_xbar (
       .clk(chipset_clk),
       .reset(~chipset_rst_n),
 
@@ -647,7 +647,7 @@ valrdy_to_credit noc2_%s_to_xbar (
         devices[i]["name"], devices[i]["name"], devices[i]["name"])
 
     credit_valrdy_template = r'''
-credit_to_valrdy noc2_xbar_to_%s(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) noc2_xbar_to_%s(
       .clk(chipset_clk),
       .reset(~chipset_rst_n),
 
@@ -665,7 +665,7 @@ credit_to_valrdy noc2_xbar_to_%s(
     print(credit_valrdy_template)
 
     valrdy_credit_template = r'''
-valrdy_to_credit noc3_%s_to_xbar (
+valrdy_to_credit #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) noc3_%s_to_xbar (
       .clk(chipset_clk),
       .reset(~chipset_rst_n),
 
@@ -680,7 +680,7 @@ valrdy_to_credit noc3_%s_to_xbar (
         devices[i]["name"], devices[i]["name"], devices[i]["name"])
 
     credit_valrdy_template = r'''
-credit_to_valrdy noc3_xbar_to_%s(
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) noc3_xbar_to_%s(
       .clk(chipset_clk),
       .reset(~chipset_rst_n),
 
@@ -1066,10 +1066,31 @@ assign uart_interrupt = 1'b0;
 // Fake iobridge
 // Tie noc1 input low because it's unused
 assign intf_chipset_rdy_noc1 = 1'b0;
+wire                         iob_filter_noc2_valid_64b;
+wire  [`NOC_DATA_WIDTH-1:0]  iob_filter_noc2_data_64b;
+wire                         filter_iob_noc2_ready_64b;
+
+
+
+
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`NOC_DATA_WIDTH),
+    .OUTPUT_WIDTH(`PITON_NOC2_WIDTH)
+)noc2_adpt_iob(
+    .flit_val_i (iob_filter_noc2_valid_64b),
+    .flit_data_i(iob_filter_noc2_data_64b ),
+    .flit_rdy_o (filter_iob_noc2_ready_64b), 
+    .flit_val_o (iob_filter_noc2_valid),
+    .flit_data_o(iob_filter_noc2_data),
+    .flit_rdy_i (filter_iob_noc2_ready),
+    .clk (chipset_clk),
+    .rst_n(chipset_rst_n)
+);
 ciop_fake_iob ciop_fake_iob(
-    .noc_out_val       ( iob_filter_noc2_valid ),
-    .noc_out_rdy       ( filter_iob_noc2_ready ),
-    .noc_out_data      ( iob_filter_noc2_data  ),
+    .noc_out_val       ( iob_filter_noc2_valid_64b ),
+    .noc_out_rdy       ( filter_iob_noc2_ready_64b ),
+    .noc_out_data      ( iob_filter_noc2_data_64b  ),
 
     <%
         text = r'''
@@ -1144,6 +1165,48 @@ for i in range(len(devices)):
         ClintBase = devices[i]["base"]
     if devices[i]["name"] == "ariane_plic":
         PlicBase = devices[i]["base"]
+template = '''
+    wire                         buf_ariane_debug_noc2_valid_64b;
+    wire  [`NOC_DATA_WIDTH-1:0]  buf_ariane_debug_noc2_data_64b;
+    wire                         ariane_debug_buf_noc2_ready_64b;
+
+    noc_width_adaptor #(
+        .INPUT_WIDTH(`PITON_NOC2_WIDTH),
+        .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+    )noc2_adpt_debug(
+        .flit_val_i (buf_ariane_debug_noc2_valid),
+        .flit_data_i(buf_ariane_debug_noc2_data),
+        .flit_rdy_o (ariane_debug_buf_noc2_ready), 
+        .flit_val_o (buf_ariane_debug_noc2_valid_64b),
+        .flit_data_o(buf_ariane_debug_noc2_data_64b),
+        .flit_rdy_i (ariane_debug_buf_noc2_ready_64b),
+        .clk (chipset_clk),
+        .rst_n (chipset_rst_n)
+    );
+
+    wire                         ariane_debug_buf_noc3_valid_64b;
+    wire  [`NOC_DATA_WIDTH-1:0]  ariane_debug_buf_noc3_data_64b;
+    wire                         buf_ariane_debug_noc3_ready_64b;
+
+    noc_width_adaptor #(
+        .INPUT_WIDTH(`NOC_DATA_WIDTH),
+        .OUTPUT_WIDTH(`PITON_NOC3_WIDTH)
+    )noc3_adpt_debug(
+        .flit_val_i (ariane_debug_buf_noc3_valid_64b),
+        .flit_data_i(ariane_debug_buf_noc3_data_64b),
+        .flit_rdy_o (buf_ariane_debug_noc3_ready_64b), 
+        .flit_val_o (ariane_debug_buf_noc3_valid),
+        .flit_data_o(ariane_debug_buf_noc3_data),
+        .flit_rdy_i (buf_ariane_debug_noc3_ready),
+        .clk (chipset_clk),
+        .rst_n (chipset_rst_n)
+    );
+
+'''
+array = ["debug", "bootrom", "clint", "plic" ]
+for name in array:
+    modified_template = template.replace("debug", name)
+    print(modified_template)
 str = '''
 `ifdef PITON_BSC_RISCV_PERIPHERALS
     bsc_riscv_peripherals #(
@@ -1163,34 +1226,34 @@ str = '''
 ,       .rst_ni                          ( chipset_rst_n                 )
 `ifdef PITON_RV64_DEBUGUNIT
 ,       .testmode_i                      ( 1'b0                          )
-,       .buf_ariane_debug_noc2_data_i    ( buf_ariane_debug_noc2_data    )
-,       .buf_ariane_debug_noc2_valid_i   ( buf_ariane_debug_noc2_valid   )
-,       .ariane_debug_buf_noc2_ready_o   ( ariane_debug_buf_noc2_ready   )
-,       .ariane_debug_buf_noc3_data_o    ( ariane_debug_buf_noc3_data    )
-,       .ariane_debug_buf_noc3_valid_o   ( ariane_debug_buf_noc3_valid   )
-,       .buf_ariane_debug_noc3_ready_i   ( buf_ariane_debug_noc3_ready   )
+,       .buf_ariane_debug_noc2_data_i    ( buf_ariane_debug_noc2_data_64b    )
+,       .buf_ariane_debug_noc2_valid_i   ( buf_ariane_debug_noc2_valid_64b   )
+,       .ariane_debug_buf_noc2_ready_o   ( ariane_debug_buf_noc2_ready_64b   )
+,       .ariane_debug_buf_noc3_data_o    ( ariane_debug_buf_noc3_data_64b    )
+,       .ariane_debug_buf_noc3_valid_o   ( ariane_debug_buf_noc3_valid_64b   )
+,       .buf_ariane_debug_noc3_ready_i   ( buf_ariane_debug_noc3_ready_64b   )
 `endif // ifdef PITON_RV64_DEBUGUNIT
-,       .buf_ariane_bootrom_noc2_data_i  ( buf_ariane_bootrom_noc2_data  )
-,       .buf_ariane_bootrom_noc2_valid_i ( buf_ariane_bootrom_noc2_valid )
-,       .ariane_bootrom_buf_noc2_ready_o ( ariane_bootrom_buf_noc2_ready )
-,       .ariane_bootrom_buf_noc3_data_o  ( ariane_bootrom_buf_noc3_data  )
-,       .ariane_bootrom_buf_noc3_valid_o ( ariane_bootrom_buf_noc3_valid )
-,       .buf_ariane_bootrom_noc3_ready_i ( buf_ariane_bootrom_noc3_ready )
+,       .buf_ariane_bootrom_noc2_data_i  ( buf_ariane_bootrom_noc2_data_64b  )
+,       .buf_ariane_bootrom_noc2_valid_i ( buf_ariane_bootrom_noc2_valid_64b )
+,       .ariane_bootrom_buf_noc2_ready_o ( ariane_bootrom_buf_noc2_ready_64b )
+,       .ariane_bootrom_buf_noc3_data_o  ( ariane_bootrom_buf_noc3_data_64b  )
+,       .ariane_bootrom_buf_noc3_valid_o ( ariane_bootrom_buf_noc3_valid_64b )
+,       .buf_ariane_bootrom_noc3_ready_i ( buf_ariane_bootrom_noc3_ready_64b )
 `ifdef PITON_RV64_CLINT
-,       .buf_ariane_clint_noc2_data_i    ( buf_ariane_clint_noc2_data    )
-,       .buf_ariane_clint_noc2_valid_i   ( buf_ariane_clint_noc2_valid   )
-,       .ariane_clint_buf_noc2_ready_o   ( ariane_clint_buf_noc2_ready   )
-,       .ariane_clint_buf_noc3_data_o    ( ariane_clint_buf_noc3_data    )
-,       .ariane_clint_buf_noc3_valid_o   ( ariane_clint_buf_noc3_valid   )
-,       .buf_ariane_clint_noc3_ready_i   ( buf_ariane_clint_noc3_ready   )
+,       .buf_ariane_clint_noc2_data_i    ( buf_ariane_clint_noc2_data_64b    )
+,       .buf_ariane_clint_noc2_valid_i   ( buf_ariane_clint_noc2_valid_64b   )
+,       .ariane_clint_buf_noc2_ready_o   ( ariane_clint_buf_noc2_ready_64b   )
+,       .ariane_clint_buf_noc3_data_o    ( ariane_clint_buf_noc3_data_64b    )
+,       .ariane_clint_buf_noc3_valid_o   ( ariane_clint_buf_noc3_valid_64b   )
+,       .buf_ariane_clint_noc3_ready_i   ( buf_ariane_clint_noc3_ready_64b   )
 `endif // ifdef PITON_RV64_CLINT
 `ifdef PITON_RV64_PLIC
-,       .buf_ariane_plic_noc2_data_i     ( buf_ariane_plic_noc2_data     )
-,       .buf_ariane_plic_noc2_valid_i    ( buf_ariane_plic_noc2_valid    )
-,       .ariane_plic_buf_noc2_ready_o    ( ariane_plic_buf_noc2_ready    )
-,       .ariane_plic_buf_noc3_data_o     ( ariane_plic_buf_noc3_data     )
-,       .ariane_plic_buf_noc3_valid_o    ( ariane_plic_buf_noc3_valid    )
-,       .buf_ariane_plic_noc3_ready_i    ( buf_ariane_plic_noc3_ready    )
+,       .buf_ariane_plic_noc2_data_i     ( buf_ariane_plic_noc2_data_64b     )
+,       .buf_ariane_plic_noc2_valid_i    ( buf_ariane_plic_noc2_valid_64b    )
+,       .ariane_plic_buf_noc2_ready_o    ( ariane_plic_buf_noc2_ready_64b    )
+,       .ariane_plic_buf_noc3_data_o     ( ariane_plic_buf_noc3_data_64b     )
+,       .ariane_plic_buf_noc3_valid_o    ( ariane_plic_buf_noc3_valid_64b    )
+,       .buf_ariane_plic_noc3_ready_i    ( buf_ariane_plic_noc3_ready_64b    )
 `endif // ifdef PITON_RV64_PLIC
         // This selects either the BM or linux bootrom
 ,       .ariane_boot_sel_i               ( ariane_boot_sel               )
@@ -1229,19 +1292,19 @@ print(str)
 
     // tie off unused sigs
     assign ariane_debug_buf_noc2_ready   = 1'b0;
-    assign ariane_debug_buf_noc3_data    = `NOC_DATA_WIDTH'b0;
+    assign ariane_debug_buf_noc3_data    = `PITON_NOC3_WIDTH'b0;
     assign ariane_debug_buf_noc3_valid   = 1'b0;
 
     assign ariane_bootrom_buf_noc2_ready = 1'b0;
-    assign ariane_bootrom_buf_noc3_data  = `NOC_DATA_WIDTH'b0;
+    assign ariane_bootrom_buf_noc3_data  = `PITON_NOC3_WIDTH'b0;
     assign ariane_bootrom_buf_noc3_valid = 1'b0;
 
     assign ariane_clint_buf_noc2_ready   = 1'b0;
-    assign ariane_clint_buf_noc3_data    = `NOC_DATA_WIDTH'b0;
+    assign ariane_clint_buf_noc3_data    = `PITON_NOC3_WIDTH'b0;
     assign ariane_clint_buf_noc3_valid   = 1'b0;
 
     assign ariane_plic_buf_noc2_ready    = 1'b0;
-    assign ariane_plic_buf_noc3_data     = `NOC_DATA_WIDTH'b0;
+    assign ariane_plic_buf_noc3_data     = `PITON_NOC3_WIDTH'b0;
     assign ariane_plic_buf_noc3_valid    = 1'b0;
 `endif // ifdef PITON_RV64_PLATFORM
 

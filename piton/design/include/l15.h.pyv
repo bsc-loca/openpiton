@@ -591,10 +591,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `define NOC3_REQ_DATA_8 4'd10
 
 // NOC2 BUFFER
-`define NOC2_STATE_WIDTH 2
-`define NOC2_STATE_IDLE 2'd0
-`define NOC2_STATE_RECEIVING 2'd1
-`define NOC2_STATE_WAITING_ACK 2'd2
+`define NOC2_STATE_WIDTH 3
+`define NOC2_STATE_IDLE 3'd0
+`define NOC2_STATE_RECEIVING 3'd1
+`define NOC2_STATE_WAITING_ACK 3'd2
+`define NOC2_STATE_WAITING_ACK_RST 3'd4
 
 // DMBR
 // put this here for now, should be moved to a more appropriate location

@@ -47,7 +47,7 @@ module l2_pipe1_buf_in(
     input wire rst_n,
 
     input wire valid_in,
-    input wire [`NOC_DATA_WIDTH-1:0] data_in,
+    input wire [`PITON_NOC1_WIDTH-1:0] data_in,
     output reg ready_in,
 
    
@@ -61,6 +61,9 @@ module l2_pipe1_buf_in(
     input wire msg_data_ready_out
 );
 <%
+import pyhplib
+from pyhplib import *
+
 L2_P1_HEADER_BUF_IN_SIZE = 8 
 L2_P1_DATA_BUF_IN_SIZE = 4
 
@@ -116,6 +119,10 @@ begin
     msg_data_state_f <= msg_data_state_next;
 end
 
+
+<%
+if (NOC1_WIDTH == 64) :
+    print('''
 always @ *
 begin
     if (!rst_n)
@@ -399,10 +406,10 @@ always @ (posedge clk)
 begin
     if (!rst_n)
     begin   
-<%
-for i in range(L2_P1_HEADER_BUF_IN_SIZE):
-    print("        header_buf_mem_f[%d] <= 0;" % (i))
-%>
+    ''')
+    for i in range(L2_P1_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    print ('''
     end
     else if (msg_header_valid_in && msg_header_ready_in)
     begin
@@ -505,7 +512,1264 @@ begin
     data_wr_ptr_f <= data_wr_ptr_next;
 end
 
+always @ *
+begin
+   msg_data_ready_in = !data_buf_full;
+end
 
+
+always @ *
+begin
+    msg_data_valid_out = !data_buf_empty;
+    msg_data_out = data_buf_mem_f[data_rd_ptr_f]; 
+end
+
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin   
+    ''')
+    for i in range(L2_P1_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+    print('''
+    end
+    else if (msg_data_valid_in && msg_data_ready_in)
+    begin
+        data_buf_mem_f[data_wr_ptr_f] <= msg_data_in;
+    end
+    else
+    begin 
+        data_buf_mem_f[data_wr_ptr_f] <= data_buf_mem_f[data_wr_ptr_f];
+    end
+end
+    ''')
+
+
+
+
+
+
+
+
+if (NOC1_WIDTH == 128) :
+    print('''
+//Assert full flag when buffers are nearly full as they can get two elemets per cycle. 
+localparam 
+    HDR_BUF_FULL  = `L2_P1_HEADER_BUF_IN_SIZE-1,
+    DAT_BUF_FULL  = `L2_P1_DATA_BUF_IN_SIZE-1;
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        msg_state_next = msg_state_header0;
+    end
+    else if (valid_in && real_ready_in)
+    begin
+        if ((msg_state_f == msg_state_header2) && (msg_data_state_f == msg_data_state0))
+        begin
+            msg_state_next = msg_state_header0;
+        end
+        else if ((msg_state_f == msg_state_header2) && (msg_data_state_f == msg_data_state1))
+        begin
+            msg_state_next = msg_state_header0;
+        end
+        else if ((msg_state_f == msg_state_data1 ) || (msg_state_f == msg_state_data1))
+        begin
+            msg_state_next = msg_state_header0;
+        end
+        else
+        begin
+            msg_state_next = msg_state_f + 3'd2;
+        end
+    end
+    else
+    begin
+        msg_state_next = msg_state_f;
+    end
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        msg_int_state_next = msg_state_header0;
+    end
+    else if (valid_in && real_ready_in && (data_in[`MSG_TYPE] == `MSG_TYPE_INTERRUPT_FWD)
+         && (msg_state_f == msg_state_header0))
+    begin
+        msg_int_state_next = msg_state_header2;
+    end
+    else if (valid_in && real_ready_in && (msg_int_state_f == msg_state_header2))
+    begin
+        msg_int_state_next = msg_state_header0;
+    end
+    else
+    begin
+        msg_int_state_next = msg_int_state_f;
+    end
+end
+
+wire [2:0] hdr_incr = (msg_state_f == msg_state_header0)? 2 : 1;
+wire [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_incr =  `L2_P1_DATA_BUF_IN_LOG_SIZE'd1;
+
+
+always @ (posedge clk)
+begin
+    msg_state_f <= msg_state_next;
+end
+
+always @ (posedge clk)
+begin
+    msg_int_state_f <= msg_int_state_next;
+end
+
+always @ *
+begin
+    if ((valid_in && (data_in[`MSG_TYPE] == `MSG_TYPE_INTERRUPT_FWD) && (msg_state_f == msg_state_header0))
+    || (msg_int_state_f == msg_state_header1))
+    begin
+        int_stall = 1'b1;
+    end
+    else
+    begin
+        int_stall = 1'b0;
+    end
+end
+
+localparam  
+    HDER_MUX = 0,
+    DATA_MUX = 1;
+reg [1:0] mux_sel;
+
+always @ *
+begin
+    mux_sel = 2'b00;
+    if ((msg_state_f == msg_state_header0)
+    ||  (msg_state_f == msg_state_header1)
+    ||  (msg_state_f == msg_state_header2))
+    begin
+        mux_sel[ HDER_MUX] = 1'b1;
+    end
+
+    if (((msg_state_f == msg_state_header2) &&  (msg_data_state_f != msg_data_state0))
+    ||  (msg_state_f == msg_state_data0  )
+    ||  (msg_state_f == msg_state_data1  ))
+    
+    begin
+        mux_sel[ DATA_MUX] = 1'b1;
+    end       
+end
+
+reg msg_header_valid_in;
+reg [`PITON_NOC1_WIDTH-1:0] msg_header_in;
+reg msg_header_ready_in;
+
+reg msg_data_valid_in;
+reg [`NOC_DATA_WIDTH-1:0] msg_data_in;
+reg msg_data_ready_in;
+
+wire [`NOC_DATA_WIDTH-1:0] msg_data_in1 = data_in [2*`NOC_DATA_WIDTH-1  : `NOC_DATA_WIDTH];
+
+always @ *
+begin
+    if (mux_sel [HDER_MUX] )
+    begin
+        msg_header_valid_in = valid_in;
+        msg_header_in = data_in;
+    end
+    else
+    begin
+        msg_header_valid_in = 0;
+        msg_header_in = 0;
+    end
+end
+
+always @ *
+begin
+if (mux_sel [DATA_MUX])
+    begin
+        msg_data_valid_in = valid_in;
+        msg_data_in = msg_data_in1;
+    end
+    else
+    begin
+        msg_data_valid_in = 0;
+        msg_data_in = 0;
+    end
+end
+
+always @ *
+begin
+    if (mux_sel == 2'b11)
+        real_ready_in = msg_data_ready_in & msg_header_ready_in;
+    else if (mux_sel [DATA_MUX])
+        real_ready_in = msg_data_ready_in;
+    else
+        real_ready_in = msg_header_ready_in;
+end
+
+always @ *
+begin
+    ready_in = real_ready_in && (!int_stall);
+end
+
+reg [`NOC_DATA_WIDTH-1:0] header_buf_mem_f [`L2_P1_HEADER_BUF_IN_SIZE-1:0];
+reg header_buf_empty;
+reg header_buf_full;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_f;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE:0] header_buf_counter_next;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_f;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_next;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus1;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_rd_ptr_plus2;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_f;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_next;
+
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_plus1;
+reg [`L2_P1_HEADER_BUF_IN_LOG_SIZE-1:0] header_wr_ptr_plus2;
+always @ *
+begin
+    header_wr_ptr_plus1 = header_wr_ptr_f + 1;
+    header_wr_ptr_plus2 = header_wr_ptr_f + 2;
+end
+
+always @ *
+begin
+    header_buf_empty = (header_buf_counter_f == 0);
+	header_buf_full = (header_buf_counter_f >=  HDR_BUF_FULL);
+end
+
+always @ *
+begin
+    if ((msg_header_valid_in && real_ready_in) && (msg_header_valid_out && msg_header_ready_out))
+    begin
+        header_buf_counter_next = header_buf_counter_f + hdr_incr - `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+        header_buf_counter_next = header_buf_counter_f + hdr_incr;
+    end
+    else if (msg_header_valid_out && msg_header_ready_out)
+    begin
+        header_buf_counter_next = header_buf_counter_f - `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_buf_counter_next = header_buf_counter_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin
+        header_buf_counter_f <= 0;
+    end
+    else
+    begin
+        header_buf_counter_f <= header_buf_counter_next;
+    end
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        header_rd_ptr_next = 0;
+    end
+    else if (msg_header_valid_out && msg_header_ready_out)
+    begin
+        header_rd_ptr_next = header_rd_ptr_f + `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_rd_ptr_next = header_rd_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    header_rd_ptr_f <= header_rd_ptr_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        header_wr_ptr_next = 0;
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+		header_wr_ptr_next = (msg_state_f == msg_state_header0 )? header_wr_ptr_f + 2 : header_wr_ptr_f + 1;
+    end
+    else
+    begin
+        header_wr_ptr_next = header_wr_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    header_wr_ptr_f <= header_wr_ptr_next;
+end
+
+always @ *
+begin
+    header_rd_ptr_plus1 = header_rd_ptr_f + 1;
+    header_rd_ptr_plus2 = header_rd_ptr_f + 2;
+end
+
+always @ *
+begin
+   msg_header_ready_in = !header_buf_full;
+end
+
+always @ *
+begin
+    msg_header_valid_out = (header_buf_counter_f >= `L2_P1_HEADER_BUF_IN_FLITS);
+    msg_header_out = {header_buf_mem_f[header_rd_ptr_plus2],
+                      header_buf_mem_f[header_rd_ptr_plus1],
+                      header_buf_mem_f[header_rd_ptr_f]};
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin
+    ''')
+    for i in range(L2_P1_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    print ('''
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+        header_buf_mem_f[header_wr_ptr_f] <= msg_header_in [`NOC_DATA_WIDTH-1:0];   
+        if(msg_state_f == msg_state_header0)  header_buf_mem_f[header_wr_ptr_plus1] <= msg_header_in [2*`NOC_DATA_WIDTH-1: 1*`NOC_DATA_WIDTH];
+    end
+    else
+    begin
+         header_buf_mem_f[header_wr_ptr_f] <= header_buf_mem_f[header_wr_ptr_f];
+    end
+end
+
+reg [`NOC_DATA_WIDTH-1:0] data_buf_mem_f [`L2_P1_DATA_BUF_IN_SIZE-1:0];
+reg data_buf_empty;
+reg data_buf_full;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_next;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_next;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_next;
+
+wire [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f_plus1;
+assign data_wr_ptr_f_plus1 = data_wr_ptr_f + 1;
+
+always @ *
+begin
+    data_buf_empty = (data_buf_counter_f == 0);
+	data_buf_full  = (data_buf_counter_f >=  DAT_BUF_FULL);
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        data_buf_counter_next = 0;
+    end
+    else if ((msg_data_valid_in && real_ready_in) && (msg_data_valid_out && msg_data_ready_out))
+    begin
+        data_buf_counter_next = data_buf_counter_f + data_incr - `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin 
+        data_buf_counter_next = data_buf_counter_f + data_incr;
+    end
+    else if (msg_data_valid_out && msg_data_ready_out)
+    begin 
+        data_buf_counter_next = data_buf_counter_f - `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else
+    begin
+        data_buf_counter_next = data_buf_counter_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_buf_counter_f <= data_buf_counter_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin   
+        data_rd_ptr_next = 0;
+    end
+    else if (msg_data_valid_out && msg_data_ready_out)
+    begin
+        data_rd_ptr_next = data_rd_ptr_f + `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else
+    begin
+        data_rd_ptr_next = data_rd_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_rd_ptr_f <= data_rd_ptr_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin   
+        data_wr_ptr_next = 0;
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin
+        data_wr_ptr_next = data_wr_ptr_f + 1;
+          
+    end
+    else
+    begin
+        data_wr_ptr_next = data_wr_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_wr_ptr_f <= data_wr_ptr_next;
+end
+
+always @ *
+begin
+   msg_data_ready_in = !data_buf_full;
+end
+
+always @ *
+begin
+    msg_data_valid_out = !data_buf_empty;
+    msg_data_out = data_buf_mem_f[data_rd_ptr_f]; 
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin  
+    ''') 
+
+    for i in range(L2_P1_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+    
+    print('''
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin   
+        data_buf_mem_f[data_wr_ptr_f] <= msg_data_in;     
+ 
+    end
+    else
+    begin 
+        data_buf_mem_f[data_wr_ptr_f] <= data_buf_mem_f[data_wr_ptr_f];
+    end
+end
+    ''')
+
+
+
+
+
+if (NOC1_WIDTH == 256) :
+    L2_BUFF_SIZ = L2_P1_HEADER_BUF_IN_SIZE+(3-(L2_P1_HEADER_BUF_IN_SIZE%3))
+    c= 0
+    n= L2_BUFF_SIZ
+    while (n>0):
+        c=c+1
+        n=n>>1
+    L2_BUFF_ADDR_WIDTH = c
+    c= 0
+    n= L2_BUFF_SIZ+1
+    while (n>0):
+        c=c+1
+        n=n>>1
+    L2_DEPTH_ADDR_WIDTH = c
+
+    print ("    localparam  L2_BUFF_SIZ = %d; " % (L2_BUFF_SIZ))
+    print ("    localparam  L2_BUFF_ADDR_WIDTH = %d; " % (L2_BUFF_ADDR_WIDTH))
+    print ("    localparam  L2_DEPTH_ADDR_WIDTH =%d; " % (L2_DEPTH_ADDR_WIDTH))
+    print ('''
+localparam 
+    HDR_BUF_FULL  = L2_BUFF_SIZ, 
+    DAT_BUF_FULL  = `L2_P1_DATA_BUF_IN_SIZE-1;   //It gets 2 Data flits in same cycle 
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        msg_state_next = msg_state_header0;
+    end
+    else if (valid_in && real_ready_in)
+    begin
+        if (msg_data_state_next == msg_data_state2) 
+        begin
+             msg_state_next = msg_state_f + 3'd4;
+        end
+        else
+        begin
+           msg_state_next = msg_state_header0;
+        end
+    end
+    else
+    begin
+        msg_state_next = msg_state_f;
+    end
+end
+
+wire [2:0] hdr_incr = 3;
+wire [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_incr = (msg_data_state_f == msg_data_state2)?  `L2_P1_DATA_BUF_IN_LOG_SIZE'd2 : `L2_P1_DATA_BUF_IN_LOG_SIZE'd1;
+
+always @ (posedge clk) msg_int_state_next <= msg_state_header0;
+
+always @ (posedge clk)
+begin
+    msg_state_f <= msg_state_next;
+end
+
+always @ (posedge clk)
+begin
+    msg_int_state_f <= msg_int_state_next;
+end
+
+always @ *
+begin
+    if ((valid_in && (data_in[`MSG_TYPE] == `MSG_TYPE_INTERRUPT_FWD) && (msg_state_f == msg_state_header0))
+    || (msg_int_state_f == msg_state_header1))
+    begin
+        int_stall = 1'b1;
+    end
+    else
+    begin
+        int_stall = 1'b0;
+    end
+end
+
+localparam  
+    HDER_MUX = 0,
+    DATA_MUX = 1;
+reg [1:0] mux_sel;
+
+always @ *
+begin
+    mux_sel = 2'b00;
+    if ((msg_state_f == msg_state_header0)
+    ||  (msg_state_f == msg_state_header1)
+    ||  (msg_state_f == msg_state_header2))
+    begin
+        mux_sel[ HDER_MUX] = 1'b1;
+    end
+
+    if (((msg_state_f == msg_state_header0) &&  (msg_data_state_next != msg_data_state0))
+    ||  (msg_state_f == msg_state_data1  ))
+    begin
+        mux_sel[ DATA_MUX] = 1'b1;
+    end
+end
+
+reg msg_header_valid_in;
+reg [`PITON_NOC1_WIDTH-1:0] msg_header_in;
+reg msg_header_ready_in;
+
+reg msg_data_valid_in;
+reg [`NOC_DATA_WIDTH-1:0] msg_data_in;
+reg msg_data_ready_in;
+
+wire [`NOC_DATA_WIDTH-1:0] msg_data_in1 = data_in [4*`NOC_DATA_WIDTH-1  : 3*`NOC_DATA_WIDTH];
+
+always @ *
+begin
+    if (mux_sel [HDER_MUX] )
+    begin
+        msg_header_valid_in = valid_in;
+        msg_header_in = data_in;
+    end
+    else
+    begin
+        msg_header_valid_in = 0;
+        msg_header_in = 0;
+    end
+end
+
+always @ *
+begin
+if (mux_sel [DATA_MUX])
+    begin
+        msg_data_valid_in = valid_in;
+        msg_data_in = msg_data_in1;
+    end
+    else
+    begin
+        msg_data_valid_in = 0;
+        msg_data_in = 0;
+    end
+end
+
+always @ *
+begin
+    if (mux_sel == 2'b11)
+        real_ready_in = msg_data_ready_in & msg_header_ready_in;
+    else if (mux_sel [DATA_MUX])
+        real_ready_in = msg_data_ready_in;
+    else
+        real_ready_in = msg_header_ready_in;
+end
+  
+
+always @ *
+begin
+    ready_in = real_ready_in && (!int_stall);
+end
+
+reg [`NOC_DATA_WIDTH-1:0] header_buf_mem_f [L2_BUFF_SIZ-1:0];
+reg header_buf_empty;
+reg header_buf_full;
+
+reg [L2_DEPTH_ADDR_WIDTH-1:0] header_buf_counter_f;
+reg [L2_DEPTH_ADDR_WIDTH-1:0] header_buf_counter_next;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_f;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_next;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_plus1;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_plus2;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_f;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_next;
+
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_plus1;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_plus2;
+always @ *
+begin
+    header_wr_ptr_plus1 = header_wr_ptr_f + 1;
+    header_wr_ptr_plus2 = header_wr_ptr_f + 2;
+end
+
+always @ *
+begin
+    header_buf_empty = (header_buf_counter_f == 0);
+	header_buf_full = (header_buf_counter_f >=  HDR_BUF_FULL);
+    
+    
+end
+
+always @ *
+begin
+    if ((msg_header_valid_in && real_ready_in) && (msg_header_valid_out && msg_header_ready_out))
+    begin
+        header_buf_counter_next = header_buf_counter_f + hdr_incr - `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+        header_buf_counter_next = header_buf_counter_f + hdr_incr;
+    end
+    else if (msg_header_valid_out && msg_header_ready_out)
+    begin
+        header_buf_counter_next = header_buf_counter_f - `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_buf_counter_next = header_buf_counter_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin
+        header_buf_counter_f <= 0;
+    end
+    else
+    begin
+        header_buf_counter_f <= header_buf_counter_next;
+    end
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        header_rd_ptr_next = 0;
+    end
+    else if (msg_header_valid_out && msg_header_ready_out)
+    begin
+         header_rd_ptr_next = (header_rd_ptr_f  == L2_BUFF_SIZ - `L2_P1_HEADER_BUF_IN_FLITS  ) ? 0 : header_rd_ptr_f + `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_rd_ptr_next = header_rd_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    header_rd_ptr_f <= header_rd_ptr_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        header_wr_ptr_next = 0;
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+		header_wr_ptr_next = (header_wr_ptr_f  == L2_BUFF_SIZ - `L2_P1_HEADER_BUF_IN_FLITS ) ? 0 : header_wr_ptr_f + `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_wr_ptr_next = header_wr_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    header_wr_ptr_f <= header_wr_ptr_next;
+end
+
+always @ *
+begin
+    header_rd_ptr_plus1 = header_rd_ptr_f + 1;
+    header_rd_ptr_plus2 = header_rd_ptr_f + 2;
+end
+
+
+always @ *
+begin
+   msg_header_ready_in = !header_buf_full;
+end
+
+
+always @ *
+begin
+    msg_header_valid_out = (header_buf_counter_f >= `L2_P1_HEADER_BUF_IN_FLITS);
+    msg_header_out = {header_buf_mem_f[header_rd_ptr_plus2],
+                      header_buf_mem_f[header_rd_ptr_plus1],
+                      header_buf_mem_f[header_rd_ptr_f]};
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin
+    ''')
+    for i in range(L2_P1_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    print ('''
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+        header_buf_mem_f[header_wr_ptr_f] <= msg_header_in [`NOC_DATA_WIDTH-1:0];
+        header_buf_mem_f[header_wr_ptr_plus1] <= msg_header_in [2*`NOC_DATA_WIDTH-1: 1*`NOC_DATA_WIDTH];
+        header_buf_mem_f[header_wr_ptr_plus2] <= msg_header_in [3*`NOC_DATA_WIDTH-1: 2*`NOC_DATA_WIDTH];
+    end
+    else
+    begin
+         header_buf_mem_f[header_wr_ptr_f] <= header_buf_mem_f[header_wr_ptr_f];
+    end
+end
+
+reg [`NOC_DATA_WIDTH-1:0] data_buf_mem_f [`L2_P1_DATA_BUF_IN_SIZE-1:0];
+reg data_buf_empty;
+reg data_buf_full;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_next;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_next;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_next;
+
+wire [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f_plus1;
+assign data_wr_ptr_f_plus1 = data_wr_ptr_f + 1;
+    
+always @ *
+begin
+    data_buf_empty = (data_buf_counter_f == 0);
+	data_buf_full  = (data_buf_counter_f >=  DAT_BUF_FULL);
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        data_buf_counter_next = 0;
+    end
+    else if ((msg_data_valid_in && real_ready_in) && (msg_data_valid_out && msg_data_ready_out))
+    begin
+        data_buf_counter_next = data_buf_counter_f + data_incr - `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin 
+        data_buf_counter_next = data_buf_counter_f + data_incr;
+    end
+    else if (msg_data_valid_out && msg_data_ready_out)
+    begin 
+        data_buf_counter_next = data_buf_counter_f - `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else
+    begin
+        data_buf_counter_next = data_buf_counter_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_buf_counter_f <= data_buf_counter_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin   
+        data_rd_ptr_next = 0;
+    end
+    else if (msg_data_valid_out && msg_data_ready_out)
+    begin
+        data_rd_ptr_next = data_rd_ptr_f + `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else
+    begin
+        data_rd_ptr_next = data_rd_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_rd_ptr_f <= data_rd_ptr_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin   
+        data_wr_ptr_next = 0;
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin
+        data_wr_ptr_next = data_wr_ptr_f + 1;
+    end
+    else
+    begin
+        data_wr_ptr_next = data_wr_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_wr_ptr_f <= data_wr_ptr_next;
+end
+
+always @ *
+begin
+   msg_data_ready_in = !data_buf_full;
+end
+
+always @ *
+begin
+    msg_data_valid_out = !data_buf_empty;
+    msg_data_out = data_buf_mem_f[data_rd_ptr_f]; 
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin   
+    ''') 
+
+    for i in range(L2_P1_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+    
+    print('''
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin   
+        data_buf_mem_f[data_wr_ptr_f] <= msg_data_in;     
+ 
+    end
+    else
+    begin 
+        data_buf_mem_f[data_wr_ptr_f] <= data_buf_mem_f[data_wr_ptr_f];
+    end
+end
+    ''')
+
+
+
+
+
+
+if (NOC1_WIDTH == 512) :
+    L2_BUFF_SIZ = L2_P1_HEADER_BUF_IN_SIZE+(3-(L2_P1_HEADER_BUF_IN_SIZE%3))
+    c= 0
+    n= L2_BUFF_SIZ
+    while (n>0):
+        c=c+1
+        n=n>>1
+    L2_BUFF_ADDR_WIDTH = c
+    c= 0
+    n= L2_BUFF_SIZ+1
+    while (n>0):
+        c=c+1
+        n=n>>1
+    L2_DEPTH_ADDR_WIDTH = c
+
+    print ("    localparam  L2_BUFF_SIZ = %d; " % (L2_BUFF_SIZ))
+    print ("    localparam  L2_BUFF_ADDR_WIDTH = %d; " % (L2_BUFF_ADDR_WIDTH))
+    print ("    localparam  L2_DEPTH_ADDR_WIDTH =%d; " % (L2_DEPTH_ADDR_WIDTH))
+    print('''
+ localparam     
+    HDR_BUF_FULL  = L2_BUFF_SIZ, 
+    DAT_BUF_FULL  = `L2_P1_DATA_BUF_IN_SIZE-1;   //It gets 2 Data flits in same cycle 
+
+    wire [2:0] hdr_incr = 3;
+    wire [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_incr = (msg_data_state_next == msg_data_state2)?  `L2_P1_DATA_BUF_IN_LOG_SIZE'd2 : `L2_P1_DATA_BUF_IN_LOG_SIZE'd1;
+
+    always @ (posedge clk) begin
+     msg_state_next <= 3'd0;
+     msg_int_state_next <= msg_state_header0;
+    end
+
+always @ (posedge clk)
+begin
+    msg_state_f <= msg_state_next;
+end
+
+always @ (posedge clk)
+begin
+    msg_int_state_f <= msg_int_state_next;
+end
+
+always @ *
+begin
+    if ((valid_in && (data_in[`MSG_TYPE] == `MSG_TYPE_INTERRUPT_FWD) && (msg_state_f == msg_state_header0))
+    || (msg_int_state_f == msg_state_header1))
+    begin
+        int_stall = 1'b1;
+    end
+    else
+    begin
+        int_stall = 1'b0;
+    end
+end
+
+localparam  
+    HDER_MUX = 0,
+    DATA_MUX = 1;
+reg [1:0] mux_sel;
+
+always @ *
+begin
+    mux_sel = 2'b00;
+    if ((msg_state_f == msg_state_header0)
+    ||  (msg_state_f == msg_state_header1)
+    ||  (msg_state_f == msg_state_header2))
+    begin
+        mux_sel[ HDER_MUX] = 1'b1;
+    end
+
+    if (msg_data_state_next != msg_data_state0) 
+        mux_sel[ DATA_MUX] = 1'b1;
+end
+
+reg msg_header_valid_in;
+reg [`PITON_NOC1_WIDTH-1:0] msg_header_in;
+reg msg_header_ready_in;
+
+reg msg_data_valid_in;
+reg [`NOC_DATA_WIDTH-1:0] msg_data_in;
+reg msg_data_ready_in;
+
+wire [`NOC_DATA_WIDTH-1:0] msg_data_in1 = data_in [4*`NOC_DATA_WIDTH-1  : 3*`NOC_DATA_WIDTH];
+wire [`NOC_DATA_WIDTH-1:0] msg_data_in2 = data_in [5*`NOC_DATA_WIDTH-1  : 4*`NOC_DATA_WIDTH];
+
+always @ *
+begin
+    if (mux_sel [HDER_MUX] )
+    begin
+        msg_header_valid_in = valid_in;
+        msg_header_in = data_in;
+    end
+    else
+    begin
+        msg_header_valid_in = 0;
+        msg_header_in = 0;
+    end
+end
+
+always @ *
+begin
+if (mux_sel [DATA_MUX])
+    begin
+        msg_data_valid_in = valid_in;
+        msg_data_in = msg_data_in1;
+    end
+    else
+    begin
+        msg_data_valid_in = 0;
+        msg_data_in = 0;
+    end
+end
+
+always @ *
+begin
+    if (mux_sel == 2'b11)
+        real_ready_in = msg_data_ready_in & msg_header_ready_in;
+    else if (mux_sel [DATA_MUX])
+        real_ready_in = msg_data_ready_in;
+    else
+        real_ready_in = msg_header_ready_in;
+end  
+
+always @ *
+begin
+    ready_in = real_ready_in && (!int_stall);
+end
+
+reg [`NOC_DATA_WIDTH-1:0] header_buf_mem_f [L2_BUFF_SIZ-1:0];
+reg header_buf_empty;
+reg header_buf_full;
+
+reg [L2_DEPTH_ADDR_WIDTH-1:0] header_buf_counter_f;
+reg [L2_DEPTH_ADDR_WIDTH-1:0] header_buf_counter_next;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_f;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_next;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_plus1;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_rd_ptr_plus2;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_f;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_next;
+
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_plus1;
+reg [L2_BUFF_ADDR_WIDTH-1:0] header_wr_ptr_plus2;
+always @ *
+begin
+    header_wr_ptr_plus1 = header_wr_ptr_f + 1;
+    header_wr_ptr_plus2 = header_wr_ptr_f + 2;
+end
+
+always @ *
+begin
+    header_buf_empty = (header_buf_counter_f == 0);
+	header_buf_full = (header_buf_counter_f >=  HDR_BUF_FULL);    
+end
+
+always @ *
+begin
+    if ((msg_header_valid_in && real_ready_in) && (msg_header_valid_out && msg_header_ready_out))
+    begin
+        header_buf_counter_next = header_buf_counter_f + hdr_incr - `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+        header_buf_counter_next = header_buf_counter_f + hdr_incr;
+    end
+    else if (msg_header_valid_out && msg_header_ready_out)
+    begin
+        header_buf_counter_next = header_buf_counter_f - `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_buf_counter_next = header_buf_counter_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin
+        header_buf_counter_f <= 0;
+    end
+    else
+    begin
+        header_buf_counter_f <= header_buf_counter_next;
+    end
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        header_rd_ptr_next = 0;
+    end
+    else if (msg_header_valid_out && msg_header_ready_out)
+    begin
+            header_rd_ptr_next = (header_rd_ptr_f  == L2_BUFF_SIZ - `L2_P1_HEADER_BUF_IN_FLITS  ) ? 0 : header_rd_ptr_f + `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_rd_ptr_next = header_rd_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    header_rd_ptr_f <= header_rd_ptr_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        header_wr_ptr_next = 0;
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+		header_wr_ptr_next = (header_wr_ptr_f  == L2_BUFF_SIZ - `L2_P1_HEADER_BUF_IN_FLITS ) ? 0 : header_wr_ptr_f + `L2_P1_HEADER_BUF_IN_FLITS;
+    end
+    else
+    begin
+        header_wr_ptr_next = header_wr_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    header_wr_ptr_f <= header_wr_ptr_next;
+end
+
+always @ *
+begin
+    header_rd_ptr_plus1 = header_rd_ptr_f + 1;
+    header_rd_ptr_plus2 = header_rd_ptr_f + 2;
+end
+
+always @ *
+begin
+   msg_header_ready_in = !header_buf_full;
+end
+
+always @ *
+begin
+    msg_header_valid_out = (header_buf_counter_f >= `L2_P1_HEADER_BUF_IN_FLITS);
+    msg_header_out = {header_buf_mem_f[header_rd_ptr_plus2],
+                      header_buf_mem_f[header_rd_ptr_plus1],
+                      header_buf_mem_f[header_rd_ptr_f]};
+end
+
+always @ (posedge clk)
+begin
+    if (!rst_n)
+    begin
+    ''')
+    for i in range(L2_P1_HEADER_BUF_IN_SIZE):
+        print("        header_buf_mem_f[%d] <= 0;" % (i))
+    print ('''
+    end
+    else if (msg_header_valid_in && real_ready_in)
+    begin
+        header_buf_mem_f[header_wr_ptr_f] <= msg_header_in [`NOC_DATA_WIDTH-1:0];
+    
+    
+        header_buf_mem_f[header_wr_ptr_plus1] <= msg_header_in [2*`NOC_DATA_WIDTH-1: 1*`NOC_DATA_WIDTH];
+        header_buf_mem_f[header_wr_ptr_plus2] <= msg_header_in [3*`NOC_DATA_WIDTH-1: 2*`NOC_DATA_WIDTH];
+    
+
+    end
+    else
+    begin
+         header_buf_mem_f[header_wr_ptr_f] <= header_buf_mem_f[header_wr_ptr_f];
+    end
+end
+
+reg [`NOC_DATA_WIDTH-1:0] data_buf_mem_f [`L2_P1_DATA_BUF_IN_SIZE-1:0];
+reg data_buf_empty;
+reg data_buf_full;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE:0] data_buf_counter_next;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_rd_ptr_next;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f;
+reg [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_next;
+
+wire [`L2_P1_DATA_BUF_IN_LOG_SIZE-1:0] data_wr_ptr_f_plus1;
+assign data_wr_ptr_f_plus1 = data_wr_ptr_f + 1;
+
+always @ *
+begin
+    data_buf_empty = (data_buf_counter_f == 0);
+	data_buf_full  = (data_buf_counter_f >=  DAT_BUF_FULL);   
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin
+        data_buf_counter_next = 0;
+    end
+    else if ((msg_data_valid_in && real_ready_in) && (msg_data_valid_out && msg_data_ready_out))
+    begin
+        data_buf_counter_next = data_buf_counter_f + data_incr - `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin 
+        data_buf_counter_next = data_buf_counter_f + data_incr;
+    end
+    else if (msg_data_valid_out && msg_data_ready_out)
+    begin 
+        data_buf_counter_next = data_buf_counter_f - `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else
+    begin
+        data_buf_counter_next = data_buf_counter_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_buf_counter_f <= data_buf_counter_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin   
+        data_rd_ptr_next = 0;
+    end
+    else if (msg_data_valid_out && msg_data_ready_out)
+    begin
+        data_rd_ptr_next = data_rd_ptr_f + `L2_P1_DATA_BUF_IN_FLITS;
+    end
+    else
+    begin
+        data_rd_ptr_next = data_rd_ptr_f;
+    end
+end
+
+
+always @ (posedge clk)
+begin
+    data_rd_ptr_f <= data_rd_ptr_next;
+end
+
+always @ *
+begin
+    if (!rst_n)
+    begin   
+        data_wr_ptr_next = 0;
+    end
+    else if (msg_data_valid_in && real_ready_in)
+    begin
+        data_wr_ptr_next = (msg_data_state_next == msg_data_state2)? data_wr_ptr_f + 2 :  data_wr_ptr_f + 1;
+          
+    end
+    else
+    begin
+        data_wr_ptr_next = data_wr_ptr_f;
+    end
+end
+
+always @ (posedge clk)
+begin
+    data_wr_ptr_f <= data_wr_ptr_next;
+end
 
 always @ *
 begin
@@ -524,22 +1788,28 @@ always @ (posedge clk)
 begin
     if (!rst_n)
     begin   
-<%
-for i in range(L2_P1_DATA_BUF_IN_SIZE):
-    print("        data_buf_mem_f[%d] <= 0;" % (i))
-%>
+    ''') 
+
+    for i in range(L2_P1_DATA_BUF_IN_SIZE):
+        print("        data_buf_mem_f[%d] <= 0;" % (i))
+    
+    print('''
     end
-    else if (msg_data_valid_in && msg_data_ready_in)
-    begin
-        data_buf_mem_f[data_wr_ptr_f] <= msg_data_in;
+    else if (msg_data_valid_in && real_ready_in)
+    begin   
+        data_buf_mem_f[data_wr_ptr_f] <= msg_data_in;     
+  if(msg_data_state_next==msg_data_state2)   data_buf_mem_f[data_wr_ptr_f_plus1]<=msg_data_in2;
+ 
     end
     else
     begin 
         data_buf_mem_f[data_wr_ptr_f] <= data_buf_mem_f[data_wr_ptr_f];
     end
 end
+    ''')
 
 
+%>
 
 endmodule
 

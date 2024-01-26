@@ -41,7 +41,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `include "l2.tmp.h"
 `include "define.tmp.h"
 
-module l2(
+module l2 #(
+    parameter L15_L1D_LINE_SIZE = 64
+)(
 
     input wire clk,
     input wire rst_n,
@@ -51,16 +53,16 @@ module l2(
     input wire [`NOC_Y_WIDTH-1:0] coreid_y,
 
     input wire noc1_valid_in,
-    input wire [`NOC_DATA_WIDTH-1:0] noc1_data_in,
+    input wire [`PITON_NOC1_WIDTH-1:0] noc1_data_in,
     output wire noc1_ready_in,
 
 
     input wire noc3_valid_in,
-    input wire [`NOC_DATA_WIDTH-1:0] noc3_data_in,
+    input wire [`PITON_NOC3_WIDTH-1:0] noc3_data_in,
     output wire noc3_ready_in,
 
     output wire noc2_valid_out,
-    output wire [`NOC_DATA_WIDTH-1:0] noc2_data_out,
+    output wire [`PITON_NOC2_WIDTH-1:0] noc2_data_out,
     input wire noc2_ready_out,
 
     // sram interface
@@ -669,7 +671,9 @@ l2_pipe1 pipe1(
 
 
 
-l2_pipe2 pipe2(
+l2_pipe2 #(
+    .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
+) pipe2 (
     .clk                    (clk),
     .rst_n                  (rst_n),
     `ifndef NO_RTL_CSM

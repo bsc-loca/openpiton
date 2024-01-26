@@ -57,6 +57,10 @@ from pyhplib import *
 print("`define PITON_NUM_TILES %d" % PITON_NUM_TILES)
 print("`define PITON_X_TILES %d"   % PITON_X_TILES)
 print("`define PITON_Y_TILES %d"   % PITON_Y_TILES)
+
+print("`define PITON_NOC1_WIDTH %d" % NOC1_WIDTH)
+print("`define PITON_NOC2_WIDTH %d" % NOC2_WIDTH)
+print("`define PITON_NOC3_WIDTH %d" % NOC3_WIDTH)
 %>
 
 // NoC interface
