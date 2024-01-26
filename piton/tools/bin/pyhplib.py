@@ -32,6 +32,8 @@ MAX_TILE = 64;
 MAX_X = 8;
 MAX_Y = 8;
 
+L15_NUM_THREADS = int(os.environ.get('L15_NUM_THREADS', '2'))
+
 PITON_X_TILES = int(os.environ.get('PITON_X_TILES', '-1'))
 #print "//x_tiles:", num_tiles
 

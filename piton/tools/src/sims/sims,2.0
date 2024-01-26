@@ -2713,6 +2713,13 @@ sub parse_args
     }
   }
 
+  GetOptions (\%opt,"l15_num_threads=s",
+    );
+
+    if ($opt{l15_num_threads}) {
+        $ENV{L15_NUM_THREADS} = $opt{l15_num_threads};
+    }
+
 my @nocs_width = (
     "noc1_width",
     "noc2_width",
