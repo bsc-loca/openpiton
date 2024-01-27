@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Vcmp_top.h"
 #include "verilated.h"
 #include <iostream>
-#define VERILATOR_VCD
+//#define VERILATOR_VCD
 #ifdef VERILATOR_VCD
 #include "verilated_vcd_c.h"
 #endif
