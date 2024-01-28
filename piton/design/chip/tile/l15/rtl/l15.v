@@ -154,7 +154,7 @@ localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY;
 localparam L1D_SET_COUNT = L1D_NUM_ENTRIES / `CONFIG_L1D_ASSOCIATIVITY;
 localparam L15_WMT_ALIAS_WIDTH = (L15_SET_COUNT > L1D_SET_COUNT) ? $clog2(L15_SET_COUNT/L1D_SET_COUNT) : 0;
 localparam L15_WMT_DATA_WIDTH = (`L1D_WAY_WIDTH + L15_WMT_ALIAS_WIDTH);
-
+localparam L15_WMT_WIDTH = (`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1));
 
 // assigning sram return data
 wire [`SRAM_WRAPPER_BUS_WIDTH-1:0] dtag_rtap_data;
@@ -645,9 +645,9 @@ wire l15_wmt_read_val_s2;
 wire [L1D_CACHE_INDEX_WIDTH - 1 : 0] l15_wmt_read_index_s2;
 wire l15_wmt_write_val_s3;
 wire [L1D_CACHE_INDEX_WIDTH - 1 : 0] l15_wmt_write_index_s3;
-wire [`L15_WMT_MASK] l15_wmt_write_mask_s3;
-wire [`L15_WMT_MASK] l15_wmt_write_data_s3;
-wire [`L15_WMT_MASK] wmt_l15_data_s3;
+wire [L15_WMT_WIDTH-1:0] l15_wmt_write_mask_s3;
+wire [L15_WMT_WIDTH-1:0] l15_wmt_write_data_s3;
+wire [L15_WMT_WIDTH-1:0] wmt_l15_data_s3;
 rf_l15_wmt #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
 ) wmc(
