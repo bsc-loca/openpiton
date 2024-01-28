@@ -60,7 +60,7 @@ module pcx_decoder(
    output reg        pcxdecoder_l15_invalidate_cacheline,
    output reg        pcxdecoder_l15_blockstore,
    output reg        pcxdecoder_l15_blockinitstore,
-   output reg [1:0]  pcxdecoder_l15_l1rplway,
+   output reg [`L1D_WAY_WIDTH-1:0]  pcxdecoder_l15_l1rplway,
    output reg        pcxdecoder_l15_val,
    output reg [39:0] pcxdecoder_l15_address,
    output reg [63:0] pcxdecoder_l15_data,

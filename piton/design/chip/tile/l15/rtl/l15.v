@@ -67,7 +67,7 @@ module l15 #(
     input                                   transducer_l15_invalidate_cacheline,
     input                                   transducer_l15_blockstore,
     input                                   transducer_l15_blockinitstore,
-    input [1:0]                             transducer_l15_l1rplway,
+    input [`L1D_WAY_WIDTH-1:0]              transducer_l15_l1rplway,
     input                                   transducer_l15_val,
     input [39:0]                            transducer_l15_address,
     input [63:0]                            transducer_l15_data,
@@ -94,10 +94,10 @@ module l15 #(
     output                                  l15_transducer_inval_dcache_all_way,
     output [`L15_PADDR_MASK]                l15_transducer_inval_address,
     output                                  l15_transducer_cross_invalidate,
-    output [1:0]                            l15_transducer_cross_invalidate_way,
+    output [`L1D_WAY_WIDTH-1:0]             l15_transducer_cross_invalidate_way,
     output                                  l15_transducer_inval_dcache_inval,
     output                                  l15_transducer_inval_icache_inval,
-    output [1:0]                            l15_transducer_inval_way,
+    output [`L1D_WAY_WIDTH-1:0]             l15_transducer_inval_way,
     output                                  l15_transducer_blockinitstore,
 
     input                                   transducer_l15_req_ack,
@@ -145,7 +145,7 @@ module l15 #(
 localparam L15_LINE_SIZE_WIDTH = $clog2(L15_L1D_LINE_SIZE);
 localparam L15_SUBLINE_INDEX_WIDTH = (L15_LINE_SIZE_WIDTH - `L15_DATA_ARRAY_SIZE_WIDTH);
 localparam L15_NUM_ENTRIES = `CONFIG_L15_SIZE/L15_L1D_LINE_SIZE;
-localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - 2;
+localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - $clog2(`CONFIG_L15_ASSOCIATIVITY);
 localparam L1D_NUM_ENTRIES = `CONFIG_L1D_SIZE/L15_L1D_LINE_SIZE;
 localparam L1D_CACHE_INDEX_WIDTH = $clog2(L1D_NUM_ENTRIES) - $clog2(`CONFIG_L1D_ASSOCIATIVITY);
 localparam NOC2_MAX_FLIT_NUMBER = (`L1I_LINE_SIZE<L15_L1D_LINE_SIZE) ? (L15_MAX_DATA_PACKETS + 1) : (4+1); //Data packets + header
@@ -153,7 +153,7 @@ localparam NOC2_MAX_DATA_FLIT_NUMBER = NOC2_MAX_FLIT_NUMBER - 1;
 localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY;
 localparam L1D_SET_COUNT = L1D_NUM_ENTRIES / `CONFIG_L1D_ASSOCIATIVITY;
 localparam L15_WMT_ALIAS_WIDTH = (L15_SET_COUNT > L1D_SET_COUNT) ? $clog2(L15_SET_COUNT/L1D_SET_COUNT) : 0;
-localparam L15_WMT_DATA_WIDTH = (`L15_WAY_WIDTH + L15_WMT_ALIAS_WIDTH);
+localparam L15_WMT_DATA_WIDTH = (`L1D_WAY_WIDTH + L15_WMT_ALIAS_WIDTH);
 
 
 // assigning sram return data
@@ -390,9 +390,9 @@ wire [`PACKET_HOME_ID_WIDTH-1:0] noc3buffer_noc3encoder_req_homeid;
 wire l15_dtag_val_s1;
 wire l15_dtag_rw_s1;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_dtag_index_s1;
-wire [`L15_CACHE_TAG_RAW_WIDTH*4-1:0] l15_dtag_write_data_s1;
-wire [`L15_CACHE_TAG_RAW_WIDTH*4-1:0] l15_dtag_write_mask_s1;
-wire [`L15_CACHE_TAG_RAW_WIDTH*4-1:0] dtag_l15_dout_s2;
+wire [`L15_CACHE_TAG_RAW_WIDTH*`L15_WAY_COUNT-1:0] l15_dtag_write_data_s1;
+wire [`L15_CACHE_TAG_RAW_WIDTH*`L15_WAY_COUNT-1:0] l15_dtag_write_mask_s1;
+wire [`L15_CACHE_TAG_RAW_WIDTH*`L15_WAY_COUNT-1:0] dtag_l15_dout_s2;
 
 sram_l15_tag #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
@@ -512,7 +512,7 @@ wire [(`L15_NUM_MSHRID_PER_THREAD*`L15_NUM_THREADS)-1:0] mshr_pipe_vals_s1;
 wire [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_ifill_address;
 wire [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_ld_address;
 wire [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_st_address;
-wire [(2*`L15_NUM_THREADS)-1:0] mshr_pipe_st_way_s1;
+wire [(`L15_WAY_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_way_s1;
 wire [(`L15_MESI_TRANS_STATE_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_state_s1;
 wire pipe_mshr_write_buffer_rd_en_s2;
 wire [`L15_THREADID_MASK] pipe_mshr_threadid_s2;
@@ -523,7 +523,7 @@ wire [`L15_MSHR_WRITE_TYPE_WIDTH-1:0] pipe_mshr_op_s3;
 wire [`L15_MSHR_ID_WIDTH-1:0] pipe_mshr_mshrid_s3;
 wire [`L15_THREADID_MASK] pipe_mshr_threadid_s3;
 wire [`L15_MESI_TRANS_STATE_WIDTH-1:0] pipe_mshr_write_update_state_s3;
-wire [1:0] pipe_mshr_write_update_way_s3;
+wire [`L15_WAY_WIDTH-1:0] pipe_mshr_write_update_way_s3;
 
 wire noc1buffer_mshr_homeid_write_val_s4;
 wire [`L15_MSHR_ID_WIDTH-1:0] noc1buffer_mshr_homeid_write_mshrid_s4;
@@ -576,9 +576,9 @@ wire l15_mesi_read_val_s1;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_mesi_read_index_s1;
 wire l15_mesi_write_val_s2;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_mesi_write_index_s2;
-wire [7:0] l15_mesi_write_mask_s2;
-wire [7:0] l15_mesi_write_data_s2;
-wire [7:0] mesi_l15_dout_s2;
+wire [`L15_MESI_ARRAY_WIDTH-1:0] l15_mesi_write_mask_s2;
+wire [`L15_MESI_ARRAY_WIDTH-1:0] l15_mesi_write_data_s2;
+wire [`L15_MESI_ARRAY_WIDTH-1:0] mesi_l15_dout_s2;
 
 rf_l15_mesi #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
@@ -599,9 +599,9 @@ wire l15_lrsc_flag_read_val_s1;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_lrsc_flag_read_index_s1;
 wire l15_lrsc_flag_write_val_s2;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_lrsc_flag_write_index_s2;
-wire [3:0] l15_lrsc_flag_write_mask_s2;
-wire [3:0] l15_lrsc_flag_write_data_s2;
-wire [3:0] lrsc_flag_l15_dout_s2;
+wire [`L15_WAY_COUNT:0] l15_lrsc_flag_write_mask_s2;
+wire [`L15_WAY_COUNT:0] l15_lrsc_flag_write_data_s2;
+wire [`L15_WAY_COUNT:0] lrsc_flag_l15_dout_s2;
 
 rf_l15_lrsc_flag #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
@@ -645,9 +645,9 @@ wire l15_wmt_read_val_s2;
 wire [L1D_CACHE_INDEX_WIDTH - 1 : 0] l15_wmt_read_index_s2;
 wire l15_wmt_write_val_s3;
 wire [L1D_CACHE_INDEX_WIDTH - 1 : 0] l15_wmt_write_index_s3;
-wire [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] l15_wmt_write_mask_s3;
-wire [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] l15_wmt_write_data_s3;
-wire [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] wmt_l15_data_s3;
+wire [`L15_WMT_MASK] l15_wmt_write_mask_s3;
+wire [`L15_WMT_MASK] l15_wmt_write_data_s3;
+wire [`L15_WMT_MASK] wmt_l15_data_s3;
 rf_l15_wmt #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
 ) wmc(
@@ -667,9 +667,9 @@ wire l15_lruarray_read_val_s1;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_lruarray_read_index_s1;
 wire l15_lruarray_write_val_s3;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_lruarray_write_index_s3;
-wire [5:0] l15_lruarray_write_mask_s3;
-wire [5:0] l15_lruarray_write_data_s3;
-wire [5:0] lruarray_l15_dout_s2;
+wire [`L15_LRUARRAY_WIDTH-1:0] l15_lruarray_write_mask_s3;
+wire [`L15_LRUARRAY_WIDTH-1:0] l15_lruarray_write_data_s3;
+wire [`L15_LRUARRAY_WIDTH-1:0] lruarray_l15_dout_s2;
 rf_l15_lruarray #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
 ) lruarray(

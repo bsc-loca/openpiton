@@ -52,7 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module rf_l15_mesi #(
    parameter L15_L1D_LINE_SIZE = 64, 
    localparam L15_NUM_ENTRIES = `CONFIG_L15_SIZE/L15_L1D_LINE_SIZE,
-   localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - 2,
+   localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - $clog2(`CONFIG_L15_ASSOCIATIVITY),
    localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY
 
 )(
@@ -64,10 +64,10 @@ module rf_l15_mesi #(
 
    input wire write_valid,
    input wire [L15_CACHE_INDEX_WIDTH-1:0] write_index,
-   input wire [7:0] write_mask,
-   input wire [7:0] write_data,
+   input wire [`L15_MESI_ARRAY_WIDTH-1:0] write_mask,
+   input wire [`L15_MESI_ARRAY_WIDTH-1:0] write_data,
 
-   output wire [7:0] read_data
+   output wire [`L15_MESI_ARRAY_WIDTH-1:0] read_data
    );
 
 
@@ -77,11 +77,11 @@ module rf_l15_mesi #(
 // reg read_valid_f;
 reg [L15_CACHE_INDEX_WIDTH-1:0] read_index_f;
 reg [L15_CACHE_INDEX_WIDTH-1:0] write_index_f;
-reg [7:0] write_data_f;
-reg [7:0] write_mask_f;
+reg [`L15_MESI_ARRAY_WIDTH-1:0] write_data_f;
+reg [`L15_MESI_ARRAY_WIDTH-1:0] write_mask_f;
 reg write_valid_f;
 
-reg [7:0] regfile [0:L15_SET_COUNT-1];
+reg [`L15_MESI_ARRAY_WIDTH-1:0] regfile [0:L15_SET_COUNT-1];
 
 always @ (posedge clk)
 begin
@@ -117,7 +117,7 @@ begin
    if (!rst_n)
    begin
       for (numset=0;numset<L15_SET_COUNT; numset = numset + 1) begin
-            regfile[numset] <= 8'b0;
+            regfile[numset] <= `L15_MESI_ARRAY_WIDTH'b0;
       end
    end
    else

@@ -71,7 +71,7 @@ module l15_mshr #(
     output reg [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_ifill_address,
     output reg [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_ld_address,
     output reg [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_st_address,
-    output reg [(2*`L15_NUM_THREADS)-1:0] mshr_pipe_st_way_s1,
+    output reg [(`L15_WAY_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_way_s1,
     output reg [(`L15_MESI_TRANS_STATE_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_state_s1,
 
     //s2
@@ -86,7 +86,7 @@ module l15_mshr #(
     input wire [`L15_MSHR_ID_WIDTH-1:0] pipe_mshr_mshrid_s3,
     input wire [`L15_THREADID_MASK] pipe_mshr_threadid_s3,
     input wire [`L15_MESI_TRANS_STATE_WIDTH-1:0] pipe_mshr_write_update_state_s3,
-    input wire [1:0] pipe_mshr_write_update_way_s3,
+    input wire [`L15_WAY_WIDTH-1:0] pipe_mshr_write_update_way_s3,
 
     // output reg mshr_pipe_t0_ld_address_val,
     // output reg mshr_pipe_t0_st_address_val,
@@ -131,7 +131,7 @@ reg [`L15_CONTROL_WIDTH-1:0] st_control [0:`L15_NUM_THREADS-1];
 reg [`L15_NUM_THREADS-1:0] st_val;
 reg [`PACKET_HOME_ID_WIDTH-1:0] st_homeid [0:`L15_NUM_THREADS-1];
 reg [`L15_MESI_TRANS_STATE_WIDTH-1:0] st_state [0:`L15_NUM_THREADS-1];
-reg [1:0] st_way [0:`L15_NUM_THREADS-1];
+reg [`L15_WAY_WIDTH-1:0] st_way [0:`L15_NUM_THREADS-1];
 reg [(L15_L1D_LINE_SIZE*8)-1:0] st_write_buffer [0:`L15_NUM_THREADS-1];
 reg [L15_L1D_LINE_SIZE-1:0] st_write_buffer_byte_mask [0:`L15_NUM_THREADS-1];
 
@@ -160,7 +160,7 @@ reg [`L15_NUM_MSHRID_PER_THREAD-1:0] tmp_vals [`L15_NUM_THREADS-1:0];
 reg [`L15_PADDR_HI:0] tmp_st_address [`L15_NUM_THREADS-1:0];
 reg [`L15_PADDR_HI:0] tmp_ld_address [`L15_NUM_THREADS-1:0];
 reg [`L15_PADDR_HI:0] tmp_ifill_address [`L15_NUM_THREADS-1:0];
-reg [2-1:0] tmp_st_way [`L15_NUM_THREADS-1:0];
+reg [`L15_WAY_WIDTH-1:0] tmp_st_way [`L15_NUM_THREADS-1:0];
 reg [`L15_MESI_TRANS_STATE_WIDTH-1:0] tmp_st_state [`L15_NUM_THREADS-1:0];
 integer i=0;
 

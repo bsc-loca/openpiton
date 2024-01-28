@@ -54,7 +54,7 @@ module rf_l15_wmt #(
    localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY,
    localparam L1D_SET_COUNT = L1D_NUM_ENTRIES / `CONFIG_L1D_ASSOCIATIVITY,
    localparam L15_WMT_ALIAS_WIDTH = (L15_SET_COUNT > L1D_SET_COUNT) ? $clog2(L15_SET_COUNT/L1D_SET_COUNT) : 0,
-   localparam L15_WMT_DATA_WIDTH = (`L15_WAY_WIDTH + L15_WMT_ALIAS_WIDTH)
+   localparam L15_WMT_DATA_WIDTH = (`L1D_WAY_WIDTH + L15_WMT_ALIAS_WIDTH)
 ) (
    input wire clk,
    input wire rst_n,

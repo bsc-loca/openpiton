@@ -58,7 +58,7 @@ module l15_pipeline #(
     localparam NOC2_MAX_FLIT_NUMBER = (`L1I_LINE_SIZE<L15_L1D_LINE_SIZE) ? (L15_MAX_DATA_PACKETS + 1) : (4+1), //Data packets + header
     localparam NOC2_MAX_DATA_FLIT_NUMBER = NOC2_MAX_FLIT_NUMBER - 1,
     localparam L15_NUM_ENTRIES = `CONFIG_L15_SIZE/L15_L1D_LINE_SIZE,
-    localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - 2,
+    localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - $clog2(`CONFIG_L15_ASSOCIATIVITY),
     localparam L15_LINE_SIZE_WIDTH = $clog2(L15_L1D_LINE_SIZE),
     localparam L15_SUBLINE_INDEX_WIDTH = (L15_LINE_SIZE_WIDTH - `L15_DATA_ARRAY_SIZE_WIDTH),
     localparam L1D_NUM_ENTRIES = `CONFIG_L1D_SIZE/L15_L1D_LINE_SIZE,
@@ -66,7 +66,8 @@ module l15_pipeline #(
     localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY,
     localparam L1D_SET_COUNT = L1D_NUM_ENTRIES / `CONFIG_L1D_ASSOCIATIVITY,
     localparam L15_WMT_ALIAS_WIDTH = (L15_SET_COUNT > L1D_SET_COUNT) ? $clog2(L15_SET_COUNT/L1D_SET_COUNT) : 0,
-    localparam L15_WMT_DATA_WIDTH = (`L15_WAY_WIDTH + L15_WMT_ALIAS_WIDTH),
+    localparam L15_WMT_DATA_WIDTH = (`L1D_WAY_WIDTH + L15_WMT_ALIAS_WIDTH),
+    localparam L15_WMT_WIDTH = (`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)),
     localparam L1_MAX_DATA_PACKETS_BITS_WIDTH = (`L1I_LINE_SIZE<L15_L1D_LINE_SIZE) ? L15_MAX_DATA_PACKETS*`NOC_BITS_WIDTH : 4*`NOC_BITS_WIDTH
 ) (
     input wire clk,
@@ -82,7 +83,7 @@ module l15_pipeline #(
     input wire pcxdecoder_l15_prefetch,
     input wire pcxdecoder_l15_blockstore,
     input wire pcxdecoder_l15_blockinitstore,
-    input wire [`L15_WAY_MASK] pcxdecoder_l15_l1rplway,
+    input wire [`L1D_WAY_WIDTH-1:0] pcxdecoder_l15_l1rplway,
     input wire pcxdecoder_l15_val,
     input wire [`L15_PADDR_MASK] pcxdecoder_l15_address,
     input wire [`TLB_CSM_WIDTH-1:0] pcxdecoder_l15_csm_data,
@@ -122,9 +123,9 @@ module l15_pipeline #(
     output reg l15_dtag_val_s1,
     output reg l15_dtag_rw_s1,
     output reg [L15_CACHE_INDEX_WIDTH-1:0] l15_dtag_index_s1,
-    output reg [`L15_CACHE_TAG_RAW_WIDTH*4-1:0] l15_dtag_write_data_s1,
-    output reg [`L15_CACHE_TAG_RAW_WIDTH*4-1:0] l15_dtag_write_mask_s1,
-    input wire [`L15_CACHE_TAG_RAW_WIDTH*4-1:0] dtag_l15_dout_s2,
+    output reg [`L15_CACHE_TAG_RAW_WIDTH*`L15_WAY_COUNT-1:0] l15_dtag_write_data_s1,
+    output reg [`L15_CACHE_TAG_RAW_WIDTH*`L15_WAY_COUNT-1:0] l15_dtag_write_mask_s1,
+    input wire [`L15_CACHE_TAG_RAW_WIDTH*`L15_WAY_COUNT-1:0] dtag_l15_dout_s2,
     // dcache
     output reg l15_dcache_val_s2,
     output reg l15_dcache_rw_s2,
@@ -136,20 +137,20 @@ module l15_pipeline #(
     // mesi
     output reg l15_mesi_read_val_s1,
     output reg [L15_CACHE_INDEX_WIDTH-1:0] l15_mesi_read_index_s1,
-    input wire [`L15_UNPARAM_7_0] mesi_l15_dout_s2,
+    input wire [`L15_MESI_ARRAY_WIDTH-1:0] mesi_l15_dout_s2,
     output reg l15_mesi_write_val_s2,
     output reg [L15_CACHE_INDEX_WIDTH-1:0] l15_mesi_write_index_s2,
-    output reg [`L15_UNPARAM_7_0] l15_mesi_write_mask_s2,
-    output reg [`L15_UNPARAM_7_0] l15_mesi_write_data_s2,
+    output reg [`L15_MESI_ARRAY_WIDTH-1:0] l15_mesi_write_mask_s2,
+    output reg [`L15_MESI_ARRAY_WIDTH-1:0] l15_mesi_write_data_s2,
 
     // lrsc_flag
     output reg l15_lrsc_flag_read_val_s1,
     output reg [L15_CACHE_INDEX_WIDTH-1:0] l15_lrsc_flag_read_index_s1,
-    input wire [`L15_UNPARAM_3_0] lrsc_flag_l15_dout_s2,
+    input wire [`L15_WAY_COUNT-1:0] lrsc_flag_l15_dout_s2,
     output reg l15_lrsc_flag_write_val_s2,
     output reg [L15_CACHE_INDEX_WIDTH-1:0] l15_lrsc_flag_write_index_s2,
-    output reg [`L15_UNPARAM_3_0] l15_lrsc_flag_write_mask_s2,
-    output reg [`L15_UNPARAM_3_0] l15_lrsc_flag_write_data_s2,
+    output reg [`L15_WAY_COUNT-1:0] l15_lrsc_flag_write_mask_s2,
+    output reg [`L15_WAY_COUNT-1:0] l15_lrsc_flag_write_data_s2,
 
     // lruarray
     output reg l15_lruarray_read_val_s1,
@@ -174,8 +175,8 @@ module l15_pipeline #(
     input wire [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] wmt_l15_data_s3,
     output reg l15_wmt_write_val_s3,
     output reg [L1D_CACHE_INDEX_WIDTH - 1 : 0] l15_wmt_write_index_s3,
-    output reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] l15_wmt_write_mask_s3,
-    output reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] l15_wmt_write_data_s3,
+    output reg [L15_WMT_WIDTH-1:0] l15_wmt_write_mask_s3,
+    output reg [L15_WMT_WIDTH-1:0] l15_wmt_write_data_s3,
     `endif
     // MSHR
     //s1 (allocating)
@@ -198,7 +199,7 @@ module l15_pipeline #(
     input wire [(`L15_PADDR_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_ifill_address,
     input wire [(`L15_PADDR_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_ld_address,
     input wire [(`L15_PADDR_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_address,
-    input wire [(2*`L15_NUM_THREADS)-1:0] mshr_pipe_st_way_s1,
+    input wire [(`L15_WAY_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_way_s1,
     input wire [(`L15_MESI_TRANS_STATE_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_state_s1,
     //s2 (loading store buffer)
     output reg pipe_mshr_write_buffer_rd_en_s2,
@@ -211,7 +212,7 @@ module l15_pipeline #(
     output reg [`L15_MSHR_ID_WIDTH-1:0] pipe_mshr_mshrid_s3,
     output reg [`L15_THREADID_MASK] pipe_mshr_threadid_s3,
     output reg [`L15_MESI_TRANS_STATE_WIDTH-1:0] pipe_mshr_write_update_state_s3,
-    output reg [`L15_UNPARAM_1_0] pipe_mshr_write_update_way_s3,
+    output reg [`L15_WAY_WIDTH-1:0] pipe_mshr_write_update_way_s3,
 
     // PCX,CPX,NOC
     // cpx
@@ -229,11 +230,11 @@ module l15_pipeline #(
     output reg l15_cpxencoder_inval_dcache_all_way,         // tcov: to core but not utilized, inval individually
     output reg [`L15_PADDR_MASK] l15_cpxencoder_inval_address,
     output reg l15_cpxencoder_cross_invalidate,             // tcov: to core but not utilized
-    output reg [`L15_UNPARAM_1_0] l15_cpxencoder_cross_invalidate_way,   // tcov: to core but not utilized
+    output reg [`L1D_WAY_WIDTH-1:0] l15_cpxencoder_cross_invalidate_way,   // tcov: to core but not utilized
     output reg l15_cpxencoder_inval_dcache_inval,
     output reg l15_cpxencoder_inval_icache_inval,           // tcov: to core but not utilized, instead inval all way
     output reg l15_cpxencoder_blockinitstore,
-    output reg [`L15_UNPARAM_1_0] l15_cpxencoder_inval_way,
+    output reg [`L1D_WAY_WIDTH-1:0] l15_cpxencoder_inval_way,
     // noc1
     output reg l15_noc1buffer_req_val,
     output reg [`L15_NOC1_REQTYPE_WIDTH-1:0] l15_noc1buffer_req_type,
@@ -363,7 +364,7 @@ reg [`L15_PADDR_MASK] predecode_address_plus2_s1;
 reg [`L15_PADDR_MASK] predecode_address_plus3_s1;
 reg [`L15_UNPARAM_2_0] predecode_size_s1;
 reg [`L15_THREADID_MASK] predecode_threadid_s1;
-reg [`L15_WAY_MASK] predecode_l1_replacement_way_s1;
+reg [`L1D_WAY_WIDTH-1:0] predecode_l1_replacement_way_s1;
 reg predecode_non_cacheable_s1;
 reg predecode_is_last_inval_s1;
 // reg predecode_icache_do_inval_s1;
@@ -528,7 +529,7 @@ begin
             predecode_size_s1 = predecode_mshr_read_control_s1[`L15_CONTROL_SIZE_3B -: 3];
             // predecode_threadid_s1 = predecode_mshr_read_control_s1[`L15_CONTROL_THREADID -: `L15_THREADID_WIDTH];
             predecode_threadid_s1[`L15_THREADID_MASK] = noc2decoder_l15_threadid[`L15_THREADID_MASK];
-            predecode_l1_replacement_way_s1 = predecode_mshr_read_control_s1[`L15_CONTROL_L1_REPLACEMENT_WAY_2B -: 2];
+            predecode_l1_replacement_way_s1 = predecode_mshr_read_control_s1[`L15_CONTROL_L1_REPLACEMENT_WAY_2B -: `L1D_WAY_WIDTH];
             predecode_non_cacheable_s1 = predecode_mshr_read_control_s1[`L15_CONTROL_NC_1B -: 1];
             // 4.16.14: disable blockstores
             predecode_blockstore_bit_s1 = predecode_mshr_read_control_s1[`L15_CONTROL_BLOCKSTORE_1B -: 1];
@@ -2082,7 +2083,7 @@ reg dtag_rw_s1;
 reg [L15_CACHE_INDEX_WIDTH-1:0] dtag_index_s1;
 reg [`L15_WAY_MASK] dtag_write_way_s1;
 reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_write_tag_s1;
-reg [`L15_UNPARAM_3_0] dtag_write_way_mask;
+// reg [`L15_WAY_COUNT-1:0] dtag_write_way_mask;
 
 always @ *
 begin
@@ -2090,8 +2091,8 @@ begin
     dtag_rw_s1 = 0;
     dtag_index_s1 = 0;
     dtag_write_way_s1 = 0;
-    dtag_write_tag_s1[`L15_CACHE_TAG_RAW_WIDTH-1:0]  = 0;
-    dtag_write_way_mask = 0;
+    dtag_write_tag_s1 = `L15_CACHE_TAG_RAW_WIDTH'b0;
+    // dtag_write_way_mask = 0;
     case (decoder_dtag_operation_s1)
         `L15_DTAG_OP_READ:
         begin
@@ -2106,25 +2107,30 @@ begin
             dtag_index_s1 = predecode_cache_index_s1;
             dtag_write_way_s1 = lru_way_s2; // previous instruction (eviction) is guaranteed to be in s2
             // pad the address to the raw tag space required
-            dtag_write_tag_s1[`L15_CACHE_TAG_RAW_WIDTH-1:0]  = {{`L15_CACHE_TAG_RAW_WIDTH-L15_CACHE_TAG_WIDTH{1'b0}},predecode_dtag_write_data_s1[L15_CACHE_TAG_WIDTH-1:0]} ;
+            dtag_write_tag_s1 = {{`L15_CACHE_TAG_RAW_WIDTH-L15_CACHE_TAG_WIDTH{1'b0}},predecode_dtag_write_data_s1[L15_CACHE_TAG_WIDTH-1:0]} ;
         end
     endcase
 
-    dtag_write_way_mask = (dtag_write_way_s1 == 2'b00) ? 4'b0_0_0_1 :
-                            (dtag_write_way_s1 == 2'b01) ? 4'b0_0_1_0 :
-                            (dtag_write_way_s1 == 2'b10) ? 4'b0_1_0_0 :
-                                                        4'b1_0_0_0 ;
+    // dtag_write_way_mask = (dtag_write_way_s1 == 2'b00) ? 4'b0_0_0_1 :
+    //                         (dtag_write_way_s1 == 2'b01) ? 4'b0_0_1_0 :
+    //                         (dtag_write_way_s1 == 2'b10) ? 4'b0_1_0_0 :
+    //                                                     4'b1_0_0_0 ;
+    // dtag_write_way_mask = `L15_WAY_COUNT'b1 << dtag_write_way_s1;
+    // dtag_write_way_mask = `L15_WAY_COUNT*`L15_CACHE_TAG_RAW_WIDTH'b(`L15_WAY_COUNT'b1) << dtag_write_way_s1;
+    l15_dtag_write_mask_s1 = {`L15_CACHE_TAG_RAW_WIDTH{1'b1}};
+    l15_dtag_write_mask_s1 = l15_dtag_write_mask_s1 << (dtag_write_way_s1*`L15_CACHE_TAG_RAW_WIDTH);
 
     // INPUT/OUTPUT TO DTAG
     l15_dtag_val_s1 = dtag_val_s1 && !stall_s1;
     l15_dtag_rw_s1 = dtag_rw_s1;
     l15_dtag_index_s1[L15_CACHE_INDEX_WIDTH-1:0] = dtag_index_s1;
-    l15_dtag_write_data_s1[`L15_CACHE_TAG_RAW_WIDTH*4-1:0] = {4{dtag_write_tag_s1[`L15_CACHE_TAG_RAW_WIDTH-1:0]}} ;
-    l15_dtag_write_mask_s1[`L15_CACHE_TAG_RAW_WIDTH*4-1:0] =
-                                                                    {{`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[3]}},
-                                                                     {`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[2]}},
-                                                                     {`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[1]}},
-                                                                     {`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[0]}}};
+    l15_dtag_write_data_s1 = {`L15_WAY_COUNT{dtag_write_tag_s1[`L15_CACHE_TAG_RAW_WIDTH-1:0]}} ;
+    //l15_dtag_write_mask_s1[`L15_CACHE_TAG_RAW_WIDTH*4-1:0] =
+    //                                                                {{`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[3]}},
+    //                                                                 {`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[2]}},
+    //                                                                 {`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[1]}},
+    //                                                                 {`L15_CACHE_TAG_RAW_WIDTH{dtag_write_way_mask[0]}}};
+
 end
 
 ////////////////////////////
@@ -2185,7 +2191,7 @@ begin
     mshr_control_bits_write_s1 = 0;
     mshr_control_bits_write_s1 [`L15_CONTROL_SIZE_3B -: 3] = predecode_size_s1;
     mshr_control_bits_write_s1 [`L15_CONTROL_THREADID -: `L15_THREADID_WIDTH] = predecode_threadid_s1;
-    mshr_control_bits_write_s1 [`L15_CONTROL_L1_REPLACEMENT_WAY_2B -: `L15_WAY_WIDTH] = predecode_l1_replacement_way_s1;
+    mshr_control_bits_write_s1 [`L15_CONTROL_L1_REPLACEMENT_WAY_2B -: `L1D_WAY_WIDTH] = predecode_l1_replacement_way_s1;
     // for Load Reserve, we evict and send INVs like a NC req. But when we get the data ack, we reagrd it as a Cacheable req
     mshr_control_bits_write_s1 [`L15_CONTROL_NC_1B -: 1] = (predecode_reqtype_s1 == `L15_REQTYPE_AMO_LR) ? 1'b0 : predecode_non_cacheable_s1;
     mshr_control_bits_write_s1 [`L15_CONTROL_BLOCKSTORE_1B -: 1] = predecode_blockstore_bit_s1;
@@ -2368,7 +2374,7 @@ s2floplist = [
     ('non_cacheable','1'),
     ('size','3'),
     ('prefetch','1'),
-    ('l1_replacement_way','2'),
+    ('l1_replacement_way','`L1D_WAY_WIDTH'),
     ('l2_miss','1'),
     ('f4b','1'),
     ('predecode_noc2_inval', '1'),
@@ -2409,7 +2415,7 @@ s2floplist_no_rtl_csm = [
     ('non_cacheable','1'),
     ('size','3'),
     ('prefetch','1'),
-    ('l1_replacement_way','2'),
+    ('l1_replacement_way','`L1D_WAY_WIDTH'),
     ('l2_miss','1'),
     ('f4b','1'),
     ('lrsc_flag_write_op','`L15_LRSC_FLAG_WRITE_OP_WIDTH'),
@@ -2490,7 +2496,7 @@ begin
     end
 end
 
-reg [`L15_UNPARAM_1_0] way_mshr_st_s2;
+reg [`L15_WAY_WIDTH-1:0] way_mshr_st_s2;
 reg [L15_CACHE_TAG_WIDTH-1:0] address_cache_tag_s2;
 reg [L15_SUBLINE_INDEX_WIDTH-1:0] cache_subline_s2;
 reg [L15_SUBLINE_INDEX_WIDTH-1:0] req_subline_s2_next, req_subline_s2;
@@ -2636,45 +2642,63 @@ end
 
 
 // tag check logics
-reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way0_s2;
-reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way1_s2;
-reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way2_s2;
-reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way3_s2;
-reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way0_s2;
-reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way1_s2;
-reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way2_s2;
-reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way3_s2;
-reg [`L15_UNPARAM_7_0] mesi_read_data_s2;
-reg tagcheck_way0_equals;
-reg tagcheck_way1_equals;
-reg tagcheck_way2_equals;
-reg tagcheck_way3_equals;
+// reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way0_s2;
+// reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way1_s2;
+// reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way2_s2;
+// reg [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way3_s2;
+// reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way0_s2;
+// reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way1_s2;
+// reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way2_s2;
+// reg [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way3_s2;
+// reg [`L15_MESI_ARRAY_WIDTH-1:0] mesi_read_data_s2;
+// reg tagcheck_way0_equals;
+// reg tagcheck_way1_equals;
+// reg tagcheck_way2_equals;
+// reg tagcheck_way3_equals;
 
-reg [`L15_UNPARAM_1_0] tagcheck_state_s2;
-reg tagcheck_state_me_s2;
-reg tagcheck_state_mes_s2;
-reg tagcheck_state_s_s2;
-reg tagcheck_state_m_s2;
-reg tagcheck_state_e_s2;
-reg [`L15_UNPARAM_1_0] tagcheck_way_s2;
+reg [`L15_MESI_STATE_WIDTH-1:0] tagcheck_state_s2;
+reg [`L15_WAY_WIDTH-1:0] tagcheck_way_s2;
 // reg [`L15_UNPARAM_3_0] tagcheck_way_mask_s2;
-reg tagcheck_val_s2;
+// reg tagcheck_val_s2;
 reg tagcheck_lrsc_flag_s2;
 
-reg [`L15_UNPARAM_1_0] lru_state_s2;
-reg lru_state_m_s2;
-reg lru_state_mes_s2;
-reg [L15_CACHE_TAG_WIDTH-1:0] lru_way_tag_s2;
-reg [`L15_PADDR_MASK] lru_way_address_s2;
+wire [L15_CACHE_TAG_WIDTH-1:0] lru_way_tag_s2 = dtag_l15_dout_s2 >> (lru_way_s2*`L15_CACHE_TAG_RAW_WIDTH);
+wire [`L15_MESI_STATE_WIDTH-1:0] lru_state_s2 = mesi_l15_dout_s2 >> (lru_way_s2*`L15_MESI_STATE_WIDTH);
+wire [`L15_PADDR_WIDTH-1:0] lru_way_address_s2 = {lru_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW], 4'b0};
 
-reg [`L15_UNPARAM_1_0] flush_state_s2;
-reg flush_state_m_s2;
-reg flush_state_me_s2;
-reg flush_state_mes_s2;
-reg [`L15_UNPARAM_1_0] flush_way_s2;
-// reg [`L15_UNPARAM_3_0] flush_way_mask_s2;
-reg [L15_CACHE_TAG_WIDTH-1:0] flush_way_tag_s2;
-reg [`L15_PADDR_MASK] flush_way_address_s2;
+// trinnn: double check this addressing scheme
+// wire [`L15_WAY_WIDTH-1:0] flush_way_s2 = address_s2[25:24]; // original
+wire [`L15_WAY_WIDTH-1:0] flush_way_s2 = address_s2[24+:`L15_WAY_WIDTH];
+wire [`L15_MESI_STATE_WIDTH-1:0] flush_state_s2 = mesi_l15_dout_s2 >> (flush_way_s2*`L15_MESI_STATE_WIDTH);
+wire [L15_CACHE_TAG_WIDTH-1:0] flush_way_tag_s2 = dtag_l15_dout_s2 >> (flush_way_s2*`L15_CACHE_TAG_RAW_WIDTH);
+wire [`L15_PADDR_WIDTH-1:0] flush_way_address_s2 = {flush_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW], 4'b0};
+
+// expanding some useful signals
+wire tagcheck_state_me_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M || tagcheck_state_s2 == `L15_MESI_STATE_E;
+wire tagcheck_state_mes_s2 = tagcheck_state_me_s2 || tagcheck_state_s2 == `L15_MESI_STATE_S;
+wire tagcheck_state_s_s2 = tagcheck_state_s2 == `L15_MESI_STATE_S;
+wire tagcheck_state_m_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M;
+wire tagcheck_state_e_s2 = tagcheck_state_s2 == `L15_MESI_STATE_E;
+
+wire lru_state_m_s2 = lru_state_s2 == `L15_MESI_STATE_M;
+wire lru_state_mes_s2 = lru_state_m_s2 || lru_state_s2 == `L15_MESI_STATE_E || lru_state_s2 == `L15_MESI_STATE_S;
+
+wire flush_state_m_s2 = flush_state_s2 == `L15_MESI_STATE_M;
+wire flush_state_me_s2 = flush_state_m_s2 || flush_state_s2 == `L15_MESI_STATE_E;
+wire flush_state_mes_s2 = flush_state_me_s2 || flush_state_s2 == `L15_MESI_STATE_S;
+
+wire [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way_s2[`L15_WAY_COUNT-1:0];
+wire [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way_s2[`L15_WAY_COUNT-1:0]; 
+<%
+    for i in range(CONFIG_L15_ASSOCIATIVITY):
+        #print("wire [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way{0}_s2 = dtag_l15_dout_s2[{0}*`L15_CACHE_TAG_RAW_WIDTH +: `L15_CACHE_TAG_RAW_WIDTH];".format(i))
+        #print("wire [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way{0}_s2 = mesi_l15_dout_s2[{0}*`L15_MESI_STATE_WIDTH +: `L15_MESI_STATE_WIDTH];".format(i))
+        print("assign dtag_tag_way_s2[{0}] = dtag_l15_dout_s2[{0}*`L15_CACHE_TAG_RAW_WIDTH +: `L15_CACHE_TAG_RAW_WIDTH];".format(i))
+        print("assign mesi_state_way_s2[{0}] = mesi_l15_dout_s2[{0}*`L15_MESI_STATE_WIDTH +: `L15_MESI_STATE_WIDTH];".format(i))
+        # print("wire tagcheck_way{0}_equals = (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way{0}_s2[L15_CACHE_TAG_WIDTH-1:0]);".format(i))
+%>
+
+
 
 
 always @ *
@@ -2722,140 +2746,55 @@ end
 
 always @ *
 begin
-    // note: dtag has 33b per tag entry way, but we are only using 29b
-    dtag_tag_way0_s2 = dtag_l15_dout_s2[0*`L15_CACHE_TAG_RAW_WIDTH +: `L15_CACHE_TAG_RAW_WIDTH];
-    dtag_tag_way1_s2 = dtag_l15_dout_s2[1*`L15_CACHE_TAG_RAW_WIDTH +: `L15_CACHE_TAG_RAW_WIDTH];
-    dtag_tag_way2_s2 = dtag_l15_dout_s2[2*`L15_CACHE_TAG_RAW_WIDTH +: `L15_CACHE_TAG_RAW_WIDTH];
-    dtag_tag_way3_s2 = dtag_l15_dout_s2[3*`L15_CACHE_TAG_RAW_WIDTH +: `L15_CACHE_TAG_RAW_WIDTH];
-    mesi_state_way0_s2 = mesi_l15_dout_s2[`L15_UNPARAM_1_0];
-    mesi_state_way1_s2 = mesi_l15_dout_s2[3:2];
-    mesi_state_way2_s2 = mesi_l15_dout_s2[5:4];
-    mesi_state_way3_s2 = mesi_l15_dout_s2[7:6];
-    mesi_read_data_s2 = mesi_l15_dout_s2;
+    //tagcheck_lrsc_flag_s2 = (tagcheck_val_s2 == 1'b0) ? 1'b0 :
+    //                            (tagcheck_way_s2 == 2'd0) ? lrsc_flag_l15_dout_s2[0] :
+    //                            (tagcheck_way_s2 == 2'd1) ? lrsc_flag_l15_dout_s2[1] :
+    //                            (tagcheck_way_s2 == 2'd2) ? lrsc_flag_l15_dout_s2[2] :
+    //                                                        lrsc_flag_l15_dout_s2[3] ;
 
-    // for lru way check
-    lru_state_s2 =   (lru_way_s2 == 0) ? mesi_state_way0_s2 :
-                        (lru_way_s2 == 1) ? mesi_state_way1_s2 :
-                        (lru_way_s2 == 2) ? mesi_state_way2_s2 :
-                                                mesi_state_way3_s2;
-    lru_way_tag_s2[L15_CACHE_TAG_WIDTH-1:0] =
-                        (lru_way_s2 == 0) ? dtag_tag_way0_s2[L15_CACHE_TAG_WIDTH-1:0] :
-                        (lru_way_s2 == 1) ? dtag_tag_way1_s2[L15_CACHE_TAG_WIDTH-1:0] :
-                        (lru_way_s2 == 2) ? dtag_tag_way2_s2[L15_CACHE_TAG_WIDTH-1:0] :
-                                                dtag_tag_way3_s2[L15_CACHE_TAG_WIDTH-1:0];
-    lru_way_address_s2 = {lru_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW], {L15_IDX_LOW{1'b0}}};
-
-
-    // DTAG COMPARISON
-    // only compare L15_CACHE_TAG_WIDTH (29b), not full raw tag
-    tagcheck_way0_equals = (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way0_s2[L15_CACHE_TAG_WIDTH-1:0]);
-    tagcheck_way1_equals = (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way1_s2[L15_CACHE_TAG_WIDTH-1:0]);
-    tagcheck_way2_equals = (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way2_s2[L15_CACHE_TAG_WIDTH-1:0]);
-    tagcheck_way3_equals = (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way3_s2[L15_CACHE_TAG_WIDTH-1:0]);
-
-    {tagcheck_val_s2, tagcheck_way_s2} = tagcheck_way0_equals && (mesi_state_way0_s2 != `L15_MESI_STATE_I) ? {1'b1, 2'd0} :
-                                                    tagcheck_way1_equals && (mesi_state_way1_s2 != `L15_MESI_STATE_I) ?  {1'b1, 2'd1} :
-                                                    tagcheck_way2_equals && (mesi_state_way2_s2 != `L15_MESI_STATE_I) ?  {1'b1, 2'd2} :
-                                                    tagcheck_way3_equals && (mesi_state_way3_s2 != `L15_MESI_STATE_I) ?  {1'b1, 2'd3} : 3'b0;
-
-    // tagcheck_way_mask_s2[`L15_UNPARAM_3_0] = tagcheck_way_s2 == 2'd0 ? 4'b0001 :
-    //                                                               2'd1 ? 4'b0010 :
-    //                                                               2'd2 ? 4'b0100 :
-    //                                                                         4'b1000 ;
-
-    tagcheck_lrsc_flag_s2 = (tagcheck_val_s2 == 1'b0) ? 1'b0 :
-                                (tagcheck_way_s2 == 2'd0) ? lrsc_flag_l15_dout_s2[0] :
-                                (tagcheck_way_s2 == 2'd1) ? lrsc_flag_l15_dout_s2[1] :
-                                (tagcheck_way_s2 == 2'd2) ? lrsc_flag_l15_dout_s2[2] :
-                                                            lrsc_flag_l15_dout_s2[3] ;
-
-    tagcheck_state_s2 = (tagcheck_val_s2 == 1'b0) ? `L15_MESI_STATE_I :
-                                (tagcheck_way_s2 == 2'd0) ? mesi_state_way0_s2 :
-                                (tagcheck_way_s2 == 2'd1) ? mesi_state_way1_s2 :
-                                (tagcheck_way_s2 == 2'd2) ? mesi_state_way2_s2 :
-                                                                     mesi_state_way3_s2 ;
-
-    flush_way_s2 = address_s2[25:24];
-    flush_state_s2 =  (flush_way_s2 == 2'd0) ? mesi_state_way0_s2 :
-                            (flush_way_s2 == 2'd1) ? mesi_state_way1_s2 :
-                            (flush_way_s2 == 2'd2) ? mesi_state_way2_s2 :
-                                                             mesi_state_way3_s2 ;
-
-    flush_way_tag_s2[L15_CACHE_TAG_WIDTH-1:0] =
-                        (flush_way_s2 == 0) ? dtag_tag_way0_s2[L15_CACHE_TAG_WIDTH-1:0] :
-                        (flush_way_s2 == 1) ? dtag_tag_way1_s2[L15_CACHE_TAG_WIDTH-1:0] :
-                        (flush_way_s2 == 2) ? dtag_tag_way2_s2[L15_CACHE_TAG_WIDTH-1:0] :
-                                                        dtag_tag_way3_s2[L15_CACHE_TAG_WIDTH-1:0];
-
-    flush_way_address_s2 = {flush_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW], {L15_IDX_LOW{1'b0}}};
-
-    // expanding some signals
-    tagcheck_state_me_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M || tagcheck_state_s2 == `L15_MESI_STATE_E;
-    tagcheck_state_mes_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M || tagcheck_state_s2 == `L15_MESI_STATE_E
-                                                        || tagcheck_state_s2 == `L15_MESI_STATE_S;
-    tagcheck_state_s_s2 = tagcheck_state_s2 == `L15_MESI_STATE_S;
-    tagcheck_state_m_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M;
-    tagcheck_state_e_s2 = tagcheck_state_s2 == `L15_MESI_STATE_E;
-
-    lru_state_m_s2 = lru_state_s2 == `L15_MESI_STATE_M;
-    lru_state_mes_s2 = lru_state_s2 == `L15_MESI_STATE_M || lru_state_s2 == `L15_MESI_STATE_E
-                                                        || lru_state_s2 == `L15_MESI_STATE_S;
-
-    flush_state_m_s2 = flush_state_s2 == `L15_MESI_STATE_M;
-    flush_state_me_s2 = flush_state_s2 == `L15_MESI_STATE_M || flush_state_s2 == `L15_MESI_STATE_E;
-    flush_state_mes_s2 = flush_state_s2 == `L15_MESI_STATE_M || flush_state_s2 == `L15_MESI_STATE_E
-                                                        || flush_state_s2 == `L15_MESI_STATE_S;
+    tagcheck_lrsc_flag_s2 = 1'b0;
+    tagcheck_state_s2 = `L15_MESI_STATE_I;
+    tagcheck_way_s2 = {`L15_WAY_WIDTH{1'bx}};
+    <%
+        for i in range(CONFIG_L15_ASSOCIATIVITY):
+            if (i > 0):
+                print("else")
+            print('''if (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way_s2[{0}][L15_CACHE_TAG_WIDTH-1:0]
+                            && mesi_state_way_s2[{0}] != `L15_MESI_STATE_I) begin
+                        tagcheck_way_s2 = {0};
+                        tagcheck_state_s2 = mesi_state_way_s2[{0}];
+                        tagcheck_lrsc_flag_s2 = lrsc_flag_l15_dout_s2[{0}];
+                    end'''.format(i))
+    %>
 end
 
 
 //////////////////////
 // LRU logic
 //////////////////////
-reg [`L15_WAY_ARRAY_MASK] lru_used_bits_s2;
-reg [`L15_WAY_MASK] lru_round_robin_turn_s2;
-// reg [`L15_WAY_MASK] lru_way_s2; // moved earlier for
+wire [`L15_WAY_COUNT-1:0] lru_used_bits_s2 = lruarray_l15_dout_s2[`L15_LRUARRAY_USED_MASK];
+wire [`L15_WAY_WIDTH-1:0] lru_round_robin_turn_s2 = lruarray_l15_dout_s2[`L15_LRUARRAY_RR_MASK];
 always @ *
 begin
-    lru_used_bits_s2[`L15_WAY_ARRAY_MASK] = lruarray_l15_dout_s2[`L15_LRUARRAY_USED_MASK];
-    lru_round_robin_turn_s2[`L15_WAY_MASK] = lruarray_l15_dout_s2[`L15_LRUARRAY_RR_MASK];
-    lru_way_s2 = 0;
+    lru_way_s2 = 1'bx;
     if (&lru_used_bits_s2 == 1'b1)
     begin
         // if all were used
-        lru_way_s2[`L15_WAY_MASK] = lru_round_robin_turn_s2;
+        lru_way_s2 = lru_round_robin_turn_s2;
     end
     else
     begin
-        case (lru_round_robin_turn_s2)
-            `L15_WAYID_WAY0:
-            begin
-                lru_way_s2[`L15_WAY_MASK] = (lru_used_bits_s2[`L15_WAY_ARRAY_WAY0_MASK] == 1'b0) ? `L15_WAYID_WAY0 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY1_MASK] == 1'b0) ? `L15_WAYID_WAY1 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY2_MASK] == 1'b0) ? `L15_WAYID_WAY2 :
-                                                                      `L15_WAYID_WAY3 ;
-            end
-            `L15_WAYID_WAY1:
-            begin
-                lru_way_s2[`L15_WAY_MASK] = (lru_used_bits_s2[`L15_WAY_ARRAY_WAY1_MASK] == 1'b0) ? `L15_WAYID_WAY1 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY2_MASK] == 1'b0) ? `L15_WAYID_WAY2 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY3_MASK] == 1'b0) ? `L15_WAYID_WAY3 :
-                                                                      `L15_WAYID_WAY0 ;
-            end
-            `L15_WAYID_WAY2:
-            begin
-                lru_way_s2[`L15_WAY_MASK] = (lru_used_bits_s2[`L15_WAY_ARRAY_WAY2_MASK] == 1'b0) ? `L15_WAYID_WAY2 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY3_MASK] == 1'b0) ? `L15_WAYID_WAY3 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY0_MASK] == 1'b0) ? `L15_WAYID_WAY0 :
-                                                                      `L15_WAYID_WAY1 ;
-            end
-            `L15_WAYID_WAY3:
-            begin
-                lru_way_s2[`L15_WAY_MASK] = (lru_used_bits_s2[`L15_WAY_ARRAY_WAY3_MASK] == 1'b0) ? `L15_WAYID_WAY3 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY0_MASK] == 1'b0) ? `L15_WAYID_WAY0 :
-                                            (lru_used_bits_s2[`L15_WAY_ARRAY_WAY1_MASK] == 1'b0) ? `L15_WAYID_WAY1 :
-                                                                      `L15_WAYID_WAY2 ;
-            end
-        endcase
+        lru_way_s2 = lru_round_robin_turn_s2;
+        if (lru_used_bits_s2[lru_round_robin_turn_s2] == 0)
+            lru_way_s2 = lru_round_robin_turn_s2;
+        <%
+            for i in range(1, CONFIG_L15_ASSOCIATIVITY):
+                print('''
+                    else if (lru_used_bits_s2[lru_round_robin_turn_s2 + `L15_WAY_WIDTH'd{0}] == 0)
+                         lru_way_s2 = lru_round_robin_turn_s2 + {0};
+                    '''.format(i)
+                    )
+        %>
     end
 end
 
@@ -2888,7 +2827,7 @@ end
 reg dcache_val_s2;
 reg dcache_rw_s2;
 reg [L15_CACHE_INDEX_WIDTH-1:0] dcache_index_s2;
-reg [`L15_UNPARAM_1_0] dcache_way_s2;
+reg [`L15_WAY_WIDTH-1:0] dcache_way_s2;
 reg [L15_SUBLINE_INDEX_WIDTH-1:0] dcache_subline_s2;
 reg [`L15_UNPARAM_127_0] dcache_mshr_write_mask_s2;
 reg [`L15_UNPARAM_127_0] dcache_write_merge_mshr_noc2_s2;
@@ -2899,10 +2838,10 @@ reg [`L15_UNPARAM_127_0] noc2_write_data_s2;
 reg [`L15_UNPARAM_127_0] mshr_pipe_write_data_s2;
 // diag accesses
 reg [L15_CACHE_INDEX_WIDTH-1:0] dcache_diag_index_s2;
-reg [`L15_UNPARAM_1_0] dcache_diag_way_s2;
+reg [`L15_WAY_WIDTH-1:0] dcache_diag_way_s2;
 reg [L15_SUBLINE_INDEX_WIDTH-1:0] dcache_diag_subline_s2;
 reg [0:0] dcache_diag_offset_s2;
-reg [`L15_UNPARAM_1_0] lru_way_s3_bypassed;
+reg [`L15_WAY_WIDTH-1:0] lru_way_s3_bypassed;
 reg [(L15_L1D_LINE_SIZE*8)-1:0] buffer_noc2decoder_l15_data;
 
 //integer i;
@@ -3107,8 +3046,8 @@ end
 ////////////////////////
 reg mesi_write_val_s2;
 reg [L15_CACHE_INDEX_WIDTH-1:0] mesi_write_index_s2;
-reg [`L15_UNPARAM_1_0] mesi_write_way_s2;
-reg [`L15_UNPARAM_1_0] mesi_write_state_s2;
+reg [`L15_WAY_WIDTH-1:0] mesi_write_way_s2;
+reg [`L15_MESI_STATE_WIDTH-1:0] mesi_write_state_s2;
 always @ *
 begin
     mesi_write_val_s2 = 0;
@@ -3163,11 +3102,13 @@ begin
     // trin todo: why stall_s2 is needed
     l15_mesi_write_val_s2 = mesi_write_val_s2 && val_s2 && !stall_s2 && !predecode_not_last_inv_s2; // only write state in the last cycle, if have multiple sublines
     l15_mesi_write_index_s2[L15_CACHE_INDEX_WIDTH-1:0] = mesi_write_index_s2;
-    l15_mesi_write_mask_s2[`L15_UNPARAM_7_0] =  (mesi_write_way_s2 == 0) ? 8'b00_00_00_11 :
-                            (mesi_write_way_s2 == 1) ? 8'b00_00_11_00 :
-                            (mesi_write_way_s2 == 2) ? 8'b00_11_00_00 :
-                                                    8'b11_00_00_00 ;
-    l15_mesi_write_data_s2[`L15_UNPARAM_7_0] = {4{mesi_write_state_s2}};
+
+    //l15_mesi_write_mask_s2 =  (mesi_write_way_s2 == 0) ? 8'b00_00_00_11 :
+    //                        (mesi_write_way_s2 == 1) ? 8'b00_00_11_00 :
+    //                        (mesi_write_way_s2 == 2) ? 8'b00_11_00_00 :
+    //                                                8'b11_00_00_00 ;
+    l15_mesi_write_mask_s2 = {`L15_MESI_STATE_WIDTH{1'b1}} << (mesi_write_way_s2*`L15_MESI_STATE_WIDTH);
+    l15_mesi_write_data_s2 = {`L15_WAY_COUNT{mesi_write_state_s2}};
 end
 
 
@@ -3176,7 +3117,7 @@ end
 ////////////////////////
 reg lrsc_flag_write_val_s2;
 reg [L15_CACHE_INDEX_WIDTH-1:0] lrsc_flag_write_index_s2;
-reg [`L15_UNPARAM_1_0] lrsc_flag_write_way_s2;
+reg [`L15_WAY_WIDTH-1:0] lrsc_flag_write_way_s2;
 reg lrsc_flag_write_state_s2;
 always @ *
 begin
@@ -3218,11 +3159,8 @@ begin
     // trin todo: why stall_s2 is needed
     l15_lrsc_flag_write_val_s2 = lrsc_flag_write_val_s2 && val_s2 && !stall_s2;
     l15_lrsc_flag_write_index_s2[L15_CACHE_INDEX_WIDTH-1:0] = lrsc_flag_write_index_s2;
-    l15_lrsc_flag_write_mask_s2[`L15_UNPARAM_3_0] =  (lrsc_flag_write_way_s2 == 0) ? 4'b0001 :
-                            (lrsc_flag_write_way_s2 == 1) ? 4'b0010 :
-                            (lrsc_flag_write_way_s2 == 2) ? 4'b0100 :
-                                                    4'b1000 ;
-    l15_lrsc_flag_write_data_s2[`L15_UNPARAM_3_0] = {4{lrsc_flag_write_state_s2}};
+    l15_lrsc_flag_write_mask_s2[`L15_WAY_COUNT-1:0] = `L15_WAY_COUNT'b1 << lrsc_flag_write_way_s2;
+    l15_lrsc_flag_write_data_s2[`L15_WAY_COUNT-1:0] = {`L15_WAY_COUNT{lrsc_flag_write_state_s2}};
 end
 
 ////////////////////////////
@@ -3416,20 +3354,20 @@ end
 // propagated variables (flops) from S2
 <%
 s3floplist = [
-    ('tagcheck_way','2'),
-    ('tagcheck_state','2'),
+    ('tagcheck_way','`L15_WAY_WIDTH'),
+    ('tagcheck_state','`L15_MESI_STATE_WIDTH'),
     ('tagcheck_lrsc_flag','1'),
-    ('flush_way','2'),
-    ('flush_state','2'),
-    ('lru_way','2'),
-    ('lru_state','2'),
+    ('flush_way','`L15_WAY_WIDTH'),
+    ('flush_state','`L15_MESI_STATE_WIDTH'),
+    ('lru_way','`L15_WAY_WIDTH'),
+    ('lru_state','`L15_MESI_STATE_WIDTH'),
     ('mshrid','`L15_MSHR_ID_WIDTH'),
     ('address','`L15_PADDR_WIDTH'),
     ('threadid','`L15_THREADID_WIDTH'),
     ('non_cacheable','1'),
     ('size','3'),
     ('prefetch','1'),
-    ('l1_replacement_way','2'),
+    ('l1_replacement_way','`L1D_WAY_WIDTH'),
     ('l2_miss','1'),
     ('f4b','1'),
     ('blockstore', '1'),
@@ -3607,7 +3545,7 @@ reg [`L15_THREADID_MASK] stbuf_compare_threadid_s3;
 reg [`L15_THREADID_MASK] stbuf_compare_lru_threadid_s3;
 reg stbuf_compare_match_val_s3;
 reg stbuf_compare_lru_match_val_s3;
-reg [`L15_UNPARAM_1_0] stbuf_way_s3; // wmt todo: move calculation to s2
+reg [`L15_WAY_WIDTH-1:0] stbuf_way_s3; // wmt todo: move calculation to s2
 
 // STORE BUFFER STUFF
 always @ *
@@ -3645,14 +3583,11 @@ begin
     // stbuf_l1waymap_val_s3 = stbuf_way_wmt_data_s3[2];
 end
 
-reg [`L15_UNPARAM_3_0] tagcheck_way_mask_s3;
+reg [`L15_WAY_COUNT-1:0] tagcheck_way_mask_s3;
 always @ *
 begin
     // expanding some signals
-    tagcheck_way_mask_s3[`L15_UNPARAM_3_0] = tagcheck_way_s3 == 2'd0 ? 4'b0001 :
-                                                  2'd1 ? 4'b0010 :
-                                                  2'd2 ? 4'b0100 :
-                                                        4'b1000 ;
+    tagcheck_way_mask_s3 = `L15_WAY_COUNT'b1 << tagcheck_way_s3;
 
     tagcheck_state_me_s3 = tagcheck_state_s3 == `L15_MESI_STATE_M || tagcheck_state_s3 == `L15_MESI_STATE_E;
     tagcheck_state_mes_s3 = tagcheck_state_s3 == `L15_MESI_STATE_M || tagcheck_state_s3 == `L15_MESI_STATE_E
@@ -3853,73 +3788,67 @@ end
 // correctness should be the same
 reg [`L15_LRUARRAY_MASK] lruarray_write_data_s3;
 reg lruarray_write_val_s3;
-reg [`L15_UNPARAM_3_0] lruarray_lru_mask_s3;
-reg [`L15_UNPARAM_3_0] lruarray_tagcheck_mask_s3;
-reg [`L15_UNPARAM_3_0] lruarray_flush_mask_s3;
+reg [`L15_WAY_COUNT-1:0] lruarray_lru_mask_s3;
+reg [`L15_WAY_COUNT-1:0] lruarray_tagcheck_mask_s3;
+reg [`L15_WAY_COUNT-1:0] lruarray_flush_mask_s3;
 reg [L15_CACHE_INDEX_WIDTH-1:0] lruarray_write_index_s3;
 always @ *
 begin
     lruarray_write_data_s3 = 0;
     lruarray_write_val_s3 = 0;
-    lruarray_lru_mask_s3 = lru_way_s3[`L15_UNPARAM_1_0] == 2'd0 ? 4'b0001 :
-                                  lru_way_s3[`L15_UNPARAM_1_0] == 2'd1 ? 4'b0010 :
-                                  lru_way_s3[`L15_UNPARAM_1_0] == 2'd2 ? 4'b0100 :
-                                                                     4'b1000 ;
-    lruarray_flush_mask_s3 =   flush_way_s3[`L15_UNPARAM_1_0] == 2'd0 ? 4'b0001 :
-                                        flush_way_s3[`L15_UNPARAM_1_0] == 2'd1 ? 4'b0010 :
-                                        flush_way_s3[`L15_UNPARAM_1_0] == 2'd2 ? 4'b0100 :
-                                                                            4'b1000 ;
+    lruarray_lru_mask_s3 = `L15_WAY_COUNT'b1 << lru_way_s3;
+    lruarray_flush_mask_s3 = `L15_WAY_COUNT'b1 << flush_way_s3;
     lruarray_tagcheck_mask_s3 = tagcheck_way_mask_s3;
 
     case (lruarray_write_op_s3)
         `L15_LRU_UPDATE_ACCESS_BITS_IF_TAGCHECK_WAY_IS_MES:
         begin
             lruarray_write_val_s3 = tagcheck_state_mes_s3;
-            if ((lru_data_s3[`L15_UNPARAM_3_0] | lruarray_tagcheck_mask_s3) == 4'b1111)
-                lruarray_write_data_s3[`L15_UNPARAM_3_0] = 4'b0000;
+            if (&(lru_data_s3[`L15_LRUARRAY_USED_MASK] | lruarray_tagcheck_mask_s3))
+                lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = {`L15_WAY_COUNT{1'b0}};
             else
-                lruarray_write_data_s3[`L15_UNPARAM_3_0] = lru_data_s3[`L15_UNPARAM_3_0] | lruarray_tagcheck_mask_s3;
-            lruarray_write_data_s3[5:4] = lru_data_s3[5:4]; // retain old round robin
+                lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = lru_data_s3[`L15_LRUARRAY_USED_MASK] | lruarray_tagcheck_mask_s3;
+            lruarray_write_data_s3[`L15_LRUARRAY_RR_MASK] = lru_data_s3[`L15_LRUARRAY_RR_MASK]; // retain old round robin
         end
         `L15_LRU_UPDATE_ACCESS_BITS_IF_TAGCHECK_WAY_LRSC_SET:
         begin
             lruarray_write_val_s3 = tagcheck_lrsc_flag_s3;
-            if ((lru_data_s3[`L15_UNPARAM_3_0] | lruarray_tagcheck_mask_s3) == 4'b1111)
-                lruarray_write_data_s3[`L15_UNPARAM_3_0] = 4'b0000;
+            if (&(lru_data_s3[`L15_LRUARRAY_USED_MASK] | lruarray_tagcheck_mask_s3))
+                lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = {`L15_WAY_COUNT{1'b0}};
             else
-                lruarray_write_data_s3[`L15_UNPARAM_3_0] = lru_data_s3[`L15_UNPARAM_3_0] | lruarray_tagcheck_mask_s3;
-            lruarray_write_data_s3[5:4] = lru_data_s3[5:4]; // retain old round robin
+                lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = lru_data_s3[`L15_LRUARRAY_USED_MASK] | lruarray_tagcheck_mask_s3;
+            lruarray_write_data_s3[`L15_LRUARRAY_RR_MASK] = lru_data_s3[`L15_LRUARRAY_RR_MASK]; // retain old round robin
         end
         `L15_LRU_EVICTION:
         begin
             // lruarray_write_val_s3 = 1'b1; // might be an error to change here
-            // lruarray_write_data_s3[`L15_UNPARAM_3_0] = lru_data_s3[`L15_UNPARAM_3_0] & ~lruarray_lru_mask_s3;
+            // lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = lru_data_s3[`L15_LRUARRAY_USED_MASK] & ~lruarray_lru_mask_s3;
             //    // retain old access bits and remove the evicted bit
-            // lruarray_write_data_s3[5:4] = lru_data_s3[5:4] + 2'b1;
+            // lruarray_write_data_s3[`L15_LRUARRAY_RR_MASK] = lru_data_s3[`L15_LRUARRAY_RR_MASK] + {{`L15_LRUARRAY_WIDTH-1{1'b0}},1'b1};
         end
         `L15_LRU_REPLACEMENT:
         begin
             // lruarray_write_val_s3 = 1'b0; // no change for now, only turn on access bit on the second access
-            // lruarray_write_data_s3[`L15_UNPARAM_3_0] = lru_data_s3[`L15_UNPARAM_3_0] & ~lruarray_lru_mask_s3;
+            // lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = lru_data_s3[`L15_LRUARRAY_USED_MASK] & ~lruarray_lru_mask_s3;
             //    // retain old access bits and remove the evicted bit
-            // lruarray_write_data_s3[5:4] = lru_data_s3[5:4] + 2'b1;
-            lruarray_write_val_s3 = 1'b1; 
-            lruarray_write_data_s3[`L15_UNPARAM_3_0] = lru_data_s3[`L15_UNPARAM_3_0] | lruarray_lru_mask_s3;
-            lruarray_write_data_s3[5:4] = lru_data_s3[5:4] + 2'b1;
+            // lruarray_write_data_s3[`L15_LRUARRAY_RR_MASK] = lru_data_s3[`L15_LRUARRAY_RR_MASK] + 2'b1;
+            lruarray_write_val_s3 = 1'b1; // no change for now, only turn on access bit on the second access
+            lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = lru_data_s3[`L15_LRUARRAY_USED_MASK] | lruarray_lru_mask_s3;
+            lruarray_write_data_s3[`L15_LRUARRAY_RR_MASK] = lru_data_s3[`L15_LRUARRAY_RR_MASK] + {{`L15_LRUARRAY_WIDTH-1{1'b0}},1'b1};
         end
         `L15_LRU_INVALIDATE_IF_TAGCHECK_WAY_IS_MES:
         begin
             lruarray_write_val_s3 = tagcheck_state_mes_s3;
-            lruarray_write_data_s3[`L15_UNPARAM_3_0] = lru_data_s3[`L15_UNPARAM_3_0] & ~lruarray_tagcheck_mask_s3;
+            lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = lru_data_s3[`L15_LRUARRAY_USED_MASK] & ~lruarray_tagcheck_mask_s3;
                 // retain old access bits and remove the evicted bit
-            lruarray_write_data_s3[5:4] = lru_data_s3[5:4];
+            lruarray_write_data_s3[`L15_LRUARRAY_RR_MASK] = lru_data_s3[`L15_LRUARRAY_RR_MASK];
         end
         `L15_LRU_INVALIDATE_IF_FLUSH_WAY_IS_MES:
         begin
             lruarray_write_val_s3 = flush_state_mes_s3;
-            lruarray_write_data_s3[`L15_UNPARAM_3_0] = lru_data_s3[`L15_UNPARAM_3_0] & ~lruarray_flush_mask_s3;
+            lruarray_write_data_s3[`L15_LRUARRAY_USED_MASK] = lru_data_s3[`L15_LRUARRAY_USED_MASK] & ~lruarray_flush_mask_s3;
                 // retain old access bits and remove the evicted bit
-            lruarray_write_data_s3[5:4] = lru_data_s3[5:4];
+            lruarray_write_data_s3[`L15_LRUARRAY_RR_MASK] = lru_data_s3[`L15_LRUARRAY_RR_MASK];
         end
     endcase
     lruarray_write_index_s3 = cache_index_s3;
@@ -3928,7 +3857,7 @@ begin
         (((noc3_wb_s3 || l1_inv_s3 || load_64B_s3) && cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)) || !(noc3_wb_s3 || l1_inv_s3 || load_64B_s3));
 
     l15_lruarray_write_data_s3 = lruarray_write_data_s3;
-    l15_lruarray_write_mask_s3 = 6'b111111;
+    l15_lruarray_write_mask_s3 = {`L15_LRUARRAY_WIDTH{1'b1}};
     // l15_lruarray_write_mask_s3 = 6'b0;
     l15_lruarray_write_index_s3 = lruarray_write_index_s3;
 end
@@ -3945,7 +3874,7 @@ end
 
 reg wmt_write_val_s3;
 reg [L1D_CACHE_INDEX_WIDTH - 1 : 0] wmt_write_index_s3;
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] wmt_write_data_s3;
+reg [L15_WMT_WIDTH-1:0] wmt_write_data_s3;
 reg wmt_write_inval_val_s3;
 reg wmt_write_update_val_s3;
 reg wmt_write_dedup_l1way_val_s3;
@@ -3954,10 +3883,10 @@ reg [`L15_WAY_MASK] wmt_write_update_way_s3;
 // reg [`L1D_WAY_MASK] wmt_write_inval_way_s3;
 // reg [`L15_UNPARAM_2_0] wmt_write_dedup_l1way_s3;
 
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] wmt_write_inval_mask_s3;
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] wmt_write_update_mask_s3;
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] wmt_write_dedup_mask_s3;
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] wmt_write_mask_s3;
+reg [L15_WMT_WIDTH-1:0] wmt_write_inval_mask_s3;
+reg [L15_WMT_WIDTH-1:0] wmt_write_update_mask_s3;
+reg [L15_WMT_WIDTH-1:0] wmt_write_dedup_mask_s3;
+reg [L15_WMT_WIDTH-1:0] wmt_write_mask_s3;
 
 // LOCAL VARIABLES
 reg [L15_WMT_DATA_WIDTH-1:0] wmt_write_update_data_s3;
@@ -4094,9 +4023,9 @@ begin
         wmt_write_update_data_s3 = wmt_write_update_way_s3;    
     end
 
-    // wmt_write_mask_s3[(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] = wmt_write_inval_mask_s3 | wmt_write_update_mask_s3 | wmt_write_dedup_mask_s3;
-    wmt_write_mask_s3[(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] = wmt_write_inval_mask_s3 | wmt_write_update_mask_s3;
-    wmt_write_data_s3[(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] = {`L1D_WAY_COUNT{{1'b1,wmt_write_update_data_s3}}} & wmt_write_update_mask_s3;
+    // wmt_write_mask_s3[L15_WMT_WIDTH-1:0] = wmt_write_inval_mask_s3 | wmt_write_update_mask_s3 | wmt_write_dedup_mask_s3;
+    wmt_write_mask_s3[L15_WMT_WIDTH-1:0] = wmt_write_inval_mask_s3 | wmt_write_update_mask_s3;
+    wmt_write_data_s3[L15_WMT_WIDTH-1:0] = {`L1D_WAY_COUNT{{1'b1,wmt_write_update_data_s3}}} & wmt_write_update_mask_s3;
 
     // MODULE OUTPUT
     // trin: timing fix: removing guard for wmt writes; should still be correct
@@ -4123,7 +4052,7 @@ reg s3_mshr_val_s3;
 reg [`L15_MSHR_WRITE_TYPE_WIDTH-1:0] s3_mshr_write_type_s3;
 reg [`L15_MESI_TRANS_STATE_WIDTH-1:0] s3_mshr_update_state_s3;
 reg [`L15_MSHR_ID_WIDTH-1:0] s3_mshr_write_mshrid_s3;
-reg [`L15_UNPARAM_1_0] s3_mshr_update_way_s3;
+reg [`L15_WAY_WIDTH-1:0] s3_mshr_update_way_s3;
 reg [`L15_THREADID_MASK] s3_mshr_write_threadid_s3;
 
 always @ *
@@ -4201,7 +4130,7 @@ reg cpx_req_val_s3;
 reg [`CPX_RESTYPE_WIDTH-1:0] cpx_type_s3;
 reg cpx_invalidate_l1_s3;
 // reg cpx_dcache_inval_all_s3;
-reg [`L15_UNPARAM_1_0] cpx_inval_way_s3;
+reg [`L1D_WAY_WIDTH-1:0] cpx_inval_way_s3;
 reg [`L15_CPX_SOURCE_WIDTH-1:0] cpx_data_source_s3;
 reg cpx_atomic_bit_s3;
 reg cpx_icache_inval_s3;
@@ -4389,10 +4318,10 @@ begin
     l15_cpxencoder_inval_dcache_all_way = 0;
     l15_cpxencoder_inval_address = 0;
     l15_cpxencoder_cross_invalidate = 0;
-    l15_cpxencoder_cross_invalidate_way[`L15_UNPARAM_1_0] = 0;
+    l15_cpxencoder_cross_invalidate_way = {`L1D_WAY_WIDTH{1'b0}};
     l15_cpxencoder_inval_dcache_inval = 0;
     l15_cpxencoder_inval_icache_inval = 0;
-    l15_cpxencoder_inval_way[`L15_UNPARAM_1_0] = 0;
+    l15_cpxencoder_inval_way = `L1D_WAY_WIDTH'b0;
     l15_cpxencoder_blockinitstore = 0;
     if (cpx_operation_s3 != `L15_CPX_GEN_INTERRUPT)
     begin
@@ -4407,7 +4336,7 @@ begin
         // l15_cpxencoder_inval_dcache_all_way = cpx_dcache_inval_all_s3;
         l15_cpxencoder_inval_address[`L15_PADDR_MASK] = cpx_inval_address_s3[`L15_PADDR_MASK];
         l15_cpxencoder_cross_invalidate = 0; // Don't think we will be cross invalidating
-        l15_cpxencoder_cross_invalidate_way[`L15_UNPARAM_1_0] = 2'b0;
+        l15_cpxencoder_cross_invalidate_way = {`L1D_WAY_WIDTH{1'b0}};
         l15_cpxencoder_inval_dcache_inval = cpx_invalidate_l1_s3; // default
         // l15_cpxencoder_inval_icache_inval = cpx_icache_inval_s3; // default
         l15_cpxencoder_inval_icache_inval = 0; // default

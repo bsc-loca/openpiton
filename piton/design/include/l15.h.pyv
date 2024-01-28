@@ -91,6 +91,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    print("`define L15_WAY_COUNT %d" % CONFIG_L15_ASSOCIATIVITY)
    # 2
    print("`define L15_WAY_WIDTH %d" % int(math.log(CONFIG_L15_ASSOCIATIVITY, 2)))
+   print("`define L1D_WAY_WIDTH %d" % int(math.log(CONFIG_L1D_ASSOCIATIVITY, 2)))
 %>
 
 // cache size can be 64B, 512 bits, but array width is kept 16B(128 bits), and 4 array items form a cacheline 
@@ -143,6 +144,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `define L15_LRUARRAY_MASK (`L15_WAY_WIDTH + `L15_WAY_ARRAY_WIDTH)-1:0
 `define L15_LRUARRAY_USED_MASK `L15_WAY_ARRAY_MASK
 `define L15_LRUARRAY_RR_MASK `L15_WAY_ARRAY_WIDTH+`L15_WAY_WIDTH-1 -: `L15_WAY_WIDTH
+
+// MESI array
+`define L15_MESI_ARRAY_WIDTH `L15_MESI_STATE_WIDTH*`L15_WAY_COUNT
 
 // source
 `define L15_PREDECODE_SOURCE_WIDTH 2
@@ -325,14 +329,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `define L15_REQ_WIDTH  (14 + 40 + 2*64 +      \
                         `PCX_REQTYPE_WIDTH  + \
                         `L15_THREADID_WIDTH + \
-                        `L15_WAY_WIDTH      + \
+                        `L1D_WAY_WIDTH      + \
                         `TLB_CSM_WIDTH + `L15_BYTE_MASK_WIDHT)
 `else
 // define the width of the flattened, native L15 interface, used for ARIANE_RV64 option
 `define L15_REQ_WIDTH  (14 + 40 + 2*64 +      \
                         `PCX_REQTYPE_WIDTH  + \
                         `L15_THREADID_WIDTH + \
-                        `L15_WAY_WIDTH      + \
+                        `L1D_WAY_WIDTH      + \
                         `TLB_CSM_WIDTH )
 `endif
 `define L15_FETCH_STATE_WIDTH 3

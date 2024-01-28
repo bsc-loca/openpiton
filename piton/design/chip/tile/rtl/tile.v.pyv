@@ -195,7 +195,7 @@ print(s)
 );
 
     localparam L1_MAX_DATA_PACKETS_BITS_WIDTH = (`L1I_LINE_SIZE<L15_L1D_LINE_SIZE) ? L15_MAX_DATA_PACKETS*`NOC_BITS_WIDTH : 4*`NOC_BITS_WIDTH;
-    localparam L15_RTRN_WIDTH = (16 + L1_MAX_DATA_PACKETS_BITS_WIDTH + `CPX_RESTYPE_WIDTH  + `L15_THREADID_WIDTH + 2 * `L15_WAY_WIDTH + `L15_PADDR_WIDTH);
+    localparam L15_RTRN_WIDTH = (16 + L1_MAX_DATA_PACKETS_BITS_WIDTH + `CPX_RESTYPE_WIDTH  + `L15_THREADID_WIDTH + 2 * `L1D_WAY_WIDTH + `L15_PADDR_WIDTH);
 
     // clock gating
     wire clk_gated;
@@ -303,7 +303,7 @@ print(s)
     wire                                transducer_l15_invalidate_cacheline;
     wire                                transducer_l15_blockstore;
     wire                                transducer_l15_blockinitstore;
-    wire [1:0]                          transducer_l15_l1rplway;
+    wire [`L1D_WAY_WIDTH-1:0]           transducer_l15_l1rplway;
     wire                                transducer_l15_val;
     wire [`L15_PADDR_HI:0]              transducer_l15_address;
     wire [63:0]                         transducer_l15_data;
@@ -327,10 +327,10 @@ print(s)
     wire                                l15_transducer_inval_dcache_all_way;
     wire [`L15_PADDR_MASK]              l15_transducer_inval_address;
     wire                                l15_transducer_cross_invalidate;
-    wire [1:0]                          l15_transducer_cross_invalidate_way;
+    wire [`L1D_WAY_WIDTH-1:0]           l15_transducer_cross_invalidate_way;
     wire                                l15_transducer_inval_dcache_inval;
     wire                                l15_transducer_inval_icache_inval;
-    wire [1:0]                          l15_transducer_inval_way;
+    wire [`L1D_WAY_WIDTH-1:0]           l15_transducer_inval_way;
     wire                                l15_transducer_blockinitstore;
 
     wire                                transducer_l15_req_ack;

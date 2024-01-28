@@ -65,10 +65,10 @@ module l15_cpxencoder(
     input wire          l15_cpxencoder_inval_dcache_all_way,
     input wire [15:4]   l15_cpxencoder_inval_address_15_4,
     input wire          l15_cpxencoder_cross_invalidate,
-    input wire [1:0]    l15_cpxencoder_cross_invalidate_way,
+    input wire [`L1D_WAY_WIDTH-1:0]    l15_cpxencoder_cross_invalidate_way,
     input wire          l15_cpxencoder_inval_dcache_inval,
     input wire          l15_cpxencoder_inval_icache_inval,
-    input wire [1:0]    l15_cpxencoder_inval_way,
+    input wire [`L1D_WAY_WIDTH-1:0]    l15_cpxencoder_inval_way,
     input wire          l15_cpxencoder_blockinitstore,
 
     output reg uncore_spc_data_ready,

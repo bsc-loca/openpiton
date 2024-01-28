@@ -41,14 +41,14 @@ print("%d" % PITON_L15_L1D_LINE_SIZE, end="")
 
 localparam L15_LINE_SIZE_WIDTH = $clog2(L15_L1D_LINE_SIZE);
 localparam L15_NUM_ENTRIES = `CONFIG_L15_SIZE/L15_L1D_LINE_SIZE;
-localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - 2;
+localparam L15_CACHE_INDEX_WIDTH = $clog2(L15_NUM_ENTRIES) - $clog2(`CONFIG_L15_ASSOCIATIVITY);
 localparam L1D_NUM_ENTRIES = `CONFIG_L1D_SIZE/L15_L1D_LINE_SIZE;
 localparam L1D_CACHE_INDEX_WIDTH = $clog2(L1D_NUM_ENTRIES) - $clog2(`CONFIG_L1D_ASSOCIATIVITY);
 localparam L15_CACHE_TAG_WIDTH = (`L15_PADDR_WIDTH - L15_LINE_SIZE_WIDTH - L15_CACHE_INDEX_WIDTH);
 localparam L15_SET_COUNT = L15_NUM_ENTRIES / `CONFIG_L15_ASSOCIATIVITY;
 localparam L1D_SET_COUNT = L1D_NUM_ENTRIES / `CONFIG_L1D_ASSOCIATIVITY;
 localparam L15_WMT_ALIAS_WIDTH = (L15_SET_COUNT > L1D_SET_COUNT) ? $clog2(L15_SET_COUNT/L1D_SET_COUNT) : 0;
-localparam L15_WMT_DATA_WIDTH = (`L15_WAY_WIDTH + L15_WMT_ALIAS_WIDTH);
+localparam L15_WMT_DATA_WIDTH = (`L1D_WAY_WIDTH + L15_WMT_ALIAS_WIDTH);
 
 reg [511:0] pcx;
 reg [511:0] noc2;
@@ -352,18 +352,20 @@ text = r'''
 
 reg do_print_stage_TILE0;
 integer i_TILE0;
-wire [63:0] dtag_tag_way0_s2_TILE0;
-wire [63:0] dtag_tag_way1_s2_TILE0;
-wire [63:0] dtag_tag_way2_s2_TILE0;
-wire [63:0] dtag_tag_way3_s2_TILE0;
 
-assign dtag_tag_way0_s2_TILE0 = (`L15_PIPE0.dtag_tag_way0_s2 << 11);
-assign dtag_tag_way1_s2_TILE0 = (`L15_PIPE0.dtag_tag_way1_s2 << 11);
-assign dtag_tag_way2_s2_TILE0 = (`L15_PIPE0.dtag_tag_way2_s2 << 11);
-assign dtag_tag_way3_s2_TILE0 = (`L15_PIPE0.dtag_tag_way3_s2 << 11);
-reg [L15_CACHE_TAG_WIDTH-1:0] tag_data_TILE0 [0:3];
-reg [3:0] tag_val_TILE0;
-reg [L15_WMT_DATA_WIDTH:0] wmt_read_data_TILE0 [0:3];
+
+//wire [63:0] dtag_tag_way0_s2_TILE0;
+//wire [63:0] dtag_tag_way1_s2_TILE0;
+//wire [63:0] dtag_tag_way2_s2_TILE0;
+//wire [63:0] dtag_tag_way3_s2_TILE0;
+//assign dtag_tag_way0_s2_TILE0 = (`L15_PIPE0.dtag_tag_way0_s2 << 11);
+//assign dtag_tag_way1_s2_TILE0 = (`L15_PIPE0.dtag_tag_way1_s2 << 11);
+//assign dtag_tag_way2_s2_TILE0 = (`L15_PIPE0.dtag_tag_way2_s2 << 11);
+//assign dtag_tag_way3_s2_TILE0 = (`L15_PIPE0.dtag_tag_way3_s2 << 11);
+
+reg [L15_CACHE_TAG_WIDTH-1:0] tag_data_TILE0 [`L15_WAY_COUNT-1:0];
+reg [`L15_WAY_COUNT-1:0] tag_val_TILE0;
+reg [L15_WMT_DATA_WIDTH:0] wmt_read_data_TILE0 [`L1D_WAY_COUNT-1:0];
 integer j_TILE0;
 reg is_csm_mshrid_TILE0;
 
@@ -820,14 +822,22 @@ begin
 
             if (`L15_PIPE0.decoder_dtag_operation_s2 == `L15_DTAG_OP_READ)
             begin
-                $display("   DTAG way0 state: 0x%x", `L15_PIPE0.mesi_state_way0_s2);
-                $display("   DTAG way0 data: 0x%x", dtag_tag_way0_s2_TILE0);
-                $display("   DTAG way1 state: 0x%x", `L15_PIPE0.mesi_state_way1_s2);
-                $display("   DTAG way1 data: 0x%x", dtag_tag_way1_s2_TILE0);
-                $display("   DTAG way2 state: 0x%x", `L15_PIPE0.mesi_state_way2_s2);
-                $display("   DTAG way2 data: 0x%x", dtag_tag_way2_s2_TILE0);
-                $display("   DTAG way3 state: 0x%x", `L15_PIPE0.mesi_state_way3_s2);
-                $display("   DTAG way3 data: 0x%x", dtag_tag_way3_s2_TILE0);
+				
+                //$display("   DTAG way0 state: 0x%x", `L15_PIPE0.mesi_state_way0_s2);
+                //$display("   DTAG way0 data: 0x%x", dtag_tag_way0_s2_TILE0);
+                //$display("   DTAG way1 state: 0x%x", `L15_PIPE0.mesi_state_way1_s2);
+                //$display("   DTAG way1 data: 0x%x", dtag_tag_way1_s2_TILE0);
+                //$display("   DTAG way2 state: 0x%x", `L15_PIPE0.mesi_state_way2_s2);
+                //$display("   DTAG way2 data: 0x%x", dtag_tag_way2_s2_TILE0);
+                //$display("   DTAG way3 state: 0x%x", `L15_PIPE0.mesi_state_way3_s2);
+                //$display("   DTAG way3 data: 0x%x", dtag_tag_way3_s2_TILE0);
+                for (i = 0; i < `L15_WAY_COUNT; i = i + 1)
+                begin
+		    $display("   DTAG way%d state: 0x%x", i, `L15_PIPE0.mesi_state_way_s2[i]);
+		    $display("   DTAG way%d data: 0x%x", i, `L15_PIPE0.dtag_tag_way_s2[i] << (4+L15_CACHE_INDEX_WIDTH));
+						  
+                end
+					 
             end
 
             if (`L15_PIPE0.l15_mesi_write_val_s2)
@@ -952,10 +962,10 @@ begin
             if (wmt_read_val_s3_TILE0)
             begin
                 $display("   TILE0 WMT read index: %x", `L15_PIPE0.cache_index_l1d_s3[L1D_CACHE_INDEX_WIDTH - 1 : 0]);
-                // $display("   WMT way0: %x 0x%x", `L15_PIPE0.wmt_data_s3[0][L15_WMT_DATA_WIDTH], `L15_PIPE0.wmt_data_s3[0][L15_WMT_DATA_WIDTH-1:0]);
-                // $display("   WMT way1: %x 0x%x", `L15_PIPE0.wmt_data_s3[1][L15_WMT_DATA_WIDTH], `L15_PIPE0.wmt_data_s3[1][L15_WMT_DATA_WIDTH-1:0]);
-                // $display("   WMT way2: %x 0x%x", `L15_PIPE0.wmt_data_s3[2][L15_WMT_DATA_WIDTH], `L15_PIPE0.wmt_data_s3[2][L15_WMT_DATA_WIDTH-1:0]);
-                // $display("   WMT way3: %x 0x%x", `L15_PIPE0.wmt_data_s3[3][L15_WMT_DATA_WIDTH], `L15_PIPE0.wmt_data_s3[3][L15_WMT_DATA_WIDTH-1:0]);
+                // $display("   WMT way0: %x 0x%x", `L15_PIPE0.wmt_data_s3[0][`L15_WMT_VALID_MASK], `L15_PIPE0.wmt_data_s3[0][`L15_WMT_DATA_MASK]);
+                // $display("   WMT way1: %x 0x%x", `L15_PIPE0.wmt_data_s3[1][`L15_WMT_VALID_MASK], `L15_PIPE0.wmt_data_s3[1][`L15_WMT_DATA_MASK]);
+                // $display("   WMT way2: %x 0x%x", `L15_PIPE0.wmt_data_s3[2][`L15_WMT_VALID_MASK], `L15_PIPE0.wmt_data_s3[2][`L15_WMT_DATA_MASK]);
+                // $display("   WMT way3: %x 0x%x", `L15_PIPE0.wmt_data_s3[3][`L15_WMT_VALID_MASK], `L15_PIPE0.wmt_data_s3[3][`L15_WMT_DATA_MASK]);
                 for (i = 0; i < `L1D_WAY_COUNT; i = i + 1)
                 begin
                     `ifdef PITON_ARIANE_HPDC
@@ -1223,8 +1233,11 @@ begin
     `ifndef PITON_ARIANE_HPDC
     if (`L15_PIPE0.val_s3)
     begin
-        {wmt_read_data_TILE0[3], wmt_read_data_TILE0[2], wmt_read_data_TILE0[1], wmt_read_data_TILE0[0]} = `L15_PIPE0.wmt_l15_data_s3;
-        for (i_TILE0 = 0; i_TILE0 < 4; i_TILE0 = i_TILE0+1)
+        //{wmt_read_data_TILE0[3], wmt_read_data_TILE0[2], wmt_read_data_TILE0[1], wmt_read_data_TILE0[0]} = `L15_PIPE0.wmt_l15_data_s3;
+        for (int i = 0; i < `L1D_WAY_COUNT; i = i + 1) begin
+            wmt_read_data_TILE0[i] = L15_PIPE0_wmt_l15_data_s3[(i*(L15_WMT_DATA_WIDTH+1)+L15_WMT_DATA_WIDTH:i*(L15_WMT_DATA_WIDTH+1)];
+        end
+        for (i_TILE0 = 0; i_TILE0 < `L1D_WAY_COUNT; i_TILE0 = i_TILE0+1)
         begin
             for (j_TILE0 = 0; j_TILE0 < i_TILE0; j_TILE0 = j_TILE0 + 1)
             begin
@@ -1244,21 +1257,30 @@ begin
 // Monitor tags duplication error (bug #86)
     if (`L15_PIPE0.val_s2 && `L15_PIPE0.decoder_dtag_operation_s2 == `L15_DTAG_OP_READ)
     begin
-        tag_data_TILE0[0] = `L15_PIPE0.dtag_tag_way0_s2[L15_CACHE_TAG_WIDTH-1:0];
-        tag_data_TILE0[1] = `L15_PIPE0.dtag_tag_way1_s2[L15_CACHE_TAG_WIDTH-1:0];
-        tag_data_TILE0[2] = `L15_PIPE0.dtag_tag_way2_s2[L15_CACHE_TAG_WIDTH-1:0];
-        tag_data_TILE0[3] = `L15_PIPE0.dtag_tag_way3_s2[L15_CACHE_TAG_WIDTH-1:0];
-        tag_val_TILE0[0] = `L15_PIPE0.mesi_state_way0_s2 != `L15_MESI_STATE_I;
-        tag_val_TILE0[1] = `L15_PIPE0.mesi_state_way1_s2 != `L15_MESI_STATE_I;
-        tag_val_TILE0[2] = `L15_PIPE0.mesi_state_way2_s2 != `L15_MESI_STATE_I;
-        tag_val_TILE0[3] = `L15_PIPE0.mesi_state_way3_s2 != `L15_MESI_STATE_I;
-        for (i_TILE0 = 0; i_TILE0 < 4; i_TILE0 = i_TILE0+1)
+	 
+        //tag_data_TILE0[0] = `L15_PIPE0.dtag_tag_way0_s2[L15_CACHE_TAG_WIDTH-1:0];
+        //tag_data_TILE0[1] = `L15_PIPE0.dtag_tag_way1_s2[L15_CACHE_TAG_WIDTH-1:0];
+        //tag_data_TILE0[2] = `L15_PIPE0.dtag_tag_way2_s2[L15_CACHE_TAG_WIDTH-1:0];
+        //tag_data_TILE0[3] = `L15_PIPE0.dtag_tag_way3_s2[L15_CACHE_TAG_WIDTH-1:0];
+        //tag_val_TILE0[0] = `L15_PIPE0.mesi_state_way0_s2 != `L15_MESI_STATE_I;
+        //tag_val_TILE0[1] = `L15_PIPE0.mesi_state_way1_s2 != `L15_MESI_STATE_I;
+        //tag_val_TILE0[2] = `L15_PIPE0.mesi_state_way2_s2 != `L15_MESI_STATE_I;
+        //tag_val_TILE0[3] = `L15_PIPE0.mesi_state_way3_s2 != `L15_MESI_STATE_I;
+		  
+	for (i = 0; i < `L15_WAY_COUNT; i = i + 1)
+        begin
+            tag_data_TILE0[i] = `L15_PIPE0.dtag_tag_way_s2[i][L15_CACHE_TAG_WIDTH-1:0];
+            tag_val_TILE0[i] = `L15_PIPE0.mesi_state_way_s2[i] != `L15_MESI_STATE_I;			  
+        end
+					 
+        for (i_TILE0 = 0; i_TILE0 < `L15_WAY_COUNT; i_TILE0 = i_TILE0+1)
         begin
             for (j_TILE0 = 0; j_TILE0 < i_TILE0; j_TILE0 = j_TILE0 + 1)
             begin
                 if ((tag_val_TILE0[i_TILE0] && tag_val_TILE0[j_TILE0]) && (tag_data_TILE0[i_TILE0] == tag_data_TILE0[j_TILE0]))
                 begin
                     $display("%d : Simulation -> FAIL(%0s)", $time, "TILE0 L15 has duplicated tag entry");
+                    $display("Way %d and %d has the same tag of %x", i_TILE0, j_TILE0, tag_data_TILE0[i_TILE0]);
                     `ifndef VERILATOR
                     repeat(5)@(posedge clk)
                     `endif
