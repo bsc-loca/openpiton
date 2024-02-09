@@ -3506,7 +3506,14 @@ begin
         end
         else
         begin
-            msg_state_S4_next = msg_state_S4_f;
+            if (l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_3)
+            begin
+                msg_state_S4_next = msg_state_0;
+            end
+            else
+            begin
+                msg_state_S4_next = msg_state_1;
+            end
         end
     end
     else
