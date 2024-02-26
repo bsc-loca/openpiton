@@ -88,7 +88,13 @@ end else begin : parallelr
 
     for (i=0;i<BUFF_NUM-1;i=i+1) begin : buff
         always @(posedge clk) begin
-            if(counter == i) buff_array [i] <= flit_data_i;
+            if(!rst_n) begin
+                buff_array [i] <= {INPUT_WIDTH{1'b0}};
+            end else
+            if( flit_val_i & flit_rdy_o) begin 
+                if(counter == i) buff_array [i] <= flit_data_i;
+                else if (counter < i) buff_array [i] <=  {INPUT_WIDTH{1'b0}}; //reset the rest of flit 
+            end           
         end
         assign flit_data_o [(i+1)*INPUT_WIDTH-1 : i*INPUT_WIDTH] =(counter == i)? flit_data_i : buff_array [i];
     end

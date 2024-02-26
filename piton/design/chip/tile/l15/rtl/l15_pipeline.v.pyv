@@ -2842,7 +2842,10 @@ reg [`L15_WAY_WIDTH-1:0] dcache_diag_way_s2;
 reg [L15_SUBLINE_INDEX_WIDTH-1:0] dcache_diag_subline_s2;
 reg [0:0] dcache_diag_offset_s2;
 reg [`L15_WAY_WIDTH-1:0] lru_way_s3_bypassed;
-reg [(L15_L1D_LINE_SIZE*8)-1:0] buffer_noc2decoder_l15_data;
+reg [(L15_L1D_LINE_SIZE*8)-1:0] buffer_noc2decoder_l15_data,buffer_noc2decoder_l15_data_next;
+reg [L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] buffer_noc2decoder_cpx_data,buffer_noc2decoder_cpx_data_next;
+
+
 
 //integer i;
 always @ *
@@ -2862,6 +2865,9 @@ begin
     dcache_diag_index_s2 = address_s2[L15_IDX_HI:L15_IDX_LOW];
     dcache_diag_offset_s2 = address_s2[3];
     dcache_diag_subline_s2 = (L15_L1D_LINE_SIZE == 16) ? 1'b0 : address_s2[`L15_SUBLINE_MASK];
+
+buffer_noc2decoder_l15_data_next = buffer_noc2decoder_l15_data;
+
 
     case (dcache_operation_s2)
         `L15_DCACHE_READ_TAGCHECK_WAY_IF_M:
@@ -2967,12 +2973,12 @@ begin
 
     if (dcache_subline_s2==0)
     begin   
-        buffer_noc2decoder_l15_data = noc2decoder_l15_data[(L15_L1D_LINE_SIZE*8)-1:0];
+        buffer_noc2decoder_l15_data_next = noc2decoder_l15_data[(L15_L1D_LINE_SIZE*8)-1:0];
         noc2_write_data_s2[`L15_UNPARAM_127_0] = {noc2decoder_l15_data[`L15_UNPARAM_63_0], noc2decoder_l15_data[`L15_UNPARAM_127_64]};
         mshr_pipe_write_data_s2[`L15_UNPARAM_127_0] = mshr_pipe_write_buffer_s2[(L15_L1D_LINE_SIZE*8)-1 -: 128];
     end
     else begin
-        noc2_write_data_s2[`L15_UNPARAM_127_0] = {buffer_noc2decoder_l15_data[((dcache_subline_s2*128)+63) -: 64],buffer_noc2decoder_l15_data[(((dcache_subline_s2+1)*128)-1) -: 64]} ;
+       noc2_write_data_s2[`L15_UNPARAM_127_0] = {buffer_noc2decoder_l15_data[((dcache_subline_s2*128)+63) -: 64],buffer_noc2decoder_l15_data[(((dcache_subline_s2+1)*128)-1) -: 64]} ;
         mshr_pipe_write_data_s2[`L15_UNPARAM_127_0] = mshr_pipe_write_buffer_s2[((L15_L1D_LINE_SIZE/16)-dcache_subline_s2)*128-1 -: 128];
     end
 
@@ -4135,8 +4141,34 @@ reg [`L15_CPX_SOURCE_WIDTH-1:0] cpx_data_source_s3;
 reg cpx_atomic_bit_s3;
 reg cpx_icache_inval_s3;
 reg [`L15_PADDR_MASK] cpx_inval_address_s3;
-reg [L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] buffer_noc2decoder_cpx_data;
+
 reg multicyc_inval_subline_val;
+
+
+localparam DCACHE_BUFF_NUM= L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE-1;
+wire [L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0]  dcache_data;
+reg dcache_dat_en;
+genvar k;
+generate 
+if(DCACHE_BUFF_NUM!=0) begin 
+    reg [`L15_UNPARAM_127_0] dcache_buff[DCACHE_BUFF_NUM-1 : 0];
+    for(k=0;k<DCACHE_BUFF_NUM;k=k+1) begin: D_
+       
+    always @(posedge clk) if( dcache_dat_en && (cache_subline_s3==k) ) 
+           dcache_buff[k] <= {dcache_l15_dout_s3[`L15_UNPARAM_63_0],dcache_l15_dout_s3[`L15_UNPARAM_127_64]};
+    assign dcache_data [(k+1)*128-1: k*128] = dcache_buff[k];
+    end//for    
+end
+endgenerate 
+
+ assign dcache_data [(DCACHE_BUFF_NUM+1)*128-1: DCACHE_BUFF_NUM*128] = {dcache_l15_dout_s3[`L15_UNPARAM_63_0],dcache_l15_dout_s3[`L15_UNPARAM_127_64]};
+
+
+always @(posedge clk) begin 
+    buffer_noc2decoder_l15_data <= buffer_noc2decoder_l15_data_next;
+    buffer_noc2decoder_cpx_data <= buffer_noc2decoder_cpx_data_next;        
+end
+
 always @ *
 begin
     cpx_req_val_s3 = 0;
@@ -4150,6 +4182,8 @@ begin
     cpx_inval_address_s3[`L15_PADDR_MASK] = address_s3[`L15_PADDR_MASK];
     multicyc_inval_subline_val = 0;
 
+   buffer_noc2decoder_cpx_data_next = buffer_noc2decoder_cpx_data;
+   dcache_dat_en=1'b0;
     case(cpx_operation_s3)
         `L15_CPX_GEN_ICACHE_INVALIDATION:
         begin
@@ -4343,10 +4377,8 @@ begin
         l15_cpxencoder_inval_way[`L15_UNPARAM_1_0] = cpx_inval_way_s3[`L15_UNPARAM_1_0];
         l15_cpxencoder_blockinitstore = blockstore_s3 || blockstoreinit_s3;
     end
-    if (!l1d_load_s3)
-    begin
-        l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] = 0;
-    end
+    
+        l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] = 0;    
 
     case (cpx_data_source_s3)
         `L15_CPX_SOURCE_LRSC_FLAG:
@@ -4360,15 +4392,17 @@ begin
         end
         `L15_CPX_SOURCE_DCACHE:
         begin
-            l15_cpxencoder_data[ (cache_subline_s3*128) +: 128] = {dcache_l15_dout_s3[`L15_UNPARAM_63_0],dcache_l15_dout_s3[`L15_UNPARAM_127_64]};
+         l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] =  dcache_data ;
+	 dcache_dat_en=1'b1;
         end
         `L15_CPX_SOURCE_NOC2_BUFFER:
         begin
-            if (cache_subline_s3 == 0) 
+		 if (cache_subline_s3 == 0) 
             begin   
-                buffer_noc2decoder_cpx_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0]  = noc2decoder_l15_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];
-            end
-            l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] = buffer_noc2decoder_cpx_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];
+                buffer_noc2decoder_cpx_data_next[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0]  = noc2decoder_l15_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];
+ l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] =noc2decoder_l15_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];    
+
+end else l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] = buffer_noc2decoder_cpx_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];
         end
         `L15_CPX_SOURCE_CONFIG_REGS:
         begin
@@ -4377,6 +4411,9 @@ begin
         `L15_CPX_SOURCE_CSM:
         begin
             l15_cpxencoder_data[`L15_UNPARAM_127_0] = {csm_l15_res_data_s3[`L15_UNPARAM_63_0],csm_l15_res_data_s3[`L15_UNPARAM_63_0]};
+        end
+        default: begin 
+          l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] = 0;
         end
     endcase
 end
