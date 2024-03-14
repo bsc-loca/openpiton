@@ -2702,6 +2702,7 @@ sub parse_args
     "config_l2_size",
     "config_l2_associativity",
     "config_l15_l1d_cacheline_size",
+    "config_hpdc_wr_buff_words",   
     );
 
   foreach my $config (@configurables) {

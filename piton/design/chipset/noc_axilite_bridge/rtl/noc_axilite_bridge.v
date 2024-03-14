@@ -51,7 +51,7 @@ module noc_axilite_bridge #(
     // write-enables are generated according to the access size
     parameter SLAVE_RESP_BYTEWIDTH = 4,
     // swap endianess, needed when used in conjunction with a little endian core like Ariane
-    parameter SWAP_ENDIANESS       = 0,
+    parameter SWAP_ENDIANESS       = 1,
     // shift unaligned read data
     parameter ALIGN_RDATA          = 1
 ) (

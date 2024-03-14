@@ -304,7 +304,7 @@ print(s)
     wire [`L1D_WAY_WIDTH-1:0]           transducer_l15_l1rplway;
     wire                                transducer_l15_val;
     wire [`L15_PADDR_HI:0]              transducer_l15_address;
-    wire [63:0]                         transducer_l15_data;
+    wire [`L15_REQ_DATA_WIDTH-1:0]      transducer_l15_data;
     wire [63:0]                         transducer_l15_data_next_entry;
     wire [`TLB_CSM_WIDTH-1:0]           transducer_l15_csm_data;
 

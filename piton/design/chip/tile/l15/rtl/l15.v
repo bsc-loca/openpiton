@@ -70,7 +70,7 @@ module l15 #(
     input [`L1D_WAY_WIDTH-1:0]              transducer_l15_l1rplway,
     input                                   transducer_l15_val,
     input [39:0]                            transducer_l15_address,
-    input [63:0]                            transducer_l15_data,
+    input [`L15_REQ_DATA_WIDTH-1:0]         transducer_l15_data,
     input [63:0]                            transducer_l15_data_next_entry,
     input [`TLB_CSM_WIDTH-1:0]              transducer_l15_csm_data,
     `ifdef WRITE_BYTE_MASK

@@ -91,6 +91,7 @@ CONFIG_L2_ASSOCIATIVITY = int(os.environ.get('CONFIG_L2_ASSOCIATIVITY', '4'))
 PITON_L15_L1D_LINE_SIZE = int(os.environ.get('CONFIG_L15_L1D_CACHELINE_SIZE', '64'))
 L2_LINE_SIZE = 64
 
+CONFIG_HPDC_WR_BUFF_WORDS = int(os.environ.get('CONFIG_HPDC_WR_BUFF_WORDS','1'))
 
 NOC1_WIDTH = int(os.environ.get('NOC1_WIDTH', '64'))
 NOC2_WIDTH = int(os.environ.get('NOC2_WIDTH', '64'))

@@ -92,6 +92,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    # 2
    print("`define L15_WAY_WIDTH %d" % int(math.log(CONFIG_L15_ASSOCIATIVITY, 2)))
    print("`define L1D_WAY_WIDTH %d" % int(math.log(CONFIG_L1D_ASSOCIATIVITY, 2)))
+   print("`define PITON_HPDC_WR_BUFF_WORDS  %d" % CONFIG_HPDC_WR_BUFF_WORDS)
+   print("`ifdef PITON_ARIANE_HPDC")
+   if (CONFIG_HPDC_WR_BUFF_WORDS < (PITON_L15_L1D_LINE_SIZE / 8)) :
+       dd = CONFIG_HPDC_WR_BUFF_WORDS * 64
+       print("    `define L15_REQ_DATA_WORD_NUM %d" % CONFIG_HPDC_WR_BUFF_WORDS)
+       print("    `define L15_REQ_DATA_WIDTH %d" % dd)
+   else : 
+       dd = PITON_L15_L1D_LINE_SIZE / 8
+       print("    `define L15_REQ_DATA_WORD_NUM %d" % dd)
+       ddd=dd*64
+       print("    `define L15_REQ_DATA_WIDTH %d" % ddd)
+   print("`else")
+   print("    `define L15_REQ_DATA_WORD_NUM  1" )
+   print("    `define L15_REQ_DATA_WIDTH 64")
+   print("`endif")  
 %>
 
 // cache size can be 64B, 512 bits, but array width is kept 16B(128 bits), and 4 array items form a cacheline 
@@ -323,8 +338,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `define L15_CONTROL_WIDTH (`L15_CONTROL_BLOCKSTORE_1B + 1)
 
 // Byte mask
-`define L15_BYTE_MASK_WIDHT 8
-`define L15_REQ_WIDTH  (14 + 40 + 2*64 +      \
+`define L15_BYTE_MASK_WIDHT (`L15_REQ_DATA_WIDTH/8)
+`define L15_REQ_WIDTH  (14 + 40 + 64 +      \
+                        `L15_REQ_DATA_WIDTH + \
                         `PCX_REQTYPE_WIDTH  + \
                         `L15_THREADID_WIDTH + \
                         `L1D_WAY_WIDTH      + \
