@@ -363,14 +363,14 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_OST1")     if ($opt{ost1} || $opt{pico_
 push (@{$opt{config_cpp_args}}, "-DFLIST_PICO")     if ($opt{pico} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
-push (@{$opt{config_rtl}}, "CONF_SARGANTANA_PHY_ADDR_SIZE 40") if ($opt{sarg}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
 
 if ($opt{ariane}) {
   if ($opt{hpdc}) {
-    push (@{$opt{config_rtl}}, "PITON_ARIANE_HPDC")
+    push (@{$opt{config_rtl}}, "PITON_ARIANE_HPDC");
+    push (@{$opt{config_rtl}}, "HPDCACHE_OPENPITON");
   } else {
-    push (@{$opt{config_rtl}}, "WT_DCACHE")
+    push (@{$opt{config_rtl}}, "WT_DCACHE");
   }
 }
 
@@ -1110,6 +1110,7 @@ sub gen_config
   print OCONF "`timescale 1ps/1ps\n" ;
 
   foreach my $unit (@{$opt{config_rtl}}) {
+    $unit =~ tr/"//d;               # Remove " to allow preprocessing macros: config_rtl="ADDR_SIZE 50"
     print OCONF "`define $unit\n";
   }
 

@@ -82,7 +82,8 @@ export LIBRARY_PATH=$RISCV/lib
 export LD_LIBRARY_PATH=$RISCV/lib
 export C_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
 export CPLUS_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
-export HPDCACHE_DIR=$SARG_ROOT/rtl/dcache
+export HPDCACHE_ROOT=$SARG_ROOT/rtl/dcache
+export HPDCACHE_DIR=../
 
 # source OpenPiton setup script
 # note: customize this script to reflect your tool setup
