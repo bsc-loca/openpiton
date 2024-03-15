@@ -1236,7 +1236,8 @@ print(str)
         .boot_addr_i ( 40'hFFF1010000 ),
         .time_irq_i  ( timer_irq_i  ),
         .l15_req_o   ( l15_req      ),
-        .l15_rtrn_i  ( l15_rtrn     )
+        .l15_rtrn_i  ( l15_rtrn     ),
+        .debug_halt_i(1'b0)
     );
 
     assign unavailable_o = 1'b0;
