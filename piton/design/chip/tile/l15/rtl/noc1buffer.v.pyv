@@ -51,7 +51,7 @@ NOC1_BUFFER_NUM_DATA_SLOTS = 2;
 module noc1buffer(
    input wire clk,
    input wire rst_n,
-   input wire [63:0] l15_noc1buffer_req_data_0,
+   input wire [`L15_REQ_DATA_WIDTH-1:0] l15_noc1buffer_req_data_0,
    input wire [63:0] l15_noc1buffer_req_data_1,
    input wire l15_noc1buffer_req_val,
    input wire [`L15_NOC1_REQTYPE_WIDTH-1:0] l15_noc1buffer_req_type,
@@ -127,6 +127,25 @@ reg [`NOC1_BUFFER_NUM_DATA_SLOTS_LOG-1:0] data_wrindex_plus_1;
 reg [`NOC1_BUFFER_NUM_DATA_SLOTS_LOG-1:0] data_wrindex_plus_2;
 reg [`NOC1_BUFFER_NUM_DATA_SLOTS_LOG-1:0] data_rdindex;
 reg [`NOC1_BUFFER_NUM_DATA_SLOTS_LOG-1:0] data_rdindex_plus1;
+
+
+wire [`L15_REQ_DATA_WIDTH-1:0] l15_noc1buffer_req_data_0_shifted;
+
+      <%
+      import pyhplib
+      from pyhplib import *
+      if CONFIG_HPDC_WR_BUFF_WORDS == 1:
+         print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0;")
+      if CONFIG_HPDC_WR_BUFF_WORDS == 2:
+         print("wire data_sel =  l15_noc1buffer_req_address[3];")
+         print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0 << (data_sel*64);")
+      if CONFIG_HPDC_WR_BUFF_WORDS == 4:
+         print("wire [1:0] data_sel =  l15_noc1buffer_req_address[4:3];")
+         print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0 << (data_sel*64);")    
+      if CONFIG_HPDC_WR_BUFF_WORDS == 8:
+         print("wire [2:0] data_sel =  l15_noc1buffer_req_address[5:3];")
+         print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0 << (data_sel*64);")
+      %>
 
 always @ (posedge clk)
 begin
@@ -205,7 +224,7 @@ begin
 
       if (l15_noc1buffer_req_type == `L15_NOC1_REQTYPE_CAS_REQUEST)
       begin
-         data_buffer_next[data_wrindex] = l15_noc1buffer_req_data_0;
+         data_buffer_next[data_wrindex] = l15_noc1buffer_req_data_0_shifted[`L15_REQ_DATA_WIDTH-1:`L15_REQ_DATA_WIDTH-64];
          data_buffer_next[data_wrindex_plus_1] = l15_noc1buffer_req_data_1;
          data_wrindex_next = data_wrindex_plus_2;
       end
@@ -221,7 +240,12 @@ begin
                l15_noc1buffer_req_type == `L15_NOC1_REQTYPE_INTERRUPT_FWD ||
                l15_noc1buffer_req_type == `L15_NOC1_REQTYPE_WRITETHROUGH_REQUEST)
       begin
-         data_buffer_next[data_wrindex] = l15_noc1buffer_req_data_0;
+
+         // TODO requires buffering of more data for request size larger than 8 byte 
+         // Probebly WRITETHROUGH 
+         // $display ("efective size:%d,%h,%d, %h",l15_noc1buffer_req_size,l15_noc1buffer_req_data_0_shifted,l15_noc1buffer_req_type, l15_noc1buffer_req_address);
+
+         data_buffer_next[data_wrindex] = l15_noc1buffer_req_data_0_shifted[`L15_REQ_DATA_WIDTH-1:`L15_REQ_DATA_WIDTH-64];
          data_wrindex_next = data_wrindex_plus_1;
       end
    end

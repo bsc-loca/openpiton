@@ -245,7 +245,7 @@ module l15_pipeline #(
     output reg [`L15_UNPARAM_2_0] l15_noc1buffer_req_size,
     output reg l15_noc1buffer_req_prefetch,
     output reg [`TLB_CSM_WIDTH-1:0] l15_noc1buffer_req_csm_data,
-    output reg [`L15_UNPARAM_63_0] l15_noc1buffer_req_data_0,
+    output reg [`L15_REQ_DATA_WIDTH-1:0] l15_noc1buffer_req_data_0,
     output reg [`L15_UNPARAM_63_0] l15_noc1buffer_req_data_1,
     // output reg l15_noc1buffer_req_blkstore,
     // output reg l15_noc1buffer_req_blkinitstore,
@@ -299,7 +299,7 @@ localparam L15_CACHE_TAG_WIDTH = (`L15_PADDR_WIDTH - L15_LINE_SIZE_WIDTH - L15_C
 localparam L15_CACHE_TAG_LOW = (L15_IDX_HI + 1);
 localparam L15_WMT_ALIAS_LOW = (L15_SET_COUNT > L1D_SET_COUNT) ? L1D_IDX_HI+1 : 1'b0;
 localparam L15_WMT_ALIAS_HI = (L15_SET_COUNT > L1D_SET_COUNT) ? L15_WMT_ALIAS_LOW + L15_WMT_ALIAS_WIDTH - 1 : 1'b0;
-
+localparam L15_REQ_DATA_WIDTH = `L15_REQ_DATA_WIDTH;
 
 // GLOBAL VARIABLES
 reg stall_s1;
@@ -4648,19 +4648,23 @@ begin
 
     l15_noc1buffer_req_data_0[`L15_UNPARAM_63_0] = 0;
     l15_noc1buffer_req_data_1[`L15_UNPARAM_63_0] = 0;
-    case (noc1_data_source_s3)
-        `L15_NOC1_SOURCE_PCX_64B:
-        begin
-            l15_noc1buffer_req_data_0[`L15_UNPARAM_63_0] = pcxdecoder_l15_data[`L15_UNPARAM_63_0];
-            // l15_noc1buffer_req_data_1[`L15_UNPARAM_63_0] = 64'b0;
-        end
-        `L15_NOC1_SOURCE_PCX_128B:
-        begin
-            l15_noc1buffer_req_data_0[`L15_UNPARAM_63_0] = pcxdecoder_l15_data[`L15_UNPARAM_63_0];
-            l15_noc1buffer_req_data_1[`L15_UNPARAM_63_0] = pcxdecoder_l15_data_next_entry[`L15_UNPARAM_63_0];
-        end
-    endcase
-
+    if (L15_REQ_DATA_WIDTH == 64) begin 
+        case (noc1_data_source_s3)
+            `L15_NOC1_SOURCE_PCX_64B:
+            begin
+                l15_noc1buffer_req_data_0[`L15_UNPARAM_63_0] = pcxdecoder_l15_data[`L15_UNPARAM_63_0];
+            if(l15_noc1buffer_req_val && l15_noc1buffer_req_size > 1) $display("%t:size = %d",$time,l15_noc1buffer_req_size );
+                // l15_noc1buffer_req_data_1[`L15_UNPARAM_63_0] = 64'b0;
+            end
+            `L15_NOC1_SOURCE_PCX_128B:
+            begin
+                l15_noc1buffer_req_data_0[`L15_UNPARAM_63_0] = pcxdecoder_l15_data[`L15_UNPARAM_63_0];
+                l15_noc1buffer_req_data_1[`L15_UNPARAM_63_0] = pcxdecoder_l15_data_next_entry[`L15_UNPARAM_63_0];
+            end
+        endcase
+    end else begin 
+        l15_noc1buffer_req_data_0 = pcxdecoder_l15_data;
+    end
     // output homeid info to noc1
     l15_noc1buffer_req_csm_ticket = csm_ticket_s3;
 

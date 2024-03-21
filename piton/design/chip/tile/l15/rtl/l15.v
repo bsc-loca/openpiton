@@ -329,7 +329,7 @@ wire [2:0] l15_noc1buffer_req_size;
 wire l15_noc1buffer_req_prefetch;
 // wire l15_noc1buffer_req_blkstore;
 // wire l15_noc1buffer_req_blkinitstore;
-wire [63:0] l15_noc1buffer_req_data_0;
+wire [`L15_REQ_DATA_WIDTH-1:0] l15_noc1buffer_req_data_0;
 wire [63:0] l15_noc1buffer_req_data_1;
 wire [`TLB_CSM_WIDTH-1:0] l15_noc1buffer_req_csm_data;
 // csm
