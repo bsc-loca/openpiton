@@ -131,21 +131,25 @@ reg [`NOC1_BUFFER_NUM_DATA_SLOTS_LOG-1:0] data_rdindex_plus1;
 
 wire [`L15_REQ_DATA_WIDTH-1:0] l15_noc1buffer_req_data_0_shifted;
 
+`ifndef PITON_ARIANE_HPDC
+   assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0;
+`else 
       <%
       import pyhplib
       from pyhplib import *
-      if CONFIG_HPDC_WR_BUFF_WORDS == 1:
+      if CONF_HPDCACHE_REQ_WORDS == 1:
          print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0;")
-      if CONFIG_HPDC_WR_BUFF_WORDS == 2:
+      if CONF_HPDCACHE_REQ_WORDS == 2:
          print("wire data_sel =  l15_noc1buffer_req_address[3];")
          print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0 << (data_sel*64);")
-      if CONFIG_HPDC_WR_BUFF_WORDS == 4:
+      if CONF_HPDCACHE_REQ_WORDS == 4:
          print("wire [1:0] data_sel =  l15_noc1buffer_req_address[4:3];")
          print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0 << (data_sel*64);")    
-      if CONFIG_HPDC_WR_BUFF_WORDS == 8:
+      if CONF_HPDCACHE_REQ_WORDS == 8:
          print("wire [2:0] data_sel =  l15_noc1buffer_req_address[5:3];")
          print("assign l15_noc1buffer_req_data_0_shifted = l15_noc1buffer_req_data_0 << (data_sel*64);")
       %>
+`endif
 
 always @ (posedge clk)
 begin

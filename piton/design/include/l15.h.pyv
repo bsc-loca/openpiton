@@ -92,14 +92,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    # 2
    print("`define L15_WAY_WIDTH %d" % int(math.log(CONFIG_L15_ASSOCIATIVITY, 2)))
    print("`define L1D_WAY_WIDTH %d" % int(math.log(CONFIG_L1D_ASSOCIATIVITY, 2)))
-   print("`define PITON_HPDC_WR_BUFF_WORDS  %d" % CONFIG_HPDC_WR_BUFF_WORDS)
    print("`ifdef PITON_ARIANE_HPDC")
-   if (CONFIG_HPDC_WR_BUFF_WORDS < (PITON_L15_L1D_LINE_SIZE / 8)) :
-       dd = CONFIG_HPDC_WR_BUFF_WORDS * 64
-       print("    `define L15_REQ_DATA_WORD_NUM %d" % CONFIG_HPDC_WR_BUFF_WORDS)
+   if (CONF_HPDCACHE_REQ_WORDS < (PITON_L15_L1D_LINE_SIZE / 8)) :
+       dd = CONF_HPDCACHE_REQ_WORDS * 64
+       print("    `define CONF_HPDCACHE_REQ_WORDS %d" % CONF_HPDCACHE_REQ_WORDS)
+       print("    `define L15_REQ_DATA_WORD_NUM %d" % CONF_HPDCACHE_REQ_WORDS)
        print("    `define L15_REQ_DATA_WIDTH %d" % dd)
    else : 
        dd = PITON_L15_L1D_LINE_SIZE / 8
+       print("    `define CONF_HPDCACHE_REQ_WORDS %d" % CONF_HPDCACHE_REQ_WORDS)
        print("    `define L15_REQ_DATA_WORD_NUM %d" % dd)
        ddd=dd*64
        print("    `define L15_REQ_DATA_WIDTH %d" % ddd)
