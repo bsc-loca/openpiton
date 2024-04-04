@@ -64,7 +64,10 @@ module l2 #(
     output wire noc2_valid_out,
     output wire [`PITON_NOC2_WIDTH-1:0] noc2_data_out,
     input wire noc2_ready_out,
-
+    `ifdef EXTERNAL_HPM_EVENT_NUM
+    output wire hpm_l2_access,  
+    output wire hpm_l2_miss,
+    `endif
     // sram interface
     output wire [`SRAM_WRAPPER_BUS_WIDTH-1:0] srams_rtap_data,
     input wire  [`BIST_OP_WIDTH-1:0] rtap_srams_bist_command,
@@ -292,6 +295,10 @@ l2_config_regs config_regs(
     .csm_en                 (csm_en),
     `else
     .csm_en                 (),
+    `endif
+    `ifdef EXTERNAL_HPM_EVENT_NUM
+    .hpm_l2_access          (hpm_l2_access),  
+    .hpm_l2_miss            (hpm_l2_miss),
     `endif
     .smt_base_addr          (smt_base_addr)
 

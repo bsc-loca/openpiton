@@ -45,6 +45,10 @@ module l2_config_regs(
 
     input wire clk,
     input wire rst_n,
+    `ifdef EXTERNAL_HPM_EVENT_NUM
+    output reg   hpm_l2_access,  
+    output reg   hpm_l2_miss,
+    `endif
 
     input wire [`NOC_CHIPID_WIDTH-1:0] chipid,
     input wire [`NOC_X_WIDTH-1:0] coreid_x,
@@ -66,6 +70,7 @@ module l2_config_regs(
     output reg [`L2_COREID_WIDTH-1:0] core_max,
     output reg csm_en,
     output reg [`L2_SMT_BASE_ADDR_WIDTH-1:0] smt_base_addr
+
 
 );
 
@@ -264,7 +269,11 @@ begin
     core_max = coreid_reg_f[`L2_COREID_WIDTH+`NOC_NODEID_WIDTH-1 : `NOC_NODEID_WIDTH];
 end
 
-
-
+`ifdef EXTERNAL_HPM_EVENT_NUM
+always @ (posedge clk) begin 
+    hpm_l2_access <= l2_access_valid && (cache_subline==0); 
+    hpm_l2_miss   <= l2_miss_valid   && (cache_subline==0);
+end
+`endif
 
 endmodule

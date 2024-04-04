@@ -765,6 +765,14 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
         .clk(clk_gated)
     );
 `endif
+
+
+
+
+`ifdef EXTERNAL_HPM_EVENT_NUM
+    wire hpm_l2_access,  hpm_l2_miss;
+`endif
+
 ///////////////////////
 // Instantiate Cores //
 ///////////////////////
@@ -1209,6 +1217,11 @@ if (TILE_TYPE == `SARGANTANA_RV64_TILE) begin : g_sarg_core
              transducer_l15_amo_op,
              transducer_l15_be} = l15_req;
 
+    `ifdef EXTERNAL_HPM_EVENT_NUM       
+        wire [`EXTERNAL_HPM_EVENT_NUM-1: 0] external_hpm_i = {hpm_l2_access, hpm_l2_miss};
+    `endif
+
+
     drac_openpiton_wrapper #(
 <%
 str = '''
@@ -1237,6 +1250,9 @@ print(str)
         .time_irq_i  ( timer_irq_i  ),
         .l15_req_o   ( l15_req      ),
         .l15_rtrn_i  ( l15_rtrn     ),
+        `ifdef EXTERNAL_HPM_EVENT_NUM
+        .external_hpm_i (external_hpm_i),
+        `endif
         .debug_halt_i(1'b0)
     );
 
@@ -1408,6 +1424,11 @@ print(str)
         .noc3_ready_in(processor_router_ready_noc3),
         .noc2_valid_out(processor_router_valid_noc2),
         .noc2_data_out(processor_router_data_noc2),
+
+        `ifdef EXTERNAL_HPM_EVENT_NUM
+        .hpm_l2_access          (hpm_l2_access),  
+        .hpm_l2_miss            (hpm_l2_miss),
+        `endif
 
         // interface to srams
         .srams_rtap_data (l2_rtap_data),
