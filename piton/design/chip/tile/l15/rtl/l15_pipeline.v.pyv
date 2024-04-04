@@ -4652,9 +4652,7 @@ begin
         case (noc1_data_source_s3)
             `L15_NOC1_SOURCE_PCX_64B:
             begin
-                l15_noc1buffer_req_data_0[`L15_UNPARAM_63_0] = pcxdecoder_l15_data[`L15_UNPARAM_63_0];
-            if(l15_noc1buffer_req_val && l15_noc1buffer_req_size > 1) $display("%t:size = %d",$time,l15_noc1buffer_req_size );
-                // l15_noc1buffer_req_data_1[`L15_UNPARAM_63_0] = 64'b0;
+                l15_noc1buffer_req_data_0[`L15_UNPARAM_63_0] = pcxdecoder_l15_data[`L15_UNPARAM_63_0];            
             end
             `L15_NOC1_SOURCE_PCX_128B:
             begin
