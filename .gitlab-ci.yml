@@ -26,7 +26,7 @@ stages:
 
 variables:
   GIT_STRATEGY: clone
-  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_STRATEGY: none
   GIT_CLEAN_FLAGS: -ffdx
   GIT_DEPTH: 1
   GIT_SUBMODULE_DEPTH: 1
@@ -98,6 +98,8 @@ default:
 
 sargantana_build:
   stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
   before_script:
     - !reference [.sargantana_regression_base, before_script]
   script:
@@ -161,7 +163,7 @@ sargantana_multicore:
   parallel:
     matrix:
       - X_TILES: [1]
-        Y_TILES: [1, 2]
+        Y_TILES: [2]
         SIM_TYPE: [vlt, msm]
       - X_TILES: [2]
         Y_TILES: [2]
@@ -184,6 +186,8 @@ sargantana_multicore:
 
 ariane_build:
   stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
   before_script:
     - !reference [.ariane_regression_base, before_script]
   script:
@@ -247,7 +251,7 @@ ariane_multicore:
   parallel:
     matrix:
       - X_TILES: [1]
-        Y_TILES: [1, 2]
+        Y_TILES: [2]
         SIM_TYPE: [vlt, msm]
       - X_TILES: [2]
         Y_TILES: [2]
@@ -271,6 +275,8 @@ ariane_multicore:
 
 ariane_hpdc_build:
   stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
   before_script:
     - !reference [.ariane_hpdc_regression_base, before_script]
   script:
@@ -334,7 +340,7 @@ ariane_hpdc_multicore:
   parallel:
     matrix:
       - X_TILES: [1]
-        Y_TILES: [1, 2]
+        Y_TILES: [2]
         SIM_TYPE: [vlt, msm]
       - X_TILES: [2]
         Y_TILES: [2]
