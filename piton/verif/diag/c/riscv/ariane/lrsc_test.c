@@ -83,6 +83,6 @@ int main(int argc, char** argv) {
     // Printed result should be core_num * ITERATION
   }
   
-  return 0;
+  return !(amo_lrsc[0] == (core_num * ITERATION));
 
 }

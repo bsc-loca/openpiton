@@ -735,7 +735,9 @@ pico-amoxor     amoxor_w.S
 
     <sarg_tile2_simple>
         <runargs -x_tiles=1 -y_tiles=2 -sarg -rtl_timeout 1000000>
-            sarg-hello-world  hello_world_many.c
+            sarg-hello-world    hello_world_many.c
+            sarg-lrsc-test      lrsc_test.c
+            sarg-add-shared-var add_shared_var.c
         </runargs>
     </sarg_tile2_simple>
 
@@ -762,7 +764,9 @@ pico-amoxor     amoxor_w.S
 
     <sarg_tile4_simple>
         <runargs -x_tiles=2 -y_tiles=2 -sarg -rtl_timeout 1000000>
-            sarg-hello-world  hello_world_many.c
+            sarg-hello-world    hello_world_many.c
+            sarg-lrsc-test      lrsc_test.c
+            sarg-add-shared-var add_shared_var.c
         </runargs>
     </sarg_tile4_simple>
 
@@ -790,7 +794,9 @@ pico-amoxor     amoxor_w.S
 
     <ariane_tile2_simple>
         <runargs -x_tiles=1 -y_tiles=2 -ariane -rtl_timeout 1000000>
-            ariane-hello-world  hello_world_many.c
+            ariane-hello-world    hello_world_many.c
+            ariane-lrsc-test      lrsc_test.c
+            ariane-add-shared-var add_shared_var.c
         </runargs>
     </ariane_tile2_simple>
 
@@ -817,7 +823,9 @@ pico-amoxor     amoxor_w.S
 
     <ariane_tile4_simple>
         <runargs -x_tiles=2 -y_tiles=2 -ariane -rtl_timeout 1000000>
-            ariane-hello-world  hello_world_many.c
+            ariane-hello-world    hello_world_many.c
+            ariane-lrsc-test      lrsc_test.c
+            ariane-add-shared-var add_shared_var.c
         </runargs>
     </ariane_tile4_simple>
 
