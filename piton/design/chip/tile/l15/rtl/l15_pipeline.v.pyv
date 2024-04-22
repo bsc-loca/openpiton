@@ -2677,14 +2677,14 @@ reg tagcheck_lrsc_flag_s2;
 
 wire [L15_CACHE_TAG_WIDTH-1:0] lru_way_tag_s2 = dtag_l15_dout_s2 >> (lru_way_s2*`L15_CACHE_TAG_RAW_WIDTH);
 wire [`L15_MESI_STATE_WIDTH-1:0] lru_state_s2 = mesi_l15_dout_s2 >> (lru_way_s2*`L15_MESI_STATE_WIDTH);
-wire [`L15_PADDR_WIDTH-1:0] lru_way_address_s2 = {lru_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW], 4'b0};
+wire [`L15_PADDR_WIDTH-1:0] lru_way_address_s2 = {lru_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW],{L15_SUBLINE_INDEX_WIDTH{1'b0}}, 4'b0};
 
 // trinnn: double check this addressing scheme
 // wire [`L15_WAY_WIDTH-1:0] flush_way_s2 = address_s2[25:24]; // original
 wire [`L15_WAY_WIDTH-1:0] flush_way_s2 = address_s2[24+:`L15_WAY_WIDTH];
 wire [`L15_MESI_STATE_WIDTH-1:0] flush_state_s2 = mesi_l15_dout_s2 >> (flush_way_s2*`L15_MESI_STATE_WIDTH);
 wire [L15_CACHE_TAG_WIDTH-1:0] flush_way_tag_s2 = dtag_l15_dout_s2 >> (flush_way_s2*`L15_CACHE_TAG_RAW_WIDTH);
-wire [`L15_PADDR_WIDTH-1:0] flush_way_address_s2 = {flush_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW], 4'b0};
+wire [`L15_PADDR_WIDTH-1:0] flush_way_address_s2 = {flush_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW],{L15_SUBLINE_INDEX_WIDTH{1'b0}}, 4'b0};
 
 // expanding some useful signals
 wire tagcheck_state_me_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M || tagcheck_state_s2 == `L15_MESI_STATE_E;
