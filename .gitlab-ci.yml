@@ -55,6 +55,9 @@ default:
     - module load rvv/0.7.1
     - module load verilator/5.014
 
+.rule_only_merge:
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
+
 .regression_report:
   script:
     - regreport $(ls -td -- */ | head -n 1) | grep -E "^Diag" && echo " " && regreport $(ls -td -- */ | head -n 1) -summary && echo " "
@@ -141,6 +144,8 @@ sargantana_isa_tests:
 sargantana_benchmarks:
   extends: .sargantana_regression_base
   stage: sim_benchmarks
+  rules:
+    !reference [.rule_only_merge]
   parallel:
     matrix:
       - SIM_TYPE: [vlt, msm]
@@ -160,6 +165,8 @@ sargantana_benchmarks:
 sargantana_multicore:
   extends: .sargantana_regression_base
   stage: sim_multicore
+  rules:
+    !reference [.rule_only_merge]
   parallel:
     matrix:
       - X_TILES: [1]
@@ -230,6 +237,8 @@ ariane_isa_tests:
 ariane_benchmarks:
   extends: .ariane_regression_base
   stage: sim_benchmarks
+  rules:
+    !reference [.rule_only_merge]
   parallel:
     matrix:
       - SIM_TYPE: [vlt, msm]
@@ -248,6 +257,8 @@ ariane_benchmarks:
 ariane_multicore:
   extends: .ariane_regression_base
   stage: sim_multicore
+  rules:
+    !reference [.rule_only_merge]
   parallel:
     matrix:
       - X_TILES: [1]
@@ -319,6 +330,8 @@ ariane_hpdc_isa_tests:
 ariane_hpdc_benchmarks:
   extends: .ariane_hpdc_regression_base
   stage: sim_benchmarks
+  rules:
+    !reference [.rule_only_merge]
   parallel:
     matrix:
       - SIM_TYPE: [vlt, msm]
@@ -337,6 +350,8 @@ ariane_hpdc_benchmarks:
 ariane_hpdc_multicore:
   extends: .ariane_hpdc_regression_base
   stage: sim_multicore
+  rules:
+    !reference [.rule_only_merge]
   parallel:
     matrix:
       - X_TILES: [1]
