@@ -184,7 +184,7 @@ begin
     else
     begin
         if (special_l2_addr_s2) begin // DIS_FLUSH. Need to reformat address to match normal case
-            aux_addr= {l15_csm_req_address_s2[5:0], l15_csm_req_address_s2[`PHY_ADDR_WIDTH-6:6], 6'h0}; // Place higher bits of tag in the right place, pad with 0s in the offset
+            aux_addr= {l15_csm_req_address_s2[5:0], l15_csm_req_address_s2[`PHY_ADDR_WIDTH-6-1:6], 6'h0}; // Place higher bits of tag in the right place, pad with 0s in the offset
         end
         case (home_alloc_method)
         `HOME_ALLOC_LOW_ORDER_BITS:
