@@ -52,7 +52,7 @@ else
   cd ${SARG_ROOT}
 
   # build the RISCV tests if necessary
-  VERSION="ft/configurable-uart-addr"
+  VERSION="v1.1.0"
   mkdir -p ${SARG_ROOT}/tmp
   cd tmp
 

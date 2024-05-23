@@ -135,6 +135,11 @@ module l15 #(
     output [63:0]                           l15_config_write_req_data_s2,
     output [`CONFIG_REG_ADDRESS_MASK]       l15_config_req_address_s2,
 
+    `ifdef EXTERNAL_HPM_EVENT_NUM   
+    output wire hpm_l15_access,
+    output wire hpm_l15_miss,
+    `endif
+
     // sram interface
     output [`SRAM_WRAPPER_BUS_WIDTH-1:0]    srams_rtap_data,
     input  [`BIST_OP_WIDTH-1:0]             rtap_srams_bist_command,
@@ -854,6 +859,11 @@ l15_pipeline #(
     .l15_config_write_req_data_s2(l15_config_write_req_data_s2),
     .l15_config_req_address_s2(l15_config_req_address_s2),
     .config_l15_read_res_data_s3(config_l15_read_res_data_s3),
+
+    `ifdef EXTERNAL_HPM_EVENT_NUM        
+    .hpm_l15_access(hpm_l15_access),
+    .hpm_l15_miss(hpm_l15_miss),
+    `endif
     
     // MSHR
     .pipe_mshr_writereq_val_s1(pipe_mshr_writereq_val_s1),
@@ -884,6 +894,7 @@ l15_pipeline #(
     .pipe_mshr_threadid_s3(pipe_mshr_threadid_s3),
     .pipe_mshr_write_update_state_s3(pipe_mshr_write_update_state_s3),
     .pipe_mshr_write_update_way_s3(pipe_mshr_write_update_way_s3)
+   
 );
 
 /*

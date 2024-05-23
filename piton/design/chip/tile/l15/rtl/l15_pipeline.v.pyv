@@ -283,12 +283,18 @@ module l15_pipeline #(
     output reg [`L15_CSM_NUM_TICKETS_LOG2-1:0] l15_noc1buffer_req_csm_ticket,
     output reg [`PACKET_HOME_ID_WIDTH-1:0] l15_noc1buffer_req_homeid,
     output reg l15_noc1buffer_req_homeid_val,
+    
+    `ifdef EXTERNAL_HPM_EVENT_NUM   
+    output reg hpm_l15_access,
+    output reg hpm_l15_miss,
+    `endif
 
     // output to config registers to pipeline
     output reg l15_config_req_val_s2,
     output reg l15_config_req_rw_s2,
     output reg [`L15_UNPARAM_63_0] l15_config_write_req_data_s2,
     output reg [`CONFIG_REG_ADDRESS_MASK] l15_config_req_address_s2
+    
     );
 
 localparam L15_IDX_LOW = L15_LINE_SIZE_WIDTH;
@@ -384,6 +390,8 @@ reg predecode_val_s1;
 reg [`L15_PREDECODE_SOURCE_WIDTH-1:0] predecode_source_s1;
 reg predecode_interrupt_broadcast_s1;
 reg [`L15_UNPARAM_3_0] predecode_fwd_subcacheline_vector_s1;
+
+
 
 always @ *
 begin
@@ -925,6 +933,8 @@ begin
     //note: only work with 2 threads for now; need to change the algo of mshr if need to increase the num of threads
 end
 
+
+
 //////////////////////////
 // NOC1 CREDIT MANAGEMENT
 //////////////////////////
@@ -1197,6 +1207,27 @@ reg decoder_stall_on_matched_mshr_s1;
 reg [`L15_MSHR_ID_WIDTH-1:0]decoder_mshrid_s1;
 reg decoder_lrsc_flag_read_op_s1;
 reg [`L15_LRSC_FLAG_WRITE_OP_WIDTH-1:0] decoder_lrsc_flag_write_op_s1;
+
+`ifdef EXTERNAL_HPM_EVENT_NUM 
+    wire l15_access_s1 = (decoder_dtag_operation_s1 == `L15_DTAG_OP_READ) && val_s1 && (predecode_source_s1 == `L15_PREDECODE_SOURCE_PCX);
+    reg  l15_access_s2;
+    wire l15_access_s2_next = (stall_s2) ? l15_access_s2 :l15_access_s1 && !stall_s1;
+    reg tag_hit_s2;
+    always @ (posedge clk) 
+    begin
+        if (!rst_n) begin
+            hpm_l15_access <=1'b0;
+            hpm_l15_miss   <=1'b0;
+            l15_access_s2<=1'b0;
+        end
+        else begin 
+            hpm_l15_access <= (stall_s2)? 1'b0 : l15_access_s2;
+            hpm_l15_miss   <= (stall_s2)? 1'b0 : l15_access_s2 & (~tag_hit_s2);   
+            l15_access_s2 <= l15_access_s2_next;     
+        end    
+    end
+`endif
+
 
 always @ *
 begin
@@ -2556,7 +2587,7 @@ begin
     // next signals
     if (stall_s2)
     begin
-        val_s2_next = val_s2;
+        val_s2_next = val_s2;       
         `ifndef NO_RTL_CSM
         <%
         for e in s2floplist:
@@ -2583,7 +2614,7 @@ begin
     end
     else
     begin
-        val_s2_next = val_s1 && !stall_s1;
+        val_s2_next = val_s1 && !stall_s1;        
         threadid_s2_next = predecode_threadid_s1;
         mshrid_s2_next = decoder_mshrid_s1;
         address_s2_next = predecode_address_s1;
@@ -2768,6 +2799,10 @@ begin
     tagcheck_lrsc_flag_s2 = 1'b0;
     tagcheck_state_s2 = `L15_MESI_STATE_I;
     tagcheck_way_s2 = {`L15_WAY_WIDTH{1'bx}};
+    `ifdef EXTERNAL_HPM_EVENT_NUM 
+    tag_hit_s2=1'b0;
+    `endif
+    
     <%
         for i in range(CONFIG_L15_ASSOCIATIVITY):
             if (i > 0):
@@ -2775,6 +2810,9 @@ begin
             print('''if (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way_s2[{0}][L15_CACHE_TAG_WIDTH-1:0]
                             && mesi_state_way_s2[{0}] != `L15_MESI_STATE_I) begin
                         tagcheck_way_s2 = {0};
+                        `ifdef EXTERNAL_HPM_EVENT_NUM 
+                        tag_hit_s2=1'b1;
+                        `endif
                         tagcheck_state_s2 = mesi_state_way_s2[{0}];
                         tagcheck_lrsc_flag_s2 = lrsc_flag_l15_dout_s2[{0}];
                     end'''.format(i))
@@ -4847,5 +4885,9 @@ begin
         dcache_l15_dout_buf[(L15_L1D_LINE_SIZE*8)-1 : 0] <= dcache_l15_dout_buf[(L15_L1D_LINE_SIZE*8)-1 : 0];
     end
 end
+
+
+
+
 
 endmodule

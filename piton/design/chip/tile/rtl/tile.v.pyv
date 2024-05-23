@@ -771,14 +771,17 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
 
 `ifdef EXTERNAL_HPM_EVENT_NUM
 
-    localparam HPM_EXT_NUM_EVENT = `EXTERNAL_HPM_EVENT_NUM;
+    localparam 
+        HPM_EXT_NUM_EVENT = `EXTERNAL_HPM_EVENT_NUM,
+        HPM_EXT_MIN       = 4;
+    
 
-    wire hpm_l2_access,  hpm_l2_miss;
+    wire hpm_l2_access, hpm_l2_miss, hpm_l15_access, hpm_l15_miss;
     wire [`EXTERNAL_HPM_EVENT_NUM-1: 0] external_hpm_i;
-    assign external_hpm_i [1: 0] ={hpm_l2_access, hpm_l2_miss};
+    assign external_hpm_i [HPM_EXT_MIN-1: 0] ={hpm_l2_access, hpm_l2_miss, hpm_l15_access, hpm_l15_miss};
 
     generate 
-    if(HPM_EXT_NUM_EVENT > 2) begin :noc_st
+    if(HPM_EXT_NUM_EVENT > HPM_EXT_MIN) begin :noc_st
         wire [2:0] hpm_noc_stall;
         wire [2:0] hpm_noc_flit_val;
         assign hpm_noc_stall [0] =  processor_router_valid_noc1 &  (~router_processor_ready_noc1);
@@ -788,9 +791,9 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
         assign hpm_noc_flit_val [1] =  processor_router_valid_noc2 &  router_processor_ready_noc2;
         assign hpm_noc_flit_val [2] =  processor_router_valid_noc3 &  router_processor_ready_noc3;
 
-        if(HPM_EXT_NUM_EVENT == 8) begin
-            assign external_hpm_i [7: 2]={hpm_noc_stall, hpm_noc_flit_val};
-        end else begin //==4
+        if(HPM_EXT_NUM_EVENT == (HPM_EXT_MIN+6)) begin //add 6 hpm events for noc stat
+            assign external_hpm_i [HPM_EXT_MIN+5: HPM_EXT_MIN]={hpm_noc_stall, hpm_noc_flit_val};
+        end else begin ////add 2 hpm events for noc stat
 
             //Merge 3 nocs statistic in one
             reg [9:0] flit_cnt;
@@ -812,19 +815,11 @@ NIB_SIZE = pow(2, NIB_SIZE_LOG2)
             end
     
             wire hpm_noc_flit_val_merged = (sum > 0) | (flit_cnt !=10'd0);
-            assign external_hpm_i [3: 2]={|hpm_noc_stall, hpm_noc_flit_val_merged};
+            assign external_hpm_i [HPM_EXT_MIN+2: HPM_EXT_MIN]={|hpm_noc_stall, hpm_noc_flit_val_merged};
         end
     end
     endgenerate
-
-   
-
-
-
-  
-
-
-
+    
 `endif
 
 ///////////////////////
@@ -1404,10 +1399,16 @@ print(str)
         .config_system_tile_count(config_system_tile_count),
         .config_home_alloc_method(config_home_alloc_method),
 
+`ifdef EXTERNAL_HPM_EVENT_NUM        
+        //hpm
+        .hpm_l15_access(hpm_l15_access),
+        .hpm_l15_miss(hpm_l15_miss),
+`endif
         // sram interfaces
         .srams_rtap_data (l15_rtap_data),
         .rtap_srams_bist_command (rtap_srams_bist_command),
         .rtap_srams_bist_data (rtap_srams_bist_data)
+ 
     );
 
     //////////

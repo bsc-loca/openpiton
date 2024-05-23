@@ -114,11 +114,15 @@ module l15_wrap #(
     output                                  l15_config_req_rw_s2,
     output [63:0]                           l15_config_write_req_data_s2,
     output [`CONFIG_REG_ADDRESS_MASK]       l15_config_req_address_s2,
-
+   `ifdef EXTERNAL_HPM_EVENT_NUM        
+    output wire hpm_l15_access,
+    output wire hpm_l15_miss,
+    `endif
     // sram interface
     output [`SRAM_WRAPPER_BUS_WIDTH-1:0]    srams_rtap_data,
     input  [`BIST_OP_WIDTH-1:0]             rtap_srams_bist_command,
     input  [`SRAM_WRAPPER_BUS_WIDTH-1:0]    rtap_srams_bist_data
+    
 );
  
     l15 #(
@@ -205,11 +209,16 @@ module l15_wrap #(
         .config_hmt_base(config_hmt_base),
         .config_system_tile_count(config_system_tile_count),
         .config_home_alloc_method(config_home_alloc_method),
-        
+
+	`ifdef EXTERNAL_HPM_EVENT_NUM        
+        .hpm_l15_access(hpm_l15_access),
+        .hpm_l15_miss(hpm_l15_miss),
+	`endif        
         // sram interfaces
         .srams_rtap_data (srams_rtap_data),
         .rtap_srams_bist_command (rtap_srams_bist_command),
         .rtap_srams_bist_data (rtap_srams_bist_data)
+
     );
 
 endmodule

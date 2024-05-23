@@ -75,7 +75,7 @@ else
   #ci/install-verilator.sh
 
   # build the RISCV tests if necessary
-  VERSION="ft/configurable-uart-addr"
+  VERSION="v1.1.0"
   cd tmp
 
   TESTS_URL="https://gitlab.bsc.es/hwdesign/rtl/uncore/riscv-tests.git"
