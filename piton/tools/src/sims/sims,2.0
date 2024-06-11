@@ -1789,9 +1789,7 @@ sub generic_sim_run
         $cmd .= " -c " ;
       }
       if ($opt{sarg}) {
-        # This supression is needed to avoid warnings about duplicated packages in Sargantana's FPU.
-        # Temporary solution until the FPU is fixed.
-        $cmd .= " -suppress 3999 ";
+        $cmd .= " -ldflags \"-L$ENV{SARG_ROOT}/simulator/reference/build/ -ldisasm -Wl,-rpath=$ENV{SARG_ROOT}/simulator/reference/build/\" ";
       }
       if ($opt{log_all}) {
       	# this logs everything such that the sim can be inspected later on

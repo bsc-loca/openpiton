@@ -91,6 +91,9 @@ else
   make install
   cd ${PITON_ROOT}
 
+  cd $SARG_ROOT
+  make libdisasm
+
   echo
   echo "----------------------------------------------------------------------"
   echo "build complete"
