@@ -63,11 +63,12 @@ if PITON_NUM_TILES == -1:
 PITON_OST1     = int(os.environ.get('PITON_OST1', '0'))
 PITON_ARIANE   = int(os.environ.get('PITON_ARIANE', '0'))
 PITON_SARG     = int(os.environ.get('PITON_SARG', '0'))
+PITON_LOX      = int(os.environ.get('PITON_LOX', '0'))
 PITON_PICO     = int(os.environ.get('PITON_PICO', '0'))
 PITON_PICO_HET = int(os.environ.get('PITON_PICO_HET', '0'))
 PITON_RV64_PLATFORM   = int(os.environ.get('PITON_RV64_PLATFORM', '0'))
 
-if PITON_ARIANE or PITON_PICO or PITON_SARG:
+if PITON_ARIANE or PITON_PICO or PITON_SARG or PITON_LOX:
     NUM_THREADS = PITON_NUM_TILES
 else:
     NUM_THREADS = 2 * PITON_NUM_TILES
@@ -151,6 +152,10 @@ if os.getenv("PITON_ARIANE") is not None:
 
 if os.getenv("PITON_SARG") is not None:
     if int(os.getenv("PITON_SARG")):
+        fileName = "devices_sarg.xml"
+
+if os.getenv("PITON_LOX") is not None:
+    if int(os.getenv("PITON_LOX")):
         fileName = "devices_sarg.xml"
 
 DEVICES_XML_FILENAME = os.path.join(os.getenv("PROTOSYN_RUNTIME_DESIGN_PATH", ""),

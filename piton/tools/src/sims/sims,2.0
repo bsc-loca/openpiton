@@ -175,6 +175,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'ariane' => 0,
         'hpdc' => 0,
         'sarg' => 0,
+        'lox' => 0,
         'pico' => 0,
         'pico_het' => 0,
         'post_process_cmd' => [],
@@ -331,6 +332,7 @@ GetOptions (\%opt,
             'ariane!',
             'hpdc!',
             'sarg!',
+            'lox!',
             'pico!',
             'pico_het!',
             'sparcv9!',
@@ -355,7 +357,7 @@ die ("DIE. -pico and -pico_het cannot both be set") if ($opt{pico} && $opt{pico_
 
 # Setting ost1 by default. This works better than default to 1
 # for heterogeneous-ISA stuff
-if ((!$opt{pico} && !$opt{ariane} && !$opt{ost1} && !$opt{sarg}) &&($opt{sys} eq "manycore")) {
+if ((!$opt{pico} && !$opt{ariane} && !$opt{ost1} && !$opt{sarg}) && !$opt{lox} &&($opt{sys} eq "manycore")) {
   die ("DIE. Calling sims without specifying a core is no longer supported (you probably want to add -ariane, -ost1, or similar to your sims command)") ;
 }
 
@@ -363,6 +365,7 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_OST1")     if ($opt{ost1} || $opt{pico_
 push (@{$opt{config_cpp_args}}, "-DFLIST_PICO")     if ($opt{pico} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
+push (@{$opt{config_cpp_args}}, "-DFLIST_LOX")     if ($opt{lox}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
 
 if ($opt{ariane}) {
@@ -1534,7 +1537,7 @@ sub generic_sim_build
       # always_comb blocks that operate on arrays inside a generate statement.
       # [SVCHK] - Some checking for conflicts with always_comb and always_latch variables not yet supported.
       $build_cmd .= " -suppress 2583 ";
-      if ($opt{sarg}) {
+      if ($opt{sarg} || $opt{lox}) {
         $build_cmd .= " -svinputport=compat " ;
       }
     }
@@ -1790,6 +1793,9 @@ sub generic_sim_run
       }
       if ($opt{sarg}) {
         $cmd .= " -ldflags \"-L$ENV{SARG_ROOT}/simulator/reference/build/ -ldisasm -Wl,-rpath=$ENV{SARG_ROOT}/simulator/reference/build/\" ";
+      }
+      if ($opt{lox}) {
+        $cmd .= " -ldflags \"-L$ENV{LOX_ROOT}/simulator/reference/build/ -ldisasm -Wl,-rpath=$ENV{LOX_ROOT}/simulator/reference/build/\" ";
       }
       if ($opt{log_all}) {
       	# this logs everything such that the sim can be inspected later on
@@ -2233,6 +2239,12 @@ sub assemble_diag
       push @{$opt{asm_diag_root}}, "$ENV{SARG_ROOT}/tmp/riscv-tests/build/isa";
       push @{$opt{asm_diag_root}}, "$ENV{SARG_ROOT}/tmp/riscv-tests/build/benchmarks";
     }
+    elsif ($opt{lox} and $opt{precompiled}) {
+      push @{$opt{asm_diag_root}}, "$ENV{PITON_ROOT}/piton/verif/diag/riscv-tests/isa";
+      push @{$opt{asm_diag_root}}, "$ENV{PITON_ROOT}/piton/verif/diag/riscv-tests/benchmarks";
+      push @{$opt{asm_diag_root}}, "$ENV{LOX_ROOT}/tmp/riscv-tests/build/isa";
+      push @{$opt{asm_diag_root}}, "$ENV{LOX_ROOT}/tmp/riscv-tests/build/benchmarks";
+    }
 
     # find diagnostic
     my $diag_full_path = &find_diag_path ($opt{asm_diag_name}, $opt{asm_diag_path}, $opt{asm_diag_root}) ;
@@ -2319,9 +2331,7 @@ sub assemble_diag
     if ($opt{rv64}) {
       # RISCV flow for RV64
       if (!$opt{rv64_target_triple}) {
-        if ($opt{ariane}) {
-          $ENV{RV64_TARGET_TRIPLE} = "riscv64-unknown-elf" ;
-        } elsif ($opt{sarg}) {
+        if ($opt{ariane} || $opt{sarg} || $opt{lox}) {
           $ENV{RV64_TARGET_TRIPLE} = "riscv64-unknown-elf" ;
         }
       } else {
@@ -2332,15 +2342,14 @@ sub assemble_diag
           $ENV{RV64_MARCH} = "rv64imafdc" ;
         } elsif ($opt{sarg}) {
           $ENV{RV64_MARCH} = "rv64imafdv" ;
+        } elsif ($opt{lox}) {
+          $ENV{RV64_MARCH} = "rv64imafd" ;
         }
       } else {
         $ENV{RV64_MARCH} = $opt{rv64_march} ;
       }
       if (!$opt{rv64_mabi}) {
-        if ($opt{ariane}) {
-          $ENV{RV64_MABI} = "lp64d" ;
-        }
-        elsif ($opt{sarg}) {
+        if ($opt{ariane} || $opt{sarg} || $opt{lox}) {
           $ENV{RV64_MABI} = "lp64d" ;
         }
       } else {
@@ -2826,6 +2835,7 @@ my @nocs_width = (
   $ENV{PITON_PICO_HET} = $opt{pico_het};
   $ENV{PITON_ARIANE}   = $opt{ariane};
   $ENV{PITON_SARG}     = $opt{sarg};
+  $ENV{PITON_LOX}      = $opt{lox};
   $ENV{PITON_RV64_PLATFORM}   = "1" if ($opt{rv64_platform});
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
 
@@ -2861,6 +2871,8 @@ my @nocs_width = (
         push (@{$opt{config_rtl}}, "RTL_ARIANE" . $i);
     } elsif ($opt{sarg}) {
         push (@{$opt{config_rtl}}, "RTL_SARG" . $i);
+    } elsif ($opt{lox}) {
+        push (@{$opt{config_rtl}}, "RTL_LOX" . $i);
     } elsif ($opt{ost1}) {
         push (@{$opt{config_rtl}}, "RTL_SPARC" . $i);
     }

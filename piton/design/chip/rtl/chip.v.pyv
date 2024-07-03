@@ -1151,6 +1151,8 @@ module chip (
                 currenttype = "`ARIANE_RV64_TILE"
             elif (PITON_SARG):
                 currenttype = "`SARGANTANA_RV64_TILE"
+            elif (PITON_LOX):
+                currenttype = "`LAGARTO_OX_RV64_TILE"
             else:
                 currenttype = "`SPARC_TILE"
 

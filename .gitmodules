@@ -21,3 +21,6 @@
 [submodule "piton/design/chip/tile/ariane"]
 	path = piton/design/chip/tile/ariane
 	url = ../../cores/cva6.git
+[submodule "piton/design/chip/tile/lagarto_ox"]
+	path = piton/design/chip/tile/lagarto_ox
+	url = ../../core-tile/lagarto_ox_tile.git

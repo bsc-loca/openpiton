@@ -581,6 +581,7 @@ print("`define PITON_NOC3_WIDTH %d" % NOC3_WIDTH)
 `define PICORV32_TILE    1
 `define ARIANE_RV64_TILE 2
 `define SARGANTANA_RV64_TILE 3
+`define LAGARTO_OX_RV64_TILE 4
 
 `endif
 

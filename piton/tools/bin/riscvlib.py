@@ -26,11 +26,16 @@ def get_bootrom_info(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath,
     if os.environ.get('PITON_ARIANE') == '1':
         core = 'Ariane'
         root =  os.environ['ARIANE_ROOT']
-    else :
+    elif os.environ.get('PITON_SARG') == '1':
         core = 'Sarg'
         root =  os.environ['SARG_ROOT']
-       
-  
+    elif os.environ.get('PITON_LOX') == '1':
+        core = 'Ox'
+        root =  os.environ['LOX_ROOT']
+    else :
+        core = 'Unknown'
+        root =  os.environ['PITON_ROOT']
+     
     #root = os.environ[root_key]
 
     gitver_cmd = "git log | grep commit -m1 | LD_LIBRARY_PATH= awk -e '{print $2;}'"

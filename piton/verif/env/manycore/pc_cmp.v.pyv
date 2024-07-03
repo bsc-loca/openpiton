@@ -255,6 +255,28 @@ endtask // get_thread_status
                     end
                 end
         `else // RTL_SARG0
+        `ifdef RTL_LOX0
+                assign spc0_thread_id = 2'b00;
+                assign spc0_rtl_pc = spc0_phy_pc_w;
+
+                always @(posedge clk) begin
+                    if (~rst_l) begin
+                      active_thread[(0*4)]   <= 1'b0;
+                      active_thread[(0*4)+1] <= 1'b0;
+                      active_thread[(0*4)+2] <= 1'b0;
+                      active_thread[(0*4)+3] <= 1'b0;
+                      spc0_inst_done         <= 0;
+                      spc0_phy_pc_w          <= 0;
+                    end else begin
+                      active_thread[(0*4)]   <= 1'b1;
+                      active_thread[(0*4)+1] <= 1'b1;
+                      active_thread[(0*4)+2] <= 1'b1;
+                      active_thread[(0*4)+3] <= 1'b1;
+                      spc0_inst_done         <= `LOX_CORE0.piton_pc_vld;
+                      spc0_phy_pc_w          <= `LOX_CORE0.piton_pc;
+                    end
+                end
+        `else // RTL_LOX0
         `ifdef RTL_PICO0
                 assign spc0_thread_id = 2'b00;
                 assign spc0_rtl_pc = spc0_phy_pc_w;
@@ -277,9 +299,10 @@ endtask // get_thread_status
         `endif // RTL_PICO0
         `endif // RTL_ARIANE0
         `endif // RTL_SARG0
+        `endif // RTL_LOX0
         `endif // RTL_SPARC0
         '''
-    pattern = ["SPARC0", "RTL_ARIANE0", "RTL_SARG0", "RTL_PICO0", "PATH0", "spc0", "sas_m0", "pcs0", "pcf0", "pcd0", "pce0", \
+    pattern = ["SPARC0", "RTL_ARIANE0", "RTL_SARG0", "RTL_LOX0", "RTL_PICO0", "PATH0", "spc0", "sas_m0", "pcs0", "pcf0", "pcd0", "pce0", \
                 "IFQDP0", "DTUPATH0", "PICO_CORE0", "ARIANE_CORE0", "active_thread[(0"];
     tt = ReplicatePattern(t, pattern);
     print(tt)
