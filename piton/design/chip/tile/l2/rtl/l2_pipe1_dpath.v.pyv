@@ -850,14 +850,7 @@ end
 // Three more conditions: Special_addr, NC_ld, Atomic_op
 always @ *
 begin
-    if ( (data_size_S2 == `MSG_DATA_SIZE_64B || data_size_S2 == `MSG_DATA_SIZE_32B) && (l2_tag_hit_S2 && !l2_ifill_32B_S2 && ( ( msg_type_S2 == `MSG_TYPE_LOAD_REQ && (l2_way_state_mesi_S2 == `L2_MESI_I ||
-                (l2_way_state_mesi_S2 == `L2_MESI_E && req_from_owner_S2 && cache_type_S2 == l2_way_state_cache_type_S2 ) || 
-                (l2_way_state_mesi_S2 == `L2_MESI_S && cache_type_S2 == l2_way_state_cache_type_S2 ) ||
-                (l2_way_state_mesi_S2 == `L2_MESI_B && cache_type_S2 == l2_way_state_cache_type_S2 ) ) ) ||
-            ( msg_type_S2 == `MSG_TYPE_STORE_REQ && (l2_way_state_mesi_S2 == `L2_MESI_I || 
-                (l2_way_state_mesi_S2 == `L2_MESI_E && req_from_owner_S2 && cache_type_S2 == l2_way_state_cache_type_S2 ) ) ) ) ) || 
-        ( (msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ || msg_type_S2 == `MSG_TYPE_L2_DIS_FLUSH_REQ) &&
-         !(l2_tag_hit_S2 && l2_way_state_mesi_S2 != `L2_MESI_I) ) )
+    if (((((data_size_S2 == `MSG_DATA_SIZE_64B) || (data_size_S2 == `MSG_DATA_SIZE_32B)) && ((l2_tag_hit_S2 && (!l2_ifill_32B_S2)) && (((msg_type_S2 == `MSG_TYPE_LOAD_REQ) && ((((l2_way_state_mesi_S2 == `L2_MESI_I) || (((l2_way_state_mesi_S2 == `L2_MESI_E) && req_from_owner_S2) && (cache_type_S2 == l2_way_state_cache_type_S2))) || ((l2_way_state_mesi_S2 == `L2_MESI_S) && (cache_type_S2 == l2_way_state_cache_type_S2))) ||((l2_way_state_mesi_S2 == `L2_MESI_B) && (cache_type_S2 == l2_way_state_cache_type_S2)))) || (((msg_type_S2 == `MSG_TYPE_STORE_REQ || msg_type_S2 == `MSG_TYPE_LR_REQ)) && ((l2_way_state_mesi_S2 == `L2_MESI_I) || (((l2_way_state_mesi_S2 == `L2_MESI_E) && req_from_owner_S2) && (cache_type_S2 == l2_way_state_cache_type_S2))))))) || (((msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ) || (msg_type_S2 == `MSG_TYPE_L2_DIS_FLUSH_REQ)) && (!(l2_tag_hit_S2 && (l2_way_state_mesi_S2 != `L2_MESI_I))))))
     begin
         l2_data_ack_l15line_64_S2 =  (data_size_S2 == `MSG_DATA_SIZE_64B) ? 1'b1 : 1'b0; 
         l2_data_ack_l15line_32_S2 =  (data_size_S2 == `MSG_DATA_SIZE_32B) ? 1'b1 : 1'b0; 

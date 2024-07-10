@@ -3726,7 +3726,7 @@ begin
                 end
             end
 `endif
-            else if (msg_type_S4_f == `MSG_TYPE_LOAD_NOSHARE_REQ)
+            else if ((msg_type_S4_f == `MSG_TYPE_LOAD_NOSHARE_REQ) || (msg_type_S4 == `MSG_TYPE_LR_REQ))
             begin
                 // Allow load noshare to request 32B or 64B data.
                 // For request data size equal or less than 16B,
@@ -3755,8 +3755,8 @@ begin
                     msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_0H2D;
                 end
             end
-            else if (cache_type_S4_f == `MSG_CACHE_TYPE_DATA && 
-                ((msg_type_S4 >= `MSG_TYPE_AMO_ADD_P1_REQ && msg_type_S4 <= `MSG_TYPE_AMO_MINU_P1_REQ) ||  msg_type_S4 == `MSG_TYPE_LR_REQ || msg_type_S4 == `MSG_TYPE_SWAP_P1_REQ || msg_type_S4 == `MSG_TYPE_NC_LOAD_REQ || msg_type_S4 == `MSG_TYPE_NC_STORE_REQ ))
+            else if ((cache_type_S4_f == `MSG_CACHE_TYPE_DATA) && 
+                (((msg_type_S4 >= `MSG_TYPE_AMO_ADD_P1_REQ) && (msg_type_S4 <= `MSG_TYPE_AMO_MINU_P1_REQ)) || (msg_type_S4 == `MSG_TYPE_SWAP_P1_REQ) || (msg_type_S4 == `MSG_TYPE_NC_LOAD_REQ) || (msg_type_S4 == `MSG_TYPE_NC_STORE_REQ) ))
             begin
                 msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H2D;
                 msg_send_length_S4 = `MSG_LENGTH_WIDTH'd2;

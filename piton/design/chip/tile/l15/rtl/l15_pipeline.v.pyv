@@ -2755,8 +2755,8 @@ end
 
 always @ *
 begin
-    load_64B_s2 = (dcache_operation_s2 == `L15_DCACHE_WRITE_LRU_WAY_FROM_NOC2 && predecode_reqtype_s2!=`L15_REQTYPE_ACKDT_LR) || 
-                   dcache_operation_s2 == `L15_DCACHE_WRITE_LRU_WAY_FROM_NOC2_AND_MSHR ; 
+    load_64B_s2 = (dcache_operation_s2 == `L15_DCACHE_WRITE_LRU_WAY_FROM_NOC2) || 
+                   (dcache_operation_s2 == `L15_DCACHE_WRITE_LRU_WAY_FROM_NOC2_AND_MSHR) ; 
 end
 
 //Active when the L1.5 sends the data requested from the L1D and the data is in the L15 cache
@@ -4344,7 +4344,8 @@ begin
         end
         `L15_CPX_GEN_ATOMIC_ACK_FROM_NOC2:
         begin
-            cpx_req_val_s3 = 1'b1;
+            cpx_req_val_s3 = (predecode_reqtype_s3 == `L15_REQTYPE_ACKDT_LR) ? 
+                             (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)) ? 1'b1 : 1'b0 : 1'b1;
             cpx_type_s3 = `CPX_RESTYPE_ATOMIC_RES;
             cpx_data_source_s3 = `L15_CPX_SOURCE_NOC2_BUFFER;
             cpx_atomic_bit_s3 = 1;
