@@ -2252,7 +2252,8 @@ reg [L15_L1D_LINE_SIZE-1:0] write_mask_s1;
     reg [L15_L1D_LINE_SIZE-1:0] write_mask_4B_s1;
     reg [L15_L1D_LINE_SIZE-1:0] write_mask_8B_s1;
     reg [L15_L1D_LINE_SIZE-1:0] write_mask_16B_s1;
-    reg [L15_L1D_LINE_SIZE-1:0] write_mask_ge16B_s1;
+    reg [L15_L1D_LINE_SIZE-1:0] write_mask_32B_s1;
+    reg [L15_L1D_LINE_SIZE-1:0] write_mask_64B_s1;
 `else
     reg [5:0] offset_mask_s1 = {{6-L15_LINE_SIZE_WIDTH{1'b0}},{L15_LINE_SIZE_WIDTH{1'b1}}};
 `endif
@@ -2316,14 +2317,18 @@ end
                                 (predecode_size_s1 == `MSG_DATA_SIZE_2B) ? {8'b1100_0000,{L15_L1D_LINE_SIZE-8{1'b0}}} :
                                 (predecode_size_s1 == `MSG_DATA_SIZE_4B) ? {8'b1111_0000,{L15_L1D_LINE_SIZE-8{1'b0}}} :
                                 (predecode_size_s1 == `MSG_DATA_SIZE_8B) ? {8'b1111_1111,{L15_L1D_LINE_SIZE-8{1'b0}}} :
-                                {{16{1'b1}},{L15_L1D_LINE_SIZE-16{1'b0}}}; //16B
+                                (predecode_size_s1 == `MSG_DATA_SIZE_16B) ? {{16{1'b1}},{L15_L1D_LINE_SIZE-16{1'b0}}} :
+                                (predecode_size_s1 == `MSG_DATA_SIZE_32B) ? {{32{1'b1}},{L15_L1D_LINE_SIZE-32{1'b0}}} :
+                                {{64{1'b1}},{L15_L1D_LINE_SIZE-64{1'b0}}}; //16B
 
-    write_mask_1B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {L15_LINE_SIZE_WIDTH{1'b1}});
-    write_mask_2B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{L15_LINE_SIZE_WIDTH-1{1'b1}},1'b0});
-    write_mask_4B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{L15_LINE_SIZE_WIDTH-2{1'b1}},2'b00});
-    write_mask_8B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{L15_LINE_SIZE_WIDTH-3{1'b1}},3'b000});
-    write_mask_16B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{L15_LINE_SIZE_WIDTH-4{1'b1}},4'b0000});
-    write_mask_ge16B_s1 = {L15_L1D_LINE_SIZE{1'b1}}; 
+
+    write_mask_1B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{`L15_PADDR_WIDTH-L15_LINE_SIZE_WIDTH{1'b0}},{L15_LINE_SIZE_WIDTH{1'b1}}});
+    write_mask_2B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{`L15_PADDR_WIDTH-L15_LINE_SIZE_WIDTH{1'b0}},{{L15_LINE_SIZE_WIDTH-1{1'b1}},1'b0}});
+    write_mask_4B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{`L15_PADDR_WIDTH-L15_LINE_SIZE_WIDTH{1'b0}},{{L15_LINE_SIZE_WIDTH-2{1'b1}},2'b00}});
+    write_mask_8B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{`L15_PADDR_WIDTH-L15_LINE_SIZE_WIDTH{1'b0}},{{L15_LINE_SIZE_WIDTH-3{1'b1}},3'b000}});
+    write_mask_16B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{`L15_PADDR_WIDTH-L15_LINE_SIZE_WIDTH{1'b0}},{{L15_LINE_SIZE_WIDTH-4{1'b1}},4'b0000}});
+    write_mask_32B_s1 = unshifted_write_mask_s1 >> (pcxdecoder_l15_address & {{`L15_PADDR_WIDTH-L15_LINE_SIZE_WIDTH{1'b0}},{{L15_LINE_SIZE_WIDTH-5{1'b1}},5'b00000}});
+    write_mask_64B_s1 = {L15_L1D_LINE_SIZE{1'b1}}; 
 
     case(predecode_size_s1)
         `MSG_DATA_SIZE_1B:
@@ -2346,9 +2351,17 @@ end
         begin
             write_mask_s1 = write_mask_16B_s1;
         end
+        `MSG_DATA_SIZE_32B:
+        begin
+            write_mask_s1 = write_mask_32B_s1;
+        end
+        `MSG_DATA_SIZE_64B:
+        begin
+            write_mask_s1 = write_mask_64B_s1;
+        end
         default:
         begin
-            write_mask_s1 = write_mask_ge16B_s1;
+            write_mask_s1 = write_mask_64B_s1;
         end
     endcase
 `endif 
