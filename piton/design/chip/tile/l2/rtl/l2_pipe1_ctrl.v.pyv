@@ -2240,7 +2240,7 @@ begin
     &&  (~special_addr_type_S2_f)
     &&  ((pipe2_valid_S1 && (pipe2_msg_type_S1 == `MSG_TYPE_WB_REQ)
         && (addr_S2[`L2_TAG_PLUS_INDEX] == pipe2_addr_S1[`L2_TAG_PLUS_INDEX]))
-    ||   (pipe2_valid_S2 && (pipe2_msg_type_S1 == `MSG_TYPE_WB_REQ)
+    ||   (pipe2_valid_S2 && (pipe2_msg_type_S2 == `MSG_TYPE_WB_REQ)
         && (addr_S2[`L2_TAG_PLUS_INDEX] == pipe2_addr_S2[`L2_TAG_PLUS_INDEX]))
     ||   (pipe2_valid_S3 && (pipe2_msg_type_S3 == `MSG_TYPE_WB_REQ)
         && (addr_S2[`L2_TAG_PLUS_INDEX] == pipe2_addr_S3[`L2_TAG_PLUS_INDEX])));
@@ -3515,6 +3515,10 @@ begin
                 msg_state_S4_next = msg_state_1;
             end
         end
+    end
+    else if (~msg0_send_valid_S4 & ~msg1_send_valid_S4 & valid_S4 & req_recycle_S4)
+    begin
+        msg_state_S4_next = msg_state_0;
     end
     else
     begin
