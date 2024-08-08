@@ -280,7 +280,6 @@ always @ (posedge clk) begin
         hpm_l2_miss   <= l2_miss_valid   && (cache_subline==0);
     end
 end
-end
 `endif
 
 endmodule
