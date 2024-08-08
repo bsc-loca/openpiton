@@ -102,6 +102,12 @@ assign DOUT = dout_f;
 
 always @ (posedge MEMCLK)
 begin
+ if(!RESET_N)
+ begin
+  cache[A] <= 0;
+  dout_f <= {`L15_CACHE_TAG_RAW_SRAM_WIDTH {1'b0}};
+ end else begin
+
    if (CE)
    begin
       if (RDWEN == 1'b0)
