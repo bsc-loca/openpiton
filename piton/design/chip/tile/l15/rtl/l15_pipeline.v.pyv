@@ -4221,11 +4221,10 @@ if(DCACHE_BUFF_NUM!=0) begin
     always @(posedge clk)
     begin
     if(!rst_n) begin
-      dcache_buff[k] <= 0;    
-    end else if
-      if( dcache_dat_en && (cache_subline_s3==k) ) 
-           dcache_buff[k] <= {dcache_l15_dout_s3[`L15_UNPARAM_63_0],dcache_l15_dout_s3[`L15_UNPARAM_127_64]};
-     end
+        dcache_buff[k] <= 0;    
+    end else if ( dcache_dat_en && (cache_subline_s3==k) ) 
+        dcache_buff[k] <= {dcache_l15_dout_s3[`L15_UNPARAM_63_0],dcache_l15_dout_s3[`L15_UNPARAM_127_64]};
+    end
     assign dcache_data [(k+1)*128-1: k*128] = dcache_buff[k];
     end//for    
 end
@@ -4235,13 +4234,13 @@ endgenerate
 
 
 always @(posedge clk) begin 
-	 if(!rst_n) begin
-	 	buffer_noc2decoder_l15_data <= {(`L15_L1D_LINE_SIZE*8) {1'b0}};
-	 	buffer_noc2decoder_cpx_data <= {(`L1_MAX_DATA_PACKETS_BITS_WIDTH) {1'b0}};
-	 end else begin	 	
-    		buffer_noc2decoder_l15_data <= buffer_noc2decoder_l15_data_next;
-    		buffer_noc2decoder_cpx_data <= buffer_noc2decoder_cpx_data_next; 
-    	end       
+	if(!rst_n) begin
+	 	buffer_noc2decoder_l15_data <= {(L15_L1D_LINE_SIZE*8) {1'b0}};
+	 	buffer_noc2decoder_cpx_data <= {(L1_MAX_DATA_PACKETS_BITS_WIDTH) {1'b0}};
+	end else begin	 	
+        buffer_noc2decoder_l15_data <= buffer_noc2decoder_l15_data_next;
+        buffer_noc2decoder_cpx_data <= buffer_noc2decoder_cpx_data_next; 
+    end       
 end
 
 always @ *

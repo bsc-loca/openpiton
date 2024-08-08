@@ -113,7 +113,7 @@ begin
   if(!rst_n) begin
   	 write_valid_f <= 1'b0 ; 
   	 write_data_f  <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)) {1'b0}};
-  	 write_index_f <= {(`L1D_CACHE_INDEX_WIDTH) {1'b0}};
+  	 write_index_f <= {(L1D_CACHE_INDEX_WIDTH) {1'b0}};
   	 write_mask_f  <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)) {1'b0}};	 
   	
  end else begin	
