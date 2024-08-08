@@ -1560,11 +1560,12 @@ wire data_stalled_skid_buffer_en_S3 = data_clk_en_S3_f && valid_S3 && stall_S3;
 wire data_stalled_skid_buffer_consume_S3 = valid_S3 && !stall_S3;
 
 always @ (posedge clk) begin
-    if (data_stalled_skid_buffer_en_S3) begin
+    if (!rst_n) data_stalled_skid_buffer_en_S3_f <= 1'b0;
+    else if (data_stalled_skid_buffer_en_S3) begin
         data_stalled_skid_buffer_S3_f <= data_data_S3;
         data_stalled_skid_buffer_en_S3_f <= 1'b1;
     end
-    if (data_stalled_skid_buffer_consume_S3) begin
+    else if (data_stalled_skid_buffer_consume_S3) begin
         data_stalled_skid_buffer_en_S3_f <= 1'b0;
     end
 end

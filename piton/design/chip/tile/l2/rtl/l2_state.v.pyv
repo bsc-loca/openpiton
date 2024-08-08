@@ -80,8 +80,14 @@ wire [`L2_STATE_ARRAY_WIDTH-1:0] data_out_real;
 
 always @ (posedge clk)
 begin
-    data_in_buf <= data_in;
-    data_mask_in_buf <= data_mask_in;
+    if(!rst_n) begin
+        data_in_buf      <= {`L2_STATE_ARRAY_WIDTH {1'b0}} ;
+        data_mask_in_buf <= {`L2_STATE_ARRAY_WIDTH {1'b0}} ;
+    end
+    else begin
+        data_in_buf <= data_in;
+        data_mask_in_buf <= data_mask_in;
+    end
 end
 
 reg bypass_f;

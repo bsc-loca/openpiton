@@ -271,8 +271,15 @@ end
 
 `ifdef EXTERNAL_HPM_EVENT_NUM
 always @ (posedge clk) begin 
-    hpm_l2_access <= l2_access_valid && (cache_subline==0); 
-    hpm_l2_miss   <= l2_miss_valid   && (cache_subline==0);
+    if (!rst_n) begin
+        hpm_l2_access <= 1'b0 ; 
+        hpm_l2_miss   <= 1'b0 ;
+    end
+    else begin
+        hpm_l2_access <= l2_access_valid && (cache_subline==0); 
+        hpm_l2_miss   <= l2_miss_valid   && (cache_subline==0);
+    end
+end
 end
 `endif
 
