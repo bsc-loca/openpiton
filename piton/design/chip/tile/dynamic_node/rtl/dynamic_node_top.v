@@ -334,6 +334,23 @@ reg ec_north_input_valid_reg, ec_east_input_valid_reg, ec_south_input_valid_reg,
 // let's register these babies before they do any damage to the cycle time -- mbt
 always @(posedge clk)
   begin
+      if(reset) begin
+     ec_thanks_n_to_n_reg <= 1'b0; ec_thanks_n_to_e_reg <= 1'b0; ec_thanks_n_to_s_reg <= 1'b0; ec_thanks_n_to_w_reg <= 1'b0; ec_thanks_n_to_p_reg <= 1'b0;
+     ec_thanks_e_to_n_reg <= 1'b0; ec_thanks_e_to_e_reg <= 1'b0; ec_thanks_e_to_s_reg <= 1'b0; ec_thanks_e_to_w_reg <= 1'b0; ec_thanks_e_to_p_reg <= 1'b0;
+     ec_thanks_s_to_n_reg <= 1'b0; ec_thanks_s_to_e_reg <= 1'b0; ec_thanks_s_to_s_reg <= 1'b0; ec_thanks_s_to_w_reg <= 1'b0; ec_thanks_s_to_p_reg <= 1'b0;
+     ec_thanks_w_to_n_reg <= 1'b0; ec_thanks_w_to_e_reg <= 1'b0; ec_thanks_w_to_s_reg <= 1'b0; ec_thanks_w_to_w_reg <= 1'b0; ec_thanks_w_to_p_reg <= 1'b0;
+     ec_thanks_p_to_n_reg <= 1'b0; ec_thanks_p_to_e_reg <= 1'b0; ec_thanks_p_to_s_reg <= 1'b0; ec_thanks_p_to_w_reg <= 1'b0; ec_thanks_p_to_p_reg <= 1'b0;
+     ec_wants_to_send_but_cannot_N_reg <= 1'b0;
+     ec_wants_to_send_but_cannot_E_reg <= 1'b0;
+     ec_wants_to_send_but_cannot_S_reg <= 1'b0;
+     ec_wants_to_send_but_cannot_W_reg <= 1'b0;
+     ec_wants_to_send_but_cannot_P_reg <= 1'b0;
+     ec_north_input_valid_reg <= 1'b0 ;
+     ec_east_input_valid_reg  <= 1'b0 ;
+     ec_south_input_valid_reg <= 1'b0 ;
+     ec_west_input_valid_reg  <= 1'b0 ;
+     ec_proc_input_valid_reg  <= 1'b0 ;
+      end else begin
      ec_thanks_n_to_n_reg <= thanks_n_to_n; ec_thanks_n_to_e_reg <= thanks_n_to_e; ec_thanks_n_to_s_reg <= thanks_n_to_s; ec_thanks_n_to_w_reg <= thanks_n_to_w; ec_thanks_n_to_p_reg <= thanks_n_to_p;
      ec_thanks_e_to_n_reg <= thanks_e_to_n; ec_thanks_e_to_e_reg <= thanks_e_to_e; ec_thanks_e_to_s_reg <= thanks_e_to_s; ec_thanks_e_to_w_reg <= thanks_e_to_w; ec_thanks_e_to_p_reg <= thanks_e_to_p;
      ec_thanks_s_to_n_reg <= thanks_s_to_n; ec_thanks_s_to_e_reg <= thanks_s_to_e; ec_thanks_s_to_s_reg <= thanks_s_to_s; ec_thanks_s_to_w_reg <= thanks_s_to_w; ec_thanks_s_to_p_reg <= thanks_s_to_p;
@@ -349,6 +366,7 @@ always @(posedge clk)
      ec_south_input_valid_reg <= south_input_valid;
      ec_west_input_valid_reg  <= west_input_valid;
      ec_proc_input_valid_reg  <= proc_input_valid;
+    end
   end
 
    wire ec_thanks_to_n = ec_thanks_n_to_n_reg | ec_thanks_e_to_n_reg | ec_thanks_s_to_n_reg | ec_thanks_w_to_n_reg | ec_thanks_p_to_n_reg;

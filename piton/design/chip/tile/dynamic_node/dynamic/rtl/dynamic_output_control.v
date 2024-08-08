@@ -125,7 +125,8 @@ assign valid_out_internal = valid_out_temp & planned_or_default & space_avail;
 // mbt: if valid_out_interal is a critical path, we can use some "bleeder" gates to decrease the load of the ec stuff
 always @(posedge clk)
   begin
-     ec_wants_to_send_but_cannot <= valid_out_temp & planned_or_default & ~space_avail;
+      if(reset) ec_wants_to_send_but_cannot <= 1'b0;
+      else ec_wants_to_send_but_cannot <= valid_out_temp & planned_or_default & ~space_avail;
   end
 
 /* assign route_req_all_or = route_req_a_in | route_req_b_in | route_req_c_in | route_req_d_in | route_req_x_in; */
