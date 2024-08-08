@@ -94,6 +94,9 @@ assign read_data = regfile[read_index_f];
 // Write port
 always @ (posedge clk)
 begin
+   if(!rst_n)
+      write_valid_f <= 1'b0 ;
+   else 
    write_valid_f <= write_valid;
    if (write_valid)
    begin

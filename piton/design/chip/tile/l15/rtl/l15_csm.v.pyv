@@ -591,9 +591,12 @@ begin
     end
 end
 
-always @ (posedge clk)
+always @ (posedge clk) 
 begin
-    refill_req_buf_counter <= refill_req_buf_counter_next;
+	if(!rst_n)
+	  refill_req_buf_counter <= {`L15_CSM_NUM_TICKETS_LOG2 {1'b0}};
+	else
+          refill_req_buf_counter <= refill_req_buf_counter_next;
 end
 
 always @ *
@@ -612,9 +615,15 @@ begin
     end
 end
 
-always @ (posedge clk)
+always @ (posedge clk) 
 begin
-    refill_req_buf_rd_ptr <= refill_req_buf_rd_ptr_next;
+	 if (!rst_n)
+	 
+           refill_req_buf_rd_ptr <= {`L15_CSM_NUM_TICKETS_LOG2{1'b0}};
+           
+          else 
+                    
+           refill_req_buf_rd_ptr <= refill_req_buf_rd_ptr_next;
 end
 
 always @ *
@@ -633,9 +642,13 @@ begin
     end
 end
 
-always @ (posedge clk)
+always @ (posedge clk) 
 begin
-    refill_req_buf_wr_ptr <= refill_req_buf_wr_ptr_next;
+
+	if(!rst_n)
+	refill_req_buf_wr_ptr <= {`L15_CSM_NUM_TICKETS_LOG2{1'b0}};
+	else
+        refill_req_buf_wr_ptr <= refill_req_buf_wr_ptr_next;
 end
 
 always @ (posedge clk)

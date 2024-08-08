@@ -239,9 +239,19 @@ end
 // do write, either allocating a new mshr or updating write-buffer or deallocating an mshr
 always @ (posedge clk)
 begin
-    if (pipe_mshr_writereq_val_s1 && (op_s1 == `L15_MSHR_WRITE_TYPE_ALLOCATION))
-    begin
-        case (mshrid_s1)
+	if(~rst_n) begin
+	  ifill_address[threadid_s1] <= 0;
+	  ifill_control[threadid_s1] <= 0;
+	  ld_address[threadid_s1] <= 0;
+	  ld_control[threadid_s1] <= 0;
+	  st_address[threadid_s1] <= 0;
+	  st_control[threadid_s1] <= 0;
+	  st_write_buffer[threadid_s1] <= 0;
+	  st_write_buffer_byte_mask[threadid_s1] <= 0;
+	 end else 
+       if (pipe_mshr_writereq_val_s1 && (op_s1 == `L15_MSHR_WRITE_TYPE_ALLOCATION))
+         begin
+           case (mshrid_s1)
             `L15_MSHR_ID_IFILL:
             begin
                 ifill_address[threadid_s1] <= pipe_mshr_writereq_address_s1;
@@ -274,6 +284,11 @@ end
 ////////////////////////
 always @ (posedge clk)
 begin
+    if(!rst_n) begin
+     st_state[threadid_s3] <= 0;
+     st_way[threadid_s3] <= 0;
+    end else    
+    	
     if (pipe_mshr_val_s3 && op_s3 == `L15_MSHR_WRITE_TYPE_UPDATE_ST_STATE)
     begin
         st_state[threadid_s3] <= pipe_mshr_write_update_state_s3;

@@ -94,8 +94,12 @@ reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] regfile [0:L1D_SET_COUNT-1];
 
 always @ (posedge clk)
 begin
-   if (read_valid)
-      data_out_f <= regfile[read_index];
+
+	if(!rst_n)
+	  data_out_f <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)){1'b0}} ;
+	else 
+   	if (read_valid)
+     	 data_out_f <= regfile[read_index];
 end
 
 
@@ -105,6 +109,14 @@ assign read_data = data_out_f;
 
 always @ (posedge clk)
 begin
+
+  if(!rst_n) begin
+  	 write_valid_f <= 1'b0 ; 
+  	 write_data_f  <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)) {1'b0}};
+  	 write_index_f <= {(`L1D_CACHE_INDEX_WIDTH) {1'b0}};
+  	 write_mask_f  <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)) {1'b0}};	 
+  	
+ end else begin	
    write_valid_f <= write_valid;
    if (write_valid)
    begin
@@ -112,6 +124,7 @@ begin
       write_index_f <= write_index;
       write_mask_f <= write_mask;
    end
+ end
 end
 
 integer numset, numway;

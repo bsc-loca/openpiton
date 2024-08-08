@@ -100,8 +100,13 @@ reg [`L15_HMT_ENTRY_WIDTH-1:0] dout_f;
 
 assign DOUT = dout_f;
 
-always @ (posedge MEMCLK)
+always @ (posedge MEMCLK) 
 begin
+  if(!RESET_N)
+   begin
+   	cache[A] <= 0;
+   	dout_f <= {`L15_HMT_ENTRY_WIDTH{1'b0}} ;
+   end else begin   
    if (CE)
    begin
       if (RDWEN == 1'b0)
@@ -109,6 +114,7 @@ begin
       else
          dout_f <= cache[A];
    end
+  end
 end
 
 `endif 

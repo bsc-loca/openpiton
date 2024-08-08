@@ -102,6 +102,12 @@ assign read_data = regfile[read_index_f];
 // Write port
 always @ (posedge clk)
 begin
+ if(!rst_n)
+  begin
+   write_valid_f <= 1'b0 ; 
+   write_data_f <= {`L15_MESI_ARRAY_WIDTH {1'b0}};
+   write_mask_f <= {`L15_MESI_ARRAY_WIDTH {1'b0}};
+  end else begin
    write_valid_f <= write_valid;
    if (write_valid)
    begin
@@ -109,6 +115,7 @@ begin
       write_index_f <= write_index;
       write_mask_f <= write_mask;
    end
+end
 end
 
 integer numset;

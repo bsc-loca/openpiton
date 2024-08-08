@@ -399,9 +399,12 @@ begin
 end
 
 
-always @ (posedge clk)
-begin
-    entry_locked_f <= entry_locked_next;
+always @ (posedge clk) 
+begin 
+	if (!rst_n)
+		entry_locked_f <= {`L15_HMC_ENTRIES {1'b0}} ;
+	else
+    		entry_locked_f <= entry_locked_next;
 end
 
 
@@ -446,7 +449,10 @@ end
 
 always @ (posedge clk)
 begin
-    entry_used_f <= entry_used_next;
+  if (!rst_n)
+	entry_used_f <= {`L15_HMC_ENTRIES {1'b0}};
+ else
+        entry_used_f <= entry_used_next;
 end
 
 
