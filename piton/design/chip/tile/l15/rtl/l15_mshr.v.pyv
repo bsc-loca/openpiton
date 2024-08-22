@@ -240,14 +240,17 @@ end
 always @ (posedge clk)
 begin
 	if(~rst_n) begin
-	  ifill_address[threadid_s1] <= 0;
-	  ifill_control[threadid_s1] <= 0;
-	  ld_address[threadid_s1] <= 0;
-	  ld_control[threadid_s1] <= 0;
-	  st_address[threadid_s1] <= 0;
-	  st_control[threadid_s1] <= 0;
-	  st_write_buffer[threadid_s1] <= 0;
-	  st_write_buffer_byte_mask[threadid_s1] <= 0;
+      for (i = 0; i < `L15_NUM_THREADS; i = i + 1)
+      begin
+          ifill_address[i] <= {(`L15_PADDR_HI+1){1'b0}};
+          ifill_control[i] <= {`L15_CONTROL_WIDTH{1'b0}};
+          ld_address[i] <= {(`L15_PADDR_HI+1){1'b0}};
+          ld_control[i] <= {`L15_CONTROL_WIDTH{1'b0}};
+          st_address[i] <= {(`L15_PADDR_HI+1){1'b0}};
+          st_control[i] <= {`L15_CONTROL_WIDTH{1'b0}};
+          st_write_buffer[i] <= {(L15_L1D_LINE_SIZE*8){1'b0}};
+          st_write_buffer_byte_mask[i] <= {L15_L1D_LINE_SIZE{1'b0}};
+      end
 	 end else 
        if (pipe_mshr_writereq_val_s1 && (op_s1 == `L15_MSHR_WRITE_TYPE_ALLOCATION))
          begin
