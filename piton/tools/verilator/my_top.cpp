@@ -28,8 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "verilated.h"
 #include <iostream>
 //#define VERILATOR_VCD
-#ifdef VERILATOR_VCD
+#if defined(VERILATOR_VCD)
 #include "verilated_vcd_c.h"
+#elif defined(VERILATOR_FST)
+#include "verilated_fst_c.h"
 #endif
 
 extern "C" void init_jbus_model_call(const char *str, int oram);
@@ -37,8 +39,10 @@ extern "C" void init_jbus_model_call(const char *str, int oram);
 uint64_t main_time = 0; // Current simulation time
 uint64_t clk = 0;
 Vcmp_top* top;
-#ifdef VERILATOR_VCD
+#if defined(VERILATOR_VCD)
 VerilatedVcdC* tfp;
+#elif defined(VERILATOR_FST)
+VerilatedFstC* tfp;
 #endif
 
 // This is a 64-bit integer to reduce wrap over issues and
@@ -52,13 +56,13 @@ void tick() {
     top->core_ref_clk = !top->core_ref_clk;
     main_time += 250;
     top->eval();
-#ifdef VERILATOR_VCD
+#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
     tfp->dump(main_time);
 #endif
     top->core_ref_clk = !top->core_ref_clk;
     main_time += 250;
     top->eval();
-#ifdef VERILATOR_VCD
+#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
     tfp->dump(main_time);
 #endif
 }
@@ -150,9 +154,13 @@ Verilated::commandArgs(argc, argv);
 top = new Vcmp_top;
 std::cout << "Vcmp_top created" << std::endl << std::flush;
 
-#ifdef VERILATOR_VCD
+#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
 Verilated::traceEverOn(true);
+#if defined(VERILATOR_VCD)
 tfp = new VerilatedVcdC;
+#elif defined(VERILATOR_FST)
+tfp = new VerilatedFstC;
+#endif
 top->trace (tfp, 99);
 tfp->open ("my_top.vcd");
 
@@ -163,7 +171,7 @@ reset_and_init();
 
 while (!Verilated::gotFinish()) { tick(); }
 
-#ifdef VERILATOR_VCD
+#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
 std::cout << "Trace done" << std::endl;
 tfp->close();
 #endif
