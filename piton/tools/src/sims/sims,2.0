@@ -1559,7 +1559,7 @@ sub generic_sim_build
       $build_cmd .= "--unroll-count 256 " ;
       $build_cmd .= "-CFLAGS -DVERILATOR " ;
       $build_cmd .= "-CFLAGS -DPITON_DPI " ;
-      $build_cmd .= "-CFLAGS -lstdc++ " ;
+      #$build_cmd .= "-CFLAGS -lstdc++ " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
 
