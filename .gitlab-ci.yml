@@ -69,7 +69,6 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/sargantana_setup.sh
-    - piton/sargantana_build_tools.sh $CI_JOB_TOKEN
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h
 
@@ -80,7 +79,6 @@ default:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
     - export RISCV=/opt/riscv-gnu-toolchain/rvv-0.7.1/
-    - piton/ariane_build_tools.sh $CI_JOB_TOKEN
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h
 
@@ -91,7 +89,6 @@ default:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
     - export RISCV=/opt/riscv-gnu-toolchain/rvv-0.7.1/
-    - piton/ariane_build_tools.sh $CI_JOB_TOKEN
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h
 
@@ -106,6 +103,7 @@ sargantana_build:
   before_script:
     - !reference [.sargantana_regression_base, before_script]
   script:
+    - piton/sargantana_build_tools.sh $CI_JOB_TOKEN
     - cd build
     - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_vlt_1_1
     - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_msm_1_1
@@ -118,6 +116,8 @@ sargantana_build:
     when: always
     paths:
       - ./build
+      - ./piton/design/chip/tile/sargantana/simulator/reference/build/libdisasm.so
+      - ./piton/design/chip/tile/sargantana/tmp/riscv-tests/build/
 
 sargantana_isa_tests:
   extends: .sargantana_regression_base
@@ -198,6 +198,7 @@ ariane_build:
   before_script:
     - !reference [.ariane_regression_base, before_script]
   script:
+    - piton/ariane_build_tools.sh $CI_JOB_TOKEN
     - cd build
     - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_vlt_1_1
     - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_msm_1_1
@@ -291,6 +292,7 @@ ariane_hpdc_build:
   before_script:
     - !reference [.ariane_hpdc_regression_base, before_script]
   script:
+    - piton/ariane_build_tools.sh $CI_JOB_TOKEN
     - cd build
     - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_vlt_1_1
     - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_msm_1_1
