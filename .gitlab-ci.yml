@@ -74,6 +74,15 @@ default:
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h
 
+.lox_regression_base:
+  dependencies:
+    - lox_build
+  before_script:
+    - !reference [default, before_script]
+    - source piton/lox_setup.sh
+    - export VERILATOR_ROOT=/opt/verilator/5.014
+  timeout: 4h
+
 .ariane_regression_base:
   dependencies:
     - ariane_build
@@ -185,6 +194,104 @@ sargantana_multicore:
     - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_${X_TILES}_${Y_TILES}
       -group sarg_tile$(($X_TILES * $Y_TILES))_simple
       -group sarg_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+################################################################################
+# Lagarto Ox
+################################################################################
+
+lox_build:
+  stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    - !reference [.lox_regression_base, before_script]
+  script:
+    - piton/lox_build_tools.sh $CI_JOB_TOKEN
+    - cd build
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -lox -build_id=lox_vlt_1_1
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -lox -build_id=lox_msm_1_1
+    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=2 -lox -build_id=lox_vlt_1_2
+    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=2 -lox -build_id=lox_msm_1_2
+    - sims -vlt_build -sys=manycore -x_tiles=2 -y_tiles=2 -lox -build_id=lox_vlt_2_2
+    - sims -msm_build -sys=manycore -x_tiles=2 -y_tiles=2 -lox -build_id=lox_msm_2_2
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+      - ./piton/design/chip/tile/lagarto_ox/simulator/reference/build/libdisasm.so
+      - ./piton/design/chip/tile/lagarto_ox/tmp/riscv-tests/build/
+
+lox_isa_tests:
+  extends: .lox_regression_base
+  stage: sim_isa_tests
+  parallel:
+    matrix:
+      - SIM_TYPE:
+        - vlt
+        #- msm
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=lox_${SIM_TYPE}_1_1
+      -group=lox_tile1_asm_tests_p
+      -group=lox_tile1_asm_tests_v
+      -group=lox_tile1_amo_tests_p
+      -group=lox_tile1_amo_tests_v
+      -group=lox_tile1_fp_tests_p
+      -group=lox_tile1_fp_tests_v
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+lox_benchmarks:
+  extends: .lox_regression_base
+  stage: sim_benchmarks
+  rules:
+    !reference [.rule_only_merge]
+  parallel:
+    matrix:
+      - SIM_TYPE:
+        - vlt
+        #- msm
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=lox_${SIM_TYPE}_1_1
+      -group lox_tile1_benchmarks
+      -group lox_tile1_mt_benchmarks
+      -group lox_tile1_simple
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+lox_multicore:
+  extends: .lox_regression_base
+  stage: sim_multicore
+  rules:
+    !reference [.rule_only_merge]
+  parallel:
+    matrix:
+      - X_TILES: [1,2]
+        Y_TILES: [2]
+        SIM_TYPE:
+          - vlt
+          #- msm
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE -noclean -build_id=lox_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+      -group lox_tile$(($X_TILES * $Y_TILES))_simple
+      -group lox_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
     - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
