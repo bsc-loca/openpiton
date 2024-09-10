@@ -73,6 +73,11 @@ if PITON_ARIANE or PITON_PICO or PITON_SARG or PITON_LOX:
 else:
     NUM_THREADS = 2 * PITON_NUM_TILES
 
+if PITON_LOX:
+    NUM_COMMIT_PORTS = 4
+else:
+    NUM_COMMIT_PORTS = 1
+
 # cache configurations
 CONFIG_L15_SIZE = int(os.environ.get('CONFIG_L15_SIZE', '8192'))
 CONFIG_L15_ASSOCIATIVITY = int(os.environ.get('CONFIG_L15_ASSOCIATIVITY', '4'))
@@ -171,6 +176,16 @@ def Replicate(text):
         newtext += t + '\n';
     return newtext;
 
+# Same as Replicate but takes the number of commit ports into account
+def ReplicateCommit(text):
+    newtext = ''
+    for i in range(PITON_NUM_TILES):
+        for j in range(NUM_COMMIT_PORTS):
+            t = text.replace("0", repr(i));
+            t2 = t.replace("$", repr(j));
+            newtext += t2 + '\n';
+    return newtext;
+
 #import re
 #def ReplicateRE(text):
 #    regex = " ([^\.:]+)0"
@@ -190,6 +205,22 @@ def ReplicatePattern(text, patterns):
       t = t.replace(p, replacement);
     newtext += t + '\n';
   return newtext;
+
+# Same as Replicate but takes the number of commit ports into account
+def ReplicatePatternCommit(text, tile_patterns, commit_patterns):
+    regex = " ([^\.:]+)0"
+    newtext = ''
+    for i in range(PITON_NUM_TILES):
+        for j in range(NUM_COMMIT_PORTS):
+            t = text
+            for p in tile_patterns:
+                replacement = p[:-1] + repr(i);
+                t = t.replace(p, replacement);
+            for p in commit_patterns:
+                replacement = p[:-1] + repr(j);
+                t = t.replace(p, replacement);
+            newtext += t + '\n';
+    return newtext;
 
 # only difference is that this looks for patterns start with 1 not 0
 def ReplicatePattern1(text, patterns):
