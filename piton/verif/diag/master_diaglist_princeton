@@ -709,6 +709,8 @@ pico-amoxor     amoxor_w.S
             sarg-hello-world  hello_world.c
             sarg-accu         accu_test.c
             sarg-amo-align    amo_align.c
+            sarg-vector-wt    vectorial_mem_access_test.c
+            sarg-lrsc-check   lrsc_check.c
         </runargs>
     </sarg_tile1_simple>
 

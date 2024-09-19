@@ -69,6 +69,7 @@ default:
     - sargantana_build
   before_script:
     - !reference [default, before_script]
+    - module swap rvv/1.0.0 # Sargantana implements RVV 1.0
     - source piton/sargantana_setup.sh
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 4h

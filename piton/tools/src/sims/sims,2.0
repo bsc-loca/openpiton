@@ -2331,7 +2331,7 @@ sub assemble_diag
         if ($opt{ariane}) {
           $ENV{RV64_MARCH} = "rv64imafdc" ;
         } elsif ($opt{sarg}) {
-          $ENV{RV64_MARCH} = "rv64imafd" ;
+          $ENV{RV64_MARCH} = "rv64imafdv" ;
         }
       } else {
         $ENV{RV64_MARCH} = $opt{rv64_march} ;

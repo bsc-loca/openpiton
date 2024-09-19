@@ -1,24 +1,30 @@
-// Copyright 2018 ETH Zurich and University of Bologna.
-// Copyright and related rights are licensed under the Solderpad Hardware
-// License, Version 0.51 (the "License"); you may not use this file except in
-// compliance with the License.  You may obtain a copy of the License at
-// http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
-// or agreed to in writing, software, hardware and materials distributed under
-// this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the
-// specific language governing permissions and limitations under the License.
-//
-// Author: Michael Schaffner <schaffner@iis.ee.ethz.ch>, ETH Zurich
-// Date: 26.11.2018
-// Description: Simple hello world program that prints 32 times "hello world".
-//
+// Tests write-throughs to memory using a vector unit and vector copies.
+// Use `sims ... -gcc_args=-DENABLE_DEBUG_PRINTS` to enable debugging prints.
+// Written by: Arnau Bigas <arnau.bigas@bsc.es>
+//             Joaquim Borras <joaquim.borras@bsc.es>
 
 #include <stdio.h>
 #include <stdint.h>
-//#include "test_macros.h"
+
+// Cacheline size in bytes
+#define CACHELINE_BYTES 64
+
+// Vector element size in bytes -- this will determine the alignment of the accesses
+#define ELEMENT_SIZE_BYTES 4
+#define ELEMENT_SIZE_BITS 32 // Must be hardcoded in order to perform stringification
+
+#define xstr(a) str(a)
+#define str(a) #a
+
+#ifdef ENABLE_DEBUG_PRINTS
+#define DEBUG_LOG(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define DEBUG_LOG
+#endif
+#define ERROR_LOG(fmt, ...) printf(fmt, ##__VA_ARGS__)
 
 // Test data: initialize with some known pattern
-uint32_t test_data[16] __attribute__((aligned(64))) = {
+uint32_t test_data[CACHELINE_BYTES/4] __attribute__((aligned(CACHELINE_BYTES))) = {
 	0x12345678, 0x9abcdef0, 0x0fedcba9, 0x87654321,
 	0x11223344, 0x55667788, 0x99aabbcc, 0xddeeff00,
 	0x01020304, 0x05060708, 0x090a0b0c, 0x0d0e0f10,
@@ -26,73 +32,122 @@ uint32_t test_data[16] __attribute__((aligned(64))) = {
 };
 
 // Buffer for storing results
-uint32_t store_buffer[16] __attribute__((aligned(64)));
+uint32_t store_buffer[CACHELINE_BYTES/4] __attribute__((aligned(CACHELINE_BYTES)));
 
-#define SIMD_COPY(SIZE,offset) asm volatile ( \
-		"vsetvli x0, %2, e32, m1\n\t" \
-		"vle8.v v0, (%0)\n\t" \
-		"vse8.v v0, (%1)\n\t" \
-		: \
+// This configures the Vector Unit to have a vector length of size SIZE and of
+// 4-byte elements (words).
+#define SIMD_COPY(SIZE, offset, vector_length) asm volatile ( \
+		"vsetvli %0, %3, e8, m1, ta\n\t" \
+		"vle8.v v0, (%1)\n\t" \
+		"vse8.v v0, (%2)\n\t" \
+		: "=r" (vector_length) \
 		: "r" (test_data+offset), "r" (store_buffer+offset), "r" (SIZE) \
 		: "v0" \
 	)
 
-// To implement all the cases we have to shift the storing address.
+// Returns 1 if there is an error unrelated to the test (i.e. SIMD unit not wide enough)
+unsigned int check_load_store(const unsigned int bytes, unsigned int *test_count, unsigned int *failed_count) {
+	// Calculate number of possible alignments, taking into account cache line
+	// boundaries. E.g. with 4 byte elements, vector lengths of 1 element will
+	// have 64/4=16 possibilities, but with 2 elements (i.e. 8 bytes), there
+	// will be 15, as the last 4-byte offset would overrun and access the next
+	// cacheline.
+	const unsigned int num_alignments = CACHELINE_BYTES/ELEMENT_SIZE_BYTES
+		- (bytes > ELEMENT_SIZE_BYTES ? (bytes/ELEMENT_SIZE_BYTES)-1 : 0);
 
+	*test_count = num_alignments;
+	*failed_count = 0;
 
-int check_load_store(uint32_t bytes) {
-	int num_missmatches = 0;
-	int num_alignments = 64/bytes;
+	// Check all possible alignments for the access (i.e. if testing 16B stores
+	// in 64B cachelines, there are 16/64=4 possible alignments).
+	for(uint32_t alignment_offset = 0; alignment_offset < num_alignments; alignment_offset++){
 
-	for(uint32_t k = 0; k < num_alignments;k++){
-		for (uint32_t i = 0; i < 16; i++) {
-			store_buffer[i] = 0xbadc0de; 
+		// Initialize store buffer with known data
+		for (uint32_t offset = 0; offset < 16; offset++) {
+			store_buffer[offset] = 0xbadc0de; 
 		}
 
-		SIMD_COPY(bytes,k*bytes/4);
+		// Perform test (copy from test data to store buffer)
+		unsigned int vector_length = 0;
+		SIMD_COPY(bytes, alignment_offset, vector_length);
+		if(vector_length != bytes) return 1;
 
-		printf("Test results (%d bytes, %d offset):\n", bytes, k*bytes);
+		DEBUG_LOG("Test results (%d bytes, %d offset):\n", bytes, alignment_offset*bytes);
 
-		for (uint32_t i = 0; i < 16; i++) {
-			printf("0x%08x ", store_buffer[i]);
-			uint32_t good = (i >= (k*bytes/4) && i < (k+1)*bytes/4) ? test_data[i] : 0xbadc0de;
-			if(store_buffer[i] != good){
-					printf("Missmatch\n");
-					num_missmatches++;
+		unsigned int failed = 0;
+		unsigned int write_start = alignment_offset*ELEMENT_SIZE_BYTES/4;
+		unsigned int write_end = write_start + (bytes/4);
+
+		// Check the written data word by word
+		for (uint32_t word_offset = 0; word_offset < 16; word_offset++) {
+			DEBUG_LOG("0x%08x ", store_buffer[word_offset]);
+
+			// The word is within the written region if the word_offset is
+			// within the current alignment offset and the next
+			unsigned int should_be_written = word_offset >= write_start && word_offset < write_end;
+
+			// If the current word offset should have been written, compare it
+			// against the test data. If it should have stayed the same, compare
+			// it against the initialization data.
+			uint32_t good = should_be_written ? test_data[word_offset] : 0xbadc0de;
+
+			// Based on the previous variables, if there is a mismatch, report it.
+			if(store_buffer[word_offset] != good){
+					DEBUG_LOG("(mismatch) ");
+					failed = 1; // Flag that this alignment has had at least one mismatch
 			}
 		}
 
-		printf("\n");
+		// If any of the words mismatched, flag alignment test as failed
+		if (failed) (*failed_count)++;
+
+		DEBUG_LOG("\n");
 	}
-	return num_missmatches;
-	
+
+	return 0;
 }
-
-
-
 
 int main(int argc, char ** argv) {
 
-	uint8_t* msg = "TEST SUCCESSFUL";
-	printf("Initialization data:\n");
-	
+	unsigned int total_mismatches = 0;
+	unsigned int total_tests = 0;
+	unsigned int test_error = 0;
+
+	DEBUG_LOG("Initialization data:\n");
 	for (uint32_t i = 0; (i*4) < 64; i++) {
-		printf("0x%08x ", test_data[i]); 
+		DEBUG_LOG("0x%08x ", test_data[i]); 
 	}
+	DEBUG_LOG("\n");
 
-	printf("\n");
+	// Run test with all supported configuration sizes.
+	// SIMD Unit in Sargantana is 128 bits
+	for (int bits = 32; bits <= 128; bits = bits*2) {
+		unsigned int test_count = 0;
+		unsigned int test_mismatches = 0;
 
-	// Test
-	for (int k = 8; k < 128; k = k*2) {
-		if(check_load_store(k)!=0){
-			printf("Test size=%d failed\n",k);
-			msg = "TEST FAILED";
+		if (check_load_store(bits/8, &test_count, &test_mismatches)) {
+			ERROR_LOG("Error: Configuration with %d bits not supported\n", bits);
+			test_error = 1;
+			return 1;
 		}
-		asm("fence");
 
+		total_tests += test_count;
+		total_mismatches += test_mismatches;
+
+		if(test_mismatches != 0){
+			ERROR_LOG("Test size=%dB failed (%d mismatches, %d tests)\n", bits/8, test_mismatches, test_count);
+		} else {
+			ERROR_LOG("Test size=%dB passed (%d tests)\n", bits/8, test_count);
+		}
+
+		asm("fence");
 	}
 
-	printf("%s\n",msg);
+	if (total_mismatches > 0) {
+		ERROR_LOG("TEST FAILED: %d mismatches out of %d tests\n", total_mismatches, total_tests);
+	} else {
+		ERROR_LOG("TEST PASSED\n");
+	}
 
-	return 0;
+	return total_mismatches;
 }
