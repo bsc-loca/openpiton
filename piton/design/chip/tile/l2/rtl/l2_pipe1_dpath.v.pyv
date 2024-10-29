@@ -939,16 +939,24 @@ begin
         else if (addr_S2[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_STATE_ACCESS)
         begin
         // State access is only available when L2_WAYS is less than 8
-            <%
+<%
 if (L2_WAYS < 8):
     print("""if (addr_S2[`L2_ADDR_OP] == {`L2_ADDR_OP_WIDTH{1'b0}})
             begin
                 return_data_S2 = {{(`L2_P1_DATA_BUF_IN_WIDTH - `L2_STATE_DATA_WIDTH){1'b0}}, state_data_trans_S2[`L2_STATE_DATA]};
             end
             else""")
-%>            begin
+if (L2_WAYS <= 32):          
+    print("""
+            begin
                 return_data_S2 = {{(`L2_P1_DATA_BUF_IN_WIDTH - `L2_RB_BITS - `L2_LRU_BITS){1'b0}}, l2_rb_bits_S2, l2_lru_bits_S2};
-            end
+            end""")
+else:          
+    print("""
+            begin
+                return_data_S2 = {{(`L2_P1_DATA_BUF_IN_WIDTH - 8 - 32){1'b0}}, 8, 32}; // only first 32 way, rb and lru bits are sent;
+            end""")            
+%>
         end
         else
         begin
@@ -1287,7 +1295,12 @@ always @ *
 begin
     if (special_addr_type_S2)
     begin
-        state_data_in_S2 = {msg_data_S2[`L2_RB_BITS+`L2_LRU_BITS-1:0], msg_data_S2[`L2_STATE_DATA_WIDTH-1:0]};
+<%
+if (L2_WAYS <= 4):          
+    print("        state_data_in_S2 = {msg_data_S2[`L2_RB_BITS+`L2_LRU_BITS-1:0], msg_data_S2[`L2_STATE_DATA_WIDTH-1:0]};")
+else:          
+    print("        state_data_in_S2 = {msg_data_S2[2+4-1:0], msg_data_S2[`L2_STATE_WAY_WIDTH*4-1:0]}; // Only first 4 ways are available")        
+%>
     end
     else
     begin
