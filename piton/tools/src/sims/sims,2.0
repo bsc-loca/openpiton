@@ -2740,6 +2740,14 @@ sub parse_args
         $ENV{L15_NUM_THREADS} = $opt{l15_num_threads};
     }
 
+  GetOptions (\%opt,"l2_mshr_entries=s",
+    );
+
+    if ($opt{l2_mshr_entries}) {
+        $ENV{L2_MSHR_ENTRIES} = $opt{l2_mshr_entries};
+    }
+    
+    
 my @nocs_width = (
     "noc1_width",
     "noc2_width",

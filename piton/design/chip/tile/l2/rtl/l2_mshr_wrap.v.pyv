@@ -211,8 +211,10 @@ l2_mshr l2_mshr(
 `else
 
 <%
-L2_MSHR_ENTRIES = 8
-L2_MSHR_INDEX_WIDTH = 3
+import math
+import pyhplib
+from pyhplib import *
+L2_MSHR_INDEX_WIDTH = int(math.log(L2_MSHR_ENTRIES, 2))
 %>
 
 reg [`L2_MSHR_STATE_BITS-1:0] state_mem_f [`L2_MSHR_ENTRIES-1:0];
