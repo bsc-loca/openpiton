@@ -87,7 +87,7 @@ reg new_buffer;
 reg [`L15_NOC3_REQTYPE_WIDTH-1:0] l15_noc3encoder_req_type_buf;
 reg [(L15_L1D_LINE_SIZE*8)-1:0] l15_noc3encoder_req_data_buf;
 reg [`L15_MSHR_ID_WIDTH-1:0] l15_noc3encoder_req_mshrid_buf;
-reg [1:0] l15_noc3encoder_req_threadid_buf;
+reg [`L15_THREADID_MASK] l15_noc3encoder_req_threadid_buf;
 reg [1:0] l15_noc3encoder_req_sequenceid_buf;
 reg [39:0] l15_noc3encoder_req_address_buf;
 reg l15_noc3encoder_req_with_data_buf;
