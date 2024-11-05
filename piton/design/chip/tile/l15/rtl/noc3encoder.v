@@ -52,7 +52,7 @@ module noc3encoder #(
     input wire l15_noc3encoder_req_val,
     input wire [`L15_NOC3_REQTYPE_WIDTH-1:0] l15_noc3encoder_req_type,
     input wire [(L15_L1D_LINE_SIZE*8)-1:0] l15_noc3encoder_req_data,
-    input wire [`L15_MSHR_ID_WIDTH-1:0] l15_noc3encoder_req_mshrid,
+    input wire [`L15_MSHR_TYPE_WIDTH-1:0] l15_noc3encoder_req_mshr_type,
     input wire [`L15_THREADID_MASK] l15_noc3encoder_req_threadid,
     input wire [1:0] l15_noc3encoder_req_sequenceid,
     input wire [39:0] l15_noc3encoder_req_address,
@@ -285,7 +285,7 @@ assign address = l15_noc3encoder_req_address;
 assign dest_l2_xpos = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_X_MASK];
 assign dest_l2_ypos = l15_noc3encoder_req_homeid[`PACKET_HOME_ID_Y_MASK];
 assign dest_fbits = `NOC_FBITS_L2;
-assign msg_mshrid = {l15_noc3encoder_req_threadid, l15_noc3encoder_req_mshrid};
+assign msg_mshrid = {l15_noc3encoder_req_threadid, l15_noc3encoder_req_mshr_type};
 
 assign src_l2_xpos = coreid_x;
 assign src_l2_ypos = coreid_y;

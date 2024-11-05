@@ -35,6 +35,8 @@ MAX_Y = 8;
 L15_NUM_THREADS = int(os.environ.get('L15_NUM_THREADS', '2'))
 L2_MSHR_ENTRIES = int(os.environ.get('L2_MSHR_ENTRIES', '2'))
 
+L15_MSHR_COUNT = int(os.environ.get('L15_MSHR_COUNT', str(int(L15_NUM_THREADS))))
+
 PITON_X_TILES = int(os.environ.get('PITON_X_TILES', '-1'))
 #print "//x_tiles:", num_tiles
 

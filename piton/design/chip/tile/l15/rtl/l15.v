@@ -271,7 +271,8 @@ simplenocbuffer #(
 wire l15_noc2decoder_ack;
 wire l15_noc2decoder_header_ack;
 wire noc2decoder_l15_val;
-wire [`L15_MSHR_ID_WIDTH-1:0] noc2decoder_l15_mshrid;
+wire [`L15_MSHR_TYPE_WIDTH-1:0] noc2decoder_l15_mshr_type;
+wire [`L15_MSHR_INDEX_MASK] noc2decoder_l15_mshr_index;
 wire noc2decoder_l15_l2miss;
 wire noc2decoder_l15_icache_type;
 wire noc2decoder_l15_f4b;
@@ -283,7 +284,6 @@ wire [3:0] noc2decoder_l15_fwd_subcacheline_vector;
 wire [`PACKET_HOME_ID_WIDTH-1:0] noc2decoder_l15_src_homeid;
 
 wire [`L15_CSM_NUM_TICKETS_LOG2-1:0] noc2decoder_l15_csm_mshrid;
-wire [`L15_THREADID_MASK] noc2decoder_l15_threadid;
 wire noc2decoder_l15_hmc_fill;
 
 /*
@@ -301,7 +301,8 @@ noc2decoder #(
     .l15_noc2decoder_header_ack(l15_noc2decoder_header_ack),
     .noc2_data_ack(noc2_data_ack),
     .noc2decoder_l15_val(noc2decoder_l15_val),
-    .noc2decoder_l15_mshrid(noc2decoder_l15_mshrid),
+    .noc2decoder_l15_mshr_type(noc2decoder_l15_mshr_type),
+    .noc2decoder_l15_mshr_index(noc2decoder_l15_mshr_index),
     .noc2decoder_l15_l2miss(noc2decoder_l15_l2miss),
     .noc2decoder_l15_icache_type(noc2decoder_l15_icache_type),
     .noc2decoder_l15_f4b(noc2decoder_l15_f4b),
@@ -312,7 +313,6 @@ noc2decoder #(
     .noc2decoder_l15_fwd_subcacheline_vector(noc2decoder_l15_fwd_subcacheline_vector),
     .noc2decoder_l15_src_homeid(noc2decoder_l15_src_homeid),
     .noc2decoder_l15_csm_mshrid(noc2decoder_l15_csm_mshrid),
-    .noc2decoder_l15_threadid(noc2decoder_l15_threadid),
     .noc2decoder_l15_hmc_fill(noc2decoder_l15_hmc_fill),
     .l15_dmbr_l2missIn(l15_dmbr_l2missIn),
     .l15_dmbr_l2missTag(l15_dmbr_l2missTag),
@@ -326,8 +326,8 @@ wire l15_noc1buffer_req_val;
 wire [`NOC1_BUFFER_ACK_DATA_WIDTH-1:0] noc1encoder_l15_req_data_sent;
 
 wire [`L15_NOC1_REQTYPE_WIDTH-1:0] l15_noc1buffer_req_type;
-wire [`L15_THREADID_MASK] l15_noc1buffer_req_threadid;
-wire [`L15_MSHR_ID_WIDTH-1:0] l15_noc1buffer_req_mshrid;
+wire [`L15_MSHR_INDEX_MASK] l15_noc1buffer_req_mshr_index;
+wire [`L15_MSHR_TYPE_WIDTH-1:0] l15_noc1buffer_req_mshr_type;
 wire [`L15_PADDR_HI:0] l15_noc1buffer_req_address;
 wire l15_noc1buffer_req_non_cacheable;
 wire [2:0] l15_noc1buffer_req_size;
@@ -345,8 +345,8 @@ wire [`MSG_SDID_WIDTH-1:0] noc1buffer_noc1encoder_req_csm_sdid;
 wire [`MSG_LSID_WIDTH-1:0] noc1buffer_noc1encoder_req_csm_lsid;
 
 wire [`L15_NOC1_REQTYPE_WIDTH-1:0] noc1buffer_noc1encoder_req_type;
-wire [`L15_THREADID_MASK] noc1buffer_noc1encoder_req_threadid;
-wire [`L15_MSHR_ID_WIDTH-1:0] noc1buffer_noc1encoder_req_mshrid;
+wire [`L15_MSHR_INDEX_MASK] noc1buffer_noc1encoder_req_mshr_index;
+wire [`L15_MSHR_TYPE_WIDTH-1:0] noc1buffer_noc1encoder_req_mshr_type;
 wire [`L15_PADDR_HI:0] noc1buffer_noc1encoder_req_address;
 wire noc1buffer_noc1encoder_req_non_cacheable;
 wire [2:0] noc1buffer_noc1encoder_req_size;
@@ -369,7 +369,7 @@ wire l15_noc3encoder_req_val;
 wire noc3buffer_noc3encoder_req_val;
 wire [`L15_NOC3_REQTYPE_WIDTH-1:0] l15_noc3encoder_req_type;
 wire [(L15_L1D_LINE_SIZE*8)-1:0] l15_noc3encoder_req_data;
-wire [`L15_MSHR_ID_WIDTH-1:0] l15_noc3encoder_req_mshrid;
+wire [`L15_MSHR_TYPE_WIDTH-1:0] l15_noc3encoder_req_mshr_type;
 wire [1:0] l15_noc3encoder_req_sequenceid;
 wire [`L15_THREADID_MASK] l15_noc3encoder_req_threadid;
 wire [`L15_PADDR_HI:0] l15_noc3encoder_req_address;
@@ -380,7 +380,7 @@ wire [`PACKET_HOME_ID_WIDTH-1:0] l15_noc3encoder_req_homeid;
 
 wire [`L15_NOC3_REQTYPE_WIDTH-1:0] noc3buffer_noc3encoder_req_type;
 wire [(L15_L1D_LINE_SIZE*8)-1:0] noc3buffer_noc3encoder_req_data;
-wire [`L15_MSHR_ID_WIDTH-1:0] noc3buffer_noc3encoder_req_mshrid;
+wire [`L15_MSHR_TYPE_WIDTH-1:0] noc3buffer_noc3encoder_req_mshr_type;
 wire [1:0] noc3buffer_noc3encoder_req_sequenceid;
 wire [`L15_THREADID_MASK] noc3buffer_noc3encoder_req_threadid;
 wire [`L15_PADDR_HI:0] noc3buffer_noc3encoder_req_address;
@@ -507,33 +507,30 @@ wire [`L15_PADDR_HI:0] pipe_mshr_writereq_address_s1;
 wire [(L15_L1D_LINE_SIZE*8)-1:0] pipe_mshr_writereq_write_buffer_data_s1;
 wire [L15_L1D_LINE_SIZE-1:0] pipe_mshr_writereq_write_buffer_byte_mask_s1;
 wire [`L15_CONTROL_WIDTH-1:0] pipe_mshr_writereq_control_s1;
-wire [`L15_MSHR_ID_WIDTH-1:0] pipe_mshr_writereq_mshrid_s1;
-wire [`L15_THREADID_MASK] pipe_mshr_writereq_threadid_s1;
-wire [`L15_THREADID_MASK] pipe_mshr_readreq_threadid_s1;
-wire [`L15_MSHR_ID_WIDTH-1:0] pipe_mshr_readreq_mshrid_s1;
+wire [`L15_MSHR_TYPE_WIDTH-1:0] pipe_mshr_writereq_mshr_type_s1;
+wire [`L15_MSHR_INDEX_MASK] pipe_mshr_writereq_index_s1;
+wire [`L15_MSHR_INDEX_MASK] pipe_mshr_readreq_index_s1;
 wire [`L15_CONTROL_WIDTH-1:0] mshr_pipe_readres_control_s1;
 wire [`PACKET_HOME_ID_WIDTH-1:0] mshr_pipe_readres_homeid_s1;
-wire [(`L15_NUM_MSHRID_PER_THREAD*`L15_NUM_THREADS)-1:0] mshr_pipe_vals_s1;
-wire [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_ifill_address;
-wire [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_ld_address;
-wire [(40*`L15_NUM_THREADS)-1:0] mshr_pipe_st_address;
-wire [(`L15_WAY_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_way_s1;
-wire [(`L15_MESI_TRANS_STATE_WIDTH*`L15_NUM_THREADS)-1:0] mshr_pipe_st_state_s1;
+wire [`L15_MSHR_COUNT-1:0] mshr_pipe_vals_s1;
+wire [(`L15_MSHR_TYPE_WIDTH*`L15_MSHR_COUNT)-1:0] mshr_pipe_type_s1;
+wire [(40*`L15_MSHR_COUNT)-1:0] mshr_pipe_address;
+wire [(`L15_WAY_WIDTH*`L15_MSHR_COUNT)-1:0] mshr_pipe_way_s1;
+wire [(`L15_MESI_TRANS_STATE_WIDTH*`L15_MSHR_COUNT)-1:0] mshr_pipe_state_s1;
 wire pipe_mshr_write_buffer_rd_en_s2;
-wire [`L15_THREADID_MASK] pipe_mshr_threadid_s2;
+wire [`L15_MSHR_INDEX_MASK] pipe_mshr_index_s2;
 wire [(L15_L1D_LINE_SIZE*8)-1:0]mshr_pipe_write_buffer_s2;
 wire [L15_L1D_LINE_SIZE-1:0] mshr_pipe_write_buffer_byte_mask_s2;
 wire pipe_mshr_val_s3;
 wire [`L15_MSHR_WRITE_TYPE_WIDTH-1:0] pipe_mshr_op_s3;
-wire [`L15_MSHR_ID_WIDTH-1:0] pipe_mshr_mshrid_s3;
-wire [`L15_THREADID_MASK] pipe_mshr_threadid_s3;
+wire [`L15_MSHR_INDEX_MASK] pipe_mshr_index_s3;
 wire [`L15_MESI_TRANS_STATE_WIDTH-1:0] pipe_mshr_write_update_state_s3;
 wire [`L15_WAY_WIDTH-1:0] pipe_mshr_write_update_way_s3;
 
 wire noc1buffer_mshr_homeid_write_val_s4;
-wire [`L15_MSHR_ID_WIDTH-1:0] noc1buffer_mshr_homeid_write_mshrid_s4;
+wire [`L15_MSHR_TYPE_WIDTH-1:0] noc1buffer_mshr_homeid_write_mshr_type_s4;
 wire [`PACKET_HOME_ID_WIDTH-1:0] noc1buffer_mshr_homeid_write_data_s4;
-wire [`L15_THREADID_MASK] noc1buffer_mshr_homeid_write_threadid_s4;
+wire [`L15_MSHR_INDEX_MASK] noc1buffer_mshr_homeid_write_index_s4;
 
 l15_mshr #(
      .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
@@ -546,32 +543,29 @@ l15_mshr #(
     .pipe_mshr_writereq_write_buffer_data_s1(pipe_mshr_writereq_write_buffer_data_s1),
     .pipe_mshr_writereq_write_buffer_byte_mask_s1(pipe_mshr_writereq_write_buffer_byte_mask_s1),
     .pipe_mshr_writereq_control_s1(pipe_mshr_writereq_control_s1),
-    .pipe_mshr_writereq_mshrid_s1(pipe_mshr_writereq_mshrid_s1),
-    .pipe_mshr_writereq_threadid_s1(pipe_mshr_writereq_threadid_s1),
-    .pipe_mshr_readreq_threadid_s1(pipe_mshr_readreq_threadid_s1),
-    .pipe_mshr_readreq_mshrid_s1(pipe_mshr_readreq_mshrid_s1),
+    .pipe_mshr_writereq_mshr_type_s1(pipe_mshr_writereq_mshr_type_s1),
+    .pipe_mshr_writereq_index_s1(pipe_mshr_writereq_index_s1),
+    .pipe_mshr_readreq_index_s1(pipe_mshr_readreq_index_s1),
     .mshr_pipe_readres_control_s1(mshr_pipe_readres_control_s1),
     .mshr_pipe_readres_homeid_s1(mshr_pipe_readres_homeid_s1),
     .mshr_pipe_vals_s1(mshr_pipe_vals_s1),
-    .mshr_pipe_ifill_address(mshr_pipe_ifill_address),
-    .mshr_pipe_ld_address(mshr_pipe_ld_address),
-    .mshr_pipe_st_address(mshr_pipe_st_address),
-    .mshr_pipe_st_way_s1(mshr_pipe_st_way_s1),
-    .mshr_pipe_st_state_s1(mshr_pipe_st_state_s1),
+    .mshr_pipe_type_s1(mshr_pipe_type_s1),
+    .mshr_pipe_address(mshr_pipe_address),
+    .mshr_pipe_way_s1(mshr_pipe_way_s1),
+    .mshr_pipe_state_s1(mshr_pipe_state_s1),
     .pipe_mshr_write_buffer_rd_en_s2(pipe_mshr_write_buffer_rd_en_s2),
-    .pipe_mshr_threadid_s2(pipe_mshr_threadid_s2),
+    .pipe_mshr_index_s2(pipe_mshr_index_s2),
     .mshr_pipe_write_buffer_s2(mshr_pipe_write_buffer_s2),
     .mshr_pipe_write_buffer_byte_mask_s2(mshr_pipe_write_buffer_byte_mask_s2),
     .pipe_mshr_val_s3(pipe_mshr_val_s3),
     .pipe_mshr_op_s3(pipe_mshr_op_s3),
-    .pipe_mshr_mshrid_s3(pipe_mshr_mshrid_s3),
-    .pipe_mshr_threadid_s3(pipe_mshr_threadid_s3),
+    .pipe_mshr_index_s3(pipe_mshr_index_s3),
     .pipe_mshr_write_update_state_s3(pipe_mshr_write_update_state_s3),
     .pipe_mshr_write_update_way_s3(pipe_mshr_write_update_way_s3),
     
-    .noc1buffer_mshr_homeid_write_threadid_s4(noc1buffer_mshr_homeid_write_threadid_s4),
+    .noc1buffer_mshr_homeid_write_index_s4(noc1buffer_mshr_homeid_write_index_s4),
     .noc1buffer_mshr_homeid_write_val_s4(noc1buffer_mshr_homeid_write_val_s4),
-    .noc1buffer_mshr_homeid_write_mshrid_s4(noc1buffer_mshr_homeid_write_mshrid_s4),
+    .noc1buffer_mshr_homeid_write_mshr_type_s4(noc1buffer_mshr_homeid_write_mshr_type_s4),
     .noc1buffer_mshr_homeid_write_data_s4(noc1buffer_mshr_homeid_write_data_s4)
 );
 
@@ -720,7 +714,7 @@ l15_pipeline #(
     .pcxdecoder_l15_be                   (transducer_l15_be),
     `endif
     .noc2decoder_l15_val(noc2decoder_l15_val),
-    .noc2decoder_l15_mshrid(noc2decoder_l15_mshrid),
+    .noc2decoder_l15_mshr_type(noc2decoder_l15_mshr_type),
     .noc2decoder_l15_l2miss(noc2decoder_l15_l2miss),
     .noc2decoder_l15_icache_type(noc2decoder_l15_icache_type),
     .noc2decoder_l15_f4b(noc2decoder_l15_f4b),
@@ -731,7 +725,7 @@ l15_pipeline #(
     .noc2decoder_l15_fwd_subcacheline_vector(noc2decoder_l15_fwd_subcacheline_vector),
     .noc2decoder_l15_src_homeid(noc2decoder_l15_src_homeid),
     .noc2decoder_l15_csm_mshrid(noc2decoder_l15_csm_mshrid),
-    .noc2decoder_l15_threadid(noc2decoder_l15_threadid),
+    .noc2decoder_l15_mshr_index(noc2decoder_l15_mshr_index),
     .noc2decoder_l15_hmc_fill(noc2decoder_l15_hmc_fill),
     .cpxencoder_l15_req_ack(transducer_l15_req_ack),
     // .noc1encoder_l15_req_ack(noc1encoder_l15_req_ack),
@@ -801,8 +795,8 @@ l15_pipeline #(
     .l15_cpxencoder_blockinitstore       (l15_transducer_blockinitstore),
     .l15_noc1buffer_req_val(l15_noc1buffer_req_val),
     .l15_noc1buffer_req_type(l15_noc1buffer_req_type),
-    .l15_noc1buffer_req_threadid(l15_noc1buffer_req_threadid),
-    .l15_noc1buffer_req_mshrid(l15_noc1buffer_req_mshrid),
+    .l15_noc1buffer_req_mshr_index(l15_noc1buffer_req_mshr_index),
+    .l15_noc1buffer_req_mshr_type(l15_noc1buffer_req_mshr_type),
     .l15_noc1buffer_req_address(l15_noc1buffer_req_address),
     .l15_noc1buffer_req_non_cacheable(l15_noc1buffer_req_non_cacheable),
     .l15_noc1buffer_req_size(l15_noc1buffer_req_size),
@@ -815,7 +809,7 @@ l15_pipeline #(
     .l15_noc1buffer_req_csm_data(l15_noc1buffer_req_csm_data),
     .l15_noc3encoder_req_val(l15_noc3encoder_req_val),
     .l15_noc3encoder_req_type(l15_noc3encoder_req_type),
-    .l15_noc3encoder_req_mshrid(l15_noc3encoder_req_mshrid),
+    .l15_noc3encoder_req_mshr_type(l15_noc3encoder_req_mshr_type),
     .l15_noc3encoder_req_sequenceid(l15_noc3encoder_req_sequenceid),
     .l15_noc3encoder_req_threadid(l15_noc3encoder_req_threadid),
     .l15_noc3encoder_req_address(l15_noc3encoder_req_address),
@@ -872,26 +866,23 @@ l15_pipeline #(
     .pipe_mshr_writereq_write_buffer_data_s1(pipe_mshr_writereq_write_buffer_data_s1),
     .pipe_mshr_writereq_write_buffer_byte_mask_s1(pipe_mshr_writereq_write_buffer_byte_mask_s1),
     .pipe_mshr_writereq_control_s1(pipe_mshr_writereq_control_s1),
-    .pipe_mshr_writereq_mshrid_s1(pipe_mshr_writereq_mshrid_s1),
-    .pipe_mshr_writereq_threadid_s1(pipe_mshr_writereq_threadid_s1),
-    .pipe_mshr_readreq_threadid_s1(pipe_mshr_readreq_threadid_s1),
-    .pipe_mshr_readreq_mshrid_s1(pipe_mshr_readreq_mshrid_s1),
+    .pipe_mshr_writereq_mshr_type_s1(pipe_mshr_writereq_mshr_type_s1),
+    .pipe_mshr_writereq_index_s1(pipe_mshr_writereq_index_s1),
+    .pipe_mshr_readreq_index_s1(pipe_mshr_readreq_index_s1),
     .mshr_pipe_readres_control_s1(mshr_pipe_readres_control_s1),
     .mshr_pipe_readres_homeid_s1(mshr_pipe_readres_homeid_s1),
     .mshr_pipe_vals_s1(mshr_pipe_vals_s1),
-    .mshr_pipe_ifill_address(mshr_pipe_ifill_address),
-    .mshr_pipe_ld_address(mshr_pipe_ld_address),
-    .mshr_pipe_st_address(mshr_pipe_st_address),
-    .mshr_pipe_st_way_s1(mshr_pipe_st_way_s1),
-    .mshr_pipe_st_state_s1(mshr_pipe_st_state_s1),
+    .mshr_pipe_type_s1(mshr_pipe_type_s1),
+    .mshr_pipe_address(mshr_pipe_address),
+    .mshr_pipe_way_s1(mshr_pipe_way_s1),
+    .mshr_pipe_state_s1(mshr_pipe_state_s1),
     .pipe_mshr_write_buffer_rd_en_s2(pipe_mshr_write_buffer_rd_en_s2),
-    .pipe_mshr_threadid_s2(pipe_mshr_threadid_s2),
+    .pipe_mshr_index_s2(pipe_mshr_index_s2),
     .mshr_pipe_write_buffer_s2(mshr_pipe_write_buffer_s2),
     .mshr_pipe_write_buffer_byte_mask_s2(mshr_pipe_write_buffer_byte_mask_s2),
     .pipe_mshr_val_s3(pipe_mshr_val_s3),
     .pipe_mshr_op_s3(pipe_mshr_op_s3),
-    .pipe_mshr_mshrid_s3(pipe_mshr_mshrid_s3),
-    .pipe_mshr_threadid_s3(pipe_mshr_threadid_s3),
+    .pipe_mshr_index_s3(pipe_mshr_index_s3),
     .pipe_mshr_write_update_state_s3(pipe_mshr_write_update_state_s3),
     .pipe_mshr_write_update_way_s3(pipe_mshr_write_update_way_s3)
    
@@ -921,8 +912,8 @@ noc1buffer noc1buffer(
     .l15_noc1buffer_req_data_1(l15_noc1buffer_req_data_1),
     .l15_noc1buffer_req_val(l15_noc1buffer_req_val),
     .l15_noc1buffer_req_type(l15_noc1buffer_req_type),
-    .l15_noc1buffer_req_threadid(l15_noc1buffer_req_threadid),
-    .l15_noc1buffer_req_mshrid(l15_noc1buffer_req_mshrid),
+    .l15_noc1buffer_req_mshr_index(l15_noc1buffer_req_mshr_index),
+    .l15_noc1buffer_req_mshr_type(l15_noc1buffer_req_mshr_type),
     .l15_noc1buffer_req_address(l15_noc1buffer_req_address),
     .l15_noc1buffer_req_non_cacheable(l15_noc1buffer_req_non_cacheable),
     .l15_noc1buffer_req_size(l15_noc1buffer_req_size),
@@ -943,8 +934,8 @@ noc1buffer noc1buffer(
     .noc1buffer_noc1encoder_req_data_1(noc1buffer_noc1encoder_req_data_1),
     .noc1buffer_noc1encoder_req_val(noc1buffer_noc1encoder_req_val),
     .noc1buffer_noc1encoder_req_type(noc1buffer_noc1encoder_req_type),
-    .noc1buffer_noc1encoder_req_mshrid(noc1buffer_noc1encoder_req_mshrid),
-    .noc1buffer_noc1encoder_req_threadid(noc1buffer_noc1encoder_req_threadid),
+    .noc1buffer_noc1encoder_req_mshr_type(noc1buffer_noc1encoder_req_mshr_type),
+    .noc1buffer_noc1encoder_req_mshr_index(noc1buffer_noc1encoder_req_mshr_index),
     .noc1buffer_noc1encoder_req_address(noc1buffer_noc1encoder_req_address),
     .noc1buffer_noc1encoder_req_non_cacheable(noc1buffer_noc1encoder_req_non_cacheable),
     .noc1buffer_noc1encoder_req_size(noc1buffer_noc1encoder_req_size),
@@ -970,9 +961,9 @@ noc1buffer noc1buffer(
     .noc1buffer_l15_req_data_sent(noc1encoder_l15_req_data_sent),
     
     // homeid
-    .noc1buffer_mshr_homeid_write_threadid_s4(noc1buffer_mshr_homeid_write_threadid_s4),
+    .noc1buffer_mshr_homeid_write_index_s4(noc1buffer_mshr_homeid_write_index_s4),
     .noc1buffer_mshr_homeid_write_val_s4(noc1buffer_mshr_homeid_write_val_s4),
-    .noc1buffer_mshr_homeid_write_mshrid_s4(noc1buffer_mshr_homeid_write_mshrid_s4),
+    .noc1buffer_mshr_homeid_write_mshr_type_s4(noc1buffer_mshr_homeid_write_mshr_type_s4),
     .noc1buffer_mshr_homeid_write_data_s4(noc1buffer_mshr_homeid_write_data_s4)
 );
 
@@ -983,8 +974,8 @@ noc1encoder noc1encoder(
     .noc1buffer_noc1encoder_req_data_1(noc1buffer_noc1encoder_req_data_1),
     .noc1buffer_noc1encoder_req_val(noc1buffer_noc1encoder_req_val),
     .noc1buffer_noc1encoder_req_type(noc1buffer_noc1encoder_req_type),
-    .noc1buffer_noc1encoder_req_mshrid(noc1buffer_noc1encoder_req_mshrid),
-    .noc1buffer_noc1encoder_req_threadid(noc1buffer_noc1encoder_req_threadid),
+    .noc1buffer_noc1encoder_req_mshr_type(noc1buffer_noc1encoder_req_mshr_type),
+    .noc1buffer_noc1encoder_req_mshr_index(noc1buffer_noc1encoder_req_mshr_index),
     .noc1buffer_noc1encoder_req_address(noc1buffer_noc1encoder_req_address),
     .noc1buffer_noc1encoder_req_non_cacheable(noc1buffer_noc1encoder_req_non_cacheable),
     .noc1buffer_noc1encoder_req_size(noc1buffer_noc1encoder_req_size),
@@ -1029,7 +1020,7 @@ noc3buffer #(
     .l15_noc3encoder_req_val(l15_noc3encoder_req_val),
     .l15_noc3encoder_req_type(l15_noc3encoder_req_type),
     .l15_noc3encoder_req_data(l15_noc3encoder_req_data),
-    .l15_noc3encoder_req_mshrid(l15_noc3encoder_req_mshrid),
+    .l15_noc3encoder_req_mshr_type(l15_noc3encoder_req_mshr_type),
     .l15_noc3encoder_req_sequenceid(l15_noc3encoder_req_sequenceid),
     .l15_noc3encoder_req_threadid(l15_noc3encoder_req_threadid),
     .l15_noc3encoder_req_address(l15_noc3encoder_req_address),
@@ -1043,7 +1034,7 @@ noc3buffer #(
     .noc3buffer_noc3encoder_req_val(noc3buffer_noc3encoder_req_val),
     .noc3buffer_noc3encoder_req_type(noc3buffer_noc3encoder_req_type),
     .noc3buffer_noc3encoder_req_data(noc3buffer_noc3encoder_req_data),
-    .noc3buffer_noc3encoder_req_mshrid(noc3buffer_noc3encoder_req_mshrid),
+    .noc3buffer_noc3encoder_req_mshr_type(noc3buffer_noc3encoder_req_mshr_type),
     .noc3buffer_noc3encoder_req_sequenceid(noc3buffer_noc3encoder_req_sequenceid),
     .noc3buffer_noc3encoder_req_threadid(noc3buffer_noc3encoder_req_threadid),
     .noc3buffer_noc3encoder_req_address(noc3buffer_noc3encoder_req_address),
@@ -1062,7 +1053,7 @@ noc3encoder #(
     .l15_noc3encoder_req_val(noc3buffer_noc3encoder_req_val),
     .l15_noc3encoder_req_type(noc3buffer_noc3encoder_req_type),
     .l15_noc3encoder_req_data(noc3buffer_noc3encoder_req_data),
-    .l15_noc3encoder_req_mshrid(noc3buffer_noc3encoder_req_mshrid),
+    .l15_noc3encoder_req_mshr_type(noc3buffer_noc3encoder_req_mshr_type),
     .l15_noc3encoder_req_sequenceid(noc3buffer_noc3encoder_req_sequenceid),
     .l15_noc3encoder_req_threadid(noc3buffer_noc3encoder_req_threadid),
     .l15_noc3encoder_req_address(noc3buffer_noc3encoder_req_address),

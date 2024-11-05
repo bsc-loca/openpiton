@@ -497,8 +497,8 @@ begin
         endcase
 
         $write("%0d TILE0 L1.5: Received NOC2 %s", $time, noc2);
-        $display("   mshrid %d, l2miss %d, f4b %d, ackstate %d, address 0x%x",
-                    `L15_PIPE0.noc2decoder_l15_mshrid, `L15_PIPE0.noc2decoder_l15_l2miss, `L15_PIPE0.noc2decoder_l15_f4b,
+        $display("   mshr_type %d, l2miss %d, f4b %d, ackstate %d, address 0x%x",
+                    `L15_PIPE0.noc2decoder_l15_mshr_type, `L15_PIPE0.noc2decoder_l15_l2miss, `L15_PIPE0.noc2decoder_l15_f4b,
                     `L15_PIPE0.noc2decoder_l15_ack_state, `L15_PIPE0.noc2decoder_l15_address);
         $display("   Data1: 0x%x", `L15_PIPE0.noc2decoder_l15_data[`L15_UNPARAM_63_0]);
         $display("   Data2: 0x%x", `L15_PIPE0.noc2decoder_l15_data[`L15_UNPARAM_127_64]);
@@ -612,8 +612,8 @@ begin
         endcase
 
         $write("%0d TILE0 L1.5: Sending NOC1 %s", $time, noc1);
-        $display("   mshrid %d, nc %d, size %d, pf %d, address %0x",
-                    `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_mshrid, `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_non_cacheable,
+        $display("   mshr_type %d, nc %d, size %d, pf %d, address %0x",
+                    `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_mshr_type, `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_non_cacheable,
                     `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_size, `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_prefetch, `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_address);
         $display("   Data0: 0x%x", `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_data_0);
         $display("   Data1: 0x%x", `L15_TOP0.noc1encoder.noc1buffer_noc1encoder_req_data_1);
@@ -650,8 +650,8 @@ begin
 
 
         $write("%0d TILE0 L1.5: Sent NOC3 %s", $time, noc3);
-        $display("   mshrid %d, seqid %d, address %0x",
-                    `L15_TOP0.noc3encoder.l15_noc3encoder_req_mshrid, `L15_TOP0.noc3encoder.l15_noc3encoder_req_sequenceid, `L15_TOP0.noc3encoder.l15_noc3encoder_req_address);
+        $display("   mshr_type %d, seqid %d, address %0x",
+                    `L15_TOP0.noc3encoder.l15_noc3encoder_req_mshr_type, `L15_TOP0.noc3encoder.l15_noc3encoder_req_sequenceid, `L15_TOP0.noc3encoder.l15_noc3encoder_req_address);
         $display("   srcX: %d, srcY: %d", `L15_TOP0.noc3encoder.src_l2_xpos, `L15_TOP0.noc3encoder.src_l2_ypos);
         $display("   destX: %d, destY: %d", `L15_TOP0.noc3encoder.dest_l2_xpos, `L15_TOP0.noc3encoder.dest_l2_ypos);
         $display("   Data0: 0x%x", `L15_TOP0.noc3encoder.l15_noc3encoder_req_data[`L15_UNPARAM_63_0]);
@@ -1048,14 +1048,14 @@ begin
             && !is_csm_mshrid_TILE0)
         begin
             // first check if mshrid is in range
-            if (`L15_PIPE0.noc2decoder_l15_mshrid > 9)
+            if (`L15_PIPE0.noc2decoder_l15_mshr_index > `L15_MSHR_COUNT)
             begin
-                $display("L1.5 MON: Received NoC2 message with MSHRID greater than 9 (%d)", `L15_PIPE0.noc2decoder_l15_mshrid);
-                $display("%d : Simulation -> FAIL(%0s)", $time, "L1.5 MON: Received NoC2 message with MSHRID greater than 9");
+                $display("L1.5 MON: Received NoC2 message with MSHR_INDEX greater than `L15_MSHR_COUNT (%d)", `L15_PIPE0.noc2decoder_l15_mshr_index);
+                $display("%d : Simulation -> FAIL(%0s)", $time, "L1.5 MON: Received NoC2 message with MSHR_INDEX greater than `L15_MSHR_COUNT");
                 `ifndef VERILATOR
                 repeat(5)@(posedge clk)
                 `endif
-                    `MONITOR_PATH.fail("L1.5 MON: Received NoC2 message with MSHRID greater than 9");
+                    `MONITOR_PATH.fail("L1.5 MON: Received NoC2 message with MSHR_INDEX greater than `L15_MSHR_COUNT");
             end
 
             // now check if it's valid
