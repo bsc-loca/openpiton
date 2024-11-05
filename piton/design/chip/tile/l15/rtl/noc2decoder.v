@@ -63,8 +63,8 @@ module noc2decoder #(
     output reg [`DMBR_TAG_WIDTH-1:0] l15_dmbr_l2missTag,
 
     output reg noc2decoder_l15_val,
-    output reg [`L15_MSHR_ID_WIDTH-1:0] noc2decoder_l15_mshrid,
-    output reg [`L15_THREADID_MASK] noc2decoder_l15_threadid,
+    output reg [`L15_MSHR_TYPE_WIDTH-1:0] noc2decoder_l15_mshr_type,
+    output reg [`L15_MSHR_INDEX_MASK] noc2decoder_l15_mshr_index,
     output reg noc2decoder_l15_hmc_fill,
     output reg noc2decoder_l15_l2miss,
     output reg noc2decoder_l15_icache_type,
@@ -102,10 +102,10 @@ begin
     msg_len = noc2_data[`MSG_LENGTH];
     
     noc2_mshrid = noc2_data[`MSG_MSHRID];
-    noc2decoder_l15_mshrid = noc2_mshrid[`L15_MSHR_ID_WIDTH-1:0];
+    noc2decoder_l15_mshr_type = noc2_mshrid[`L15_MSHR_TYPE_WIDTH-1:0];
     noc2decoder_l15_csm_mshrid = noc2_mshrid[`L15_CSM_NUM_TICKETS_LOG2-1:0];
-    // the threadid is encoded in the mshrid sent to L2, is the next L15_THREADID_WIDTH bits after the first L15_MSHR_ID_WIDTH bits
-    noc2decoder_l15_threadid = noc2_mshrid[`L15_MSHR_ID_WIDTH+`L15_THREADID_WIDTH -1 -: `L15_THREADID_WIDTH];
+    // the mshr_tag is encoded in the mshrid sent to L2, is the next L15_MSHR_INDEX_WIDTH bits after the first L15_MSHR_TYPE_WIDTH bits
+    noc2decoder_l15_mshr_index = noc2_mshrid[`L15_MSHR_TYPE_WIDTH+`L15_MSHR_INDEX_WIDTH-1 -: `L15_MSHR_INDEX_WIDTH];
 	
     `ifdef NO_RTL_CSM
         noc2decoder_l15_hmc_fill = 1'b0; //noc2_mshrid[`MSG_MSHRID_WIDTH-1];
@@ -189,7 +189,7 @@ begin
         begin
             dmbr_response_val_next = 1'b1;
             dmbr_l2_miss_next = noc2decoder_l15_l2miss;
-            dmbr_l2_miss_mshrid_next = {1'b0, noc2decoder_l15_threadid, noc2decoder_l15_mshrid};
+            dmbr_l2_miss_mshrid_next = {1'b0, noc2decoder_l15_mshr_index, noc2decoder_l15_mshr_type};
         end
     end
 

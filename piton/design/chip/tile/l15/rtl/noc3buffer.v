@@ -52,7 +52,7 @@ module noc3buffer #(
     input wire l15_noc3encoder_req_val,
     input wire [`L15_NOC3_REQTYPE_WIDTH-1:0] l15_noc3encoder_req_type,
     input wire [(L15_L1D_LINE_SIZE*8)-1:0] l15_noc3encoder_req_data,
-    input wire [`L15_MSHR_ID_WIDTH-1:0] l15_noc3encoder_req_mshrid,
+    input wire [`L15_MSHR_TYPE_WIDTH-1:0] l15_noc3encoder_req_mshr_type,
     input wire [`L15_THREADID_MASK] l15_noc3encoder_req_threadid,
     input wire [1:0] l15_noc3encoder_req_sequenceid,
     input wire [39:0] l15_noc3encoder_req_address,
@@ -64,7 +64,7 @@ module noc3buffer #(
     output reg noc3buffer_noc3encoder_req_val,
     output reg [`L15_NOC3_REQTYPE_WIDTH-1:0] noc3buffer_noc3encoder_req_type,
     output reg [(L15_L1D_LINE_SIZE*8)-1:0] noc3buffer_noc3encoder_req_data,
-    output reg [`L15_MSHR_ID_WIDTH-1:0] noc3buffer_noc3encoder_req_mshrid,
+    output reg [`L15_MSHR_TYPE_WIDTH-1:0] noc3buffer_noc3encoder_req_mshr_type,
     output reg [1:0] noc3buffer_noc3encoder_req_sequenceid,
     output reg [`L15_THREADID_MASK] noc3buffer_noc3encoder_req_threadid,
     output reg [39:0] noc3buffer_noc3encoder_req_address,
@@ -86,7 +86,7 @@ reg buffer_val_next;
 reg new_buffer;
 reg [`L15_NOC3_REQTYPE_WIDTH-1:0] l15_noc3encoder_req_type_buf;
 reg [(L15_L1D_LINE_SIZE*8)-1:0] l15_noc3encoder_req_data_buf;
-reg [`L15_MSHR_ID_WIDTH-1:0] l15_noc3encoder_req_mshrid_buf;
+reg [`L15_MSHR_TYPE_WIDTH-1:0] l15_noc3encoder_req_mshr_type_buf;
 reg [`L15_THREADID_MASK] l15_noc3encoder_req_threadid_buf;
 reg [1:0] l15_noc3encoder_req_sequenceid_buf;
 reg [39:0] l15_noc3encoder_req_address_buf;
@@ -108,7 +108,7 @@ begin
         begin
             l15_noc3encoder_req_type_buf <= l15_noc3encoder_req_type;
             l15_noc3encoder_req_data_buf <= l15_noc3encoder_req_data;
-            l15_noc3encoder_req_mshrid_buf <= l15_noc3encoder_req_mshrid;
+            l15_noc3encoder_req_mshr_type_buf <= l15_noc3encoder_req_mshr_type;
             l15_noc3encoder_req_threadid_buf <= l15_noc3encoder_req_threadid;
             l15_noc3encoder_req_sequenceid_buf <= l15_noc3encoder_req_sequenceid;
             l15_noc3encoder_req_address_buf <= l15_noc3encoder_req_address;
@@ -125,7 +125,7 @@ begin
     noc3buffer_noc3encoder_req_val = buffer_val;
     noc3buffer_noc3encoder_req_type = l15_noc3encoder_req_type_buf;
     noc3buffer_noc3encoder_req_data = l15_noc3encoder_req_data_buf;
-    noc3buffer_noc3encoder_req_mshrid = l15_noc3encoder_req_mshrid_buf;
+    noc3buffer_noc3encoder_req_mshr_type = l15_noc3encoder_req_mshr_type_buf;
     noc3buffer_noc3encoder_req_threadid = l15_noc3encoder_req_threadid_buf;
     noc3buffer_noc3encoder_req_sequenceid = l15_noc3encoder_req_sequenceid_buf;
     noc3buffer_noc3encoder_req_address = l15_noc3encoder_req_address_buf;

@@ -2739,6 +2739,13 @@ sub parse_args
     if ($opt{l15_num_threads}) {
         $ENV{L15_NUM_THREADS} = $opt{l15_num_threads};
     }
+  
+  GetOptions (\%opt,"l15_mshr_count=s",
+    );
+
+    if ($opt{l15_mshr_count}) {
+        $ENV{L15_MSHR_COUNT} = $opt{l15_mshr_count};
+    }
 
   GetOptions (\%opt,"l2_mshr_entries=s",
     );

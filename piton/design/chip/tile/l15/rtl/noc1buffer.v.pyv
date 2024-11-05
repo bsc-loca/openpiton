@@ -55,8 +55,8 @@ module noc1buffer(
    input wire [63:0] l15_noc1buffer_req_data_1,
    input wire l15_noc1buffer_req_val,
    input wire [`L15_NOC1_REQTYPE_WIDTH-1:0] l15_noc1buffer_req_type,
-   input wire [`L15_MSHR_ID_WIDTH-1:0] l15_noc1buffer_req_mshrid,
-   input wire [`L15_THREADID_MASK] l15_noc1buffer_req_threadid,
+   input wire [`L15_MSHR_TYPE_WIDTH-1:0] l15_noc1buffer_req_mshr_type,
+   input wire [`L15_MSHR_INDEX_MASK] l15_noc1buffer_req_mshr_index,
    input wire [39:0] l15_noc1buffer_req_address,
    input wire l15_noc1buffer_req_non_cacheable,
    input wire [`PCX_SIZE_WIDTH-1:0] l15_noc1buffer_req_size,
@@ -79,8 +79,8 @@ module noc1buffer(
    output reg [63:0] noc1buffer_noc1encoder_req_data_1,
    output reg noc1buffer_noc1encoder_req_val,
    output reg [`L15_NOC1_REQTYPE_WIDTH-1:0] noc1buffer_noc1encoder_req_type,
-   output reg [`L15_MSHR_ID_WIDTH-1:0] noc1buffer_noc1encoder_req_mshrid,
-   output reg [`L15_THREADID_MASK] noc1buffer_noc1encoder_req_threadid,
+   output reg [`L15_MSHR_TYPE_WIDTH-1:0] noc1buffer_noc1encoder_req_mshr_type,
+   output reg [`L15_MSHR_INDEX_MASK] noc1buffer_noc1encoder_req_mshr_index,
    output reg [39:0] noc1buffer_noc1encoder_req_address,
    output reg noc1buffer_noc1encoder_req_non_cacheable,
    output reg [`PCX_SIZE_WIDTH-1:0] noc1buffer_noc1encoder_req_size,
@@ -98,8 +98,8 @@ module noc1buffer(
 
    // output to mshrid when we have the csm
    output reg noc1buffer_mshr_homeid_write_val_s4,
-   output reg [`L15_MSHR_ID_WIDTH-1:0] noc1buffer_mshr_homeid_write_mshrid_s4,
-   output reg [`L15_THREADID_MASK] noc1buffer_mshr_homeid_write_threadid_s4,
+   output reg [`L15_MSHR_TYPE_WIDTH-1:0] noc1buffer_mshr_homeid_write_mshr_type_s4,
+   output reg [`L15_MSHR_INDEX_MASK] noc1buffer_mshr_homeid_write_index_s4,
    output reg [`PACKET_HOME_ID_WIDTH-1:0] noc1buffer_mshr_homeid_write_data_s4,
 
    // output reg noc1buffer_l15_req_ack,
@@ -209,8 +209,8 @@ begin
    if (l15_noc1buffer_req_val)
    begin
       command_buffer_next[command_wrindex][`L15_NOC1BUFFER_REQTYPE] = l15_noc1buffer_req_type;
-      command_buffer_next[command_wrindex][`L15_NOC1BUFFER_MSHRID] = l15_noc1buffer_req_mshrid;
-      command_buffer_next[command_wrindex][`L15_NOC1BUFFER_THREADID] = l15_noc1buffer_req_threadid;
+      command_buffer_next[command_wrindex][`L15_NOC1BUFFER_MSHRID] = l15_noc1buffer_req_mshr_type;
+      command_buffer_next[command_wrindex][`L15_NOC1BUFFER_TAG] = l15_noc1buffer_req_mshr_index;
       command_buffer_next[command_wrindex][`L15_NOC1BUFFER_ADDRESS] = l15_noc1buffer_req_address;
       command_buffer_next[command_wrindex][`L15_NOC1BUFFER_NON_CACHEABLE] = l15_noc1buffer_req_non_cacheable;
       command_buffer_next[command_wrindex][`L15_NOC1BUFFER_SIZE] = l15_noc1buffer_req_size;
@@ -264,8 +264,8 @@ begin
                                                 // from pipeline's perspective
 
    noc1buffer_noc1encoder_req_type = command_buffer[command_rdindex][`L15_NOC1BUFFER_REQTYPE];
-   noc1buffer_noc1encoder_req_mshrid = command_buffer[command_rdindex][`L15_NOC1BUFFER_MSHRID];
-   noc1buffer_noc1encoder_req_threadid = command_buffer[command_rdindex][`L15_NOC1BUFFER_THREADID];
+   noc1buffer_noc1encoder_req_mshr_type = command_buffer[command_rdindex][`L15_NOC1BUFFER_MSHRID];
+   noc1buffer_noc1encoder_req_mshr_index = command_buffer[command_rdindex][`L15_NOC1BUFFER_TAG];
    noc1buffer_noc1encoder_req_address = command_buffer[command_rdindex][`L15_NOC1BUFFER_ADDRESS];
    noc1buffer_noc1encoder_req_non_cacheable = command_buffer[command_rdindex][`L15_NOC1BUFFER_NON_CACHEABLE];
    noc1buffer_noc1encoder_req_size = command_buffer[command_rdindex][`L15_NOC1BUFFER_SIZE];
@@ -311,10 +311,10 @@ begin
    l15_csm_clear_ticket_val = noc1encoder_noc1buffer_req_ack; // clear when sent
 
    // output to MSHR module
-   noc1buffer_mshr_homeid_write_val_s4 = (noc1buffer_noc1encoder_req_mshrid == `L15_MSHR_ID_LD || noc1buffer_noc1encoder_req_mshrid == `L15_MSHR_ID_ST) &&
+   noc1buffer_mshr_homeid_write_val_s4 = (noc1buffer_noc1encoder_req_mshr_type == `L15_MSHR_TYPE_LD || noc1buffer_noc1encoder_req_mshr_type == `L15_MSHR_TYPE_ST) &&
                                     noc1encoder_noc1buffer_req_ack;
-   noc1buffer_mshr_homeid_write_mshrid_s4 = noc1buffer_noc1encoder_req_mshrid;
-   noc1buffer_mshr_homeid_write_threadid_s4 = noc1buffer_noc1encoder_req_threadid;
+   noc1buffer_mshr_homeid_write_mshr_type_s4 = noc1buffer_noc1encoder_req_mshr_type;
+   noc1buffer_mshr_homeid_write_index_s4 = noc1buffer_noc1encoder_req_mshr_index;
    noc1buffer_mshr_homeid_write_data_s4 = homeid;
 end
 
