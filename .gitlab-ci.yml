@@ -128,7 +128,7 @@ sargantana_isa_tests:
     matrix:
       - SIM_TYPE:
         - vlt
-        #- msm
+        - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_1_1
@@ -154,7 +154,7 @@ sargantana_benchmarks:
     matrix:
       - SIM_TYPE:
         - vlt
-        #- msm
+        - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_1_1
@@ -179,7 +179,7 @@ sargantana_multicore:
         Y_TILES: [2]
         SIM_TYPE:
           - vlt
-          #- msm
+          - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_${X_TILES}_${Y_TILES}
@@ -225,7 +225,7 @@ ariane_isa_tests:
     matrix:
       - SIM_TYPE:
         - vlt
-        #- msm
+        - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_1_1
@@ -251,7 +251,7 @@ ariane_benchmarks:
     matrix:
       - SIM_TYPE:
         - vlt
-        #- msm
+        - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_1_1
@@ -275,7 +275,7 @@ ariane_multicore:
         Y_TILES: [2]
         SIM_TYPE:
           - vlt
-          #- msm
+          - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_${X_TILES}_${Y_TILES}
@@ -322,7 +322,7 @@ ariane_hpdc_isa_tests:
     matrix:
       - SIM_TYPE:
         - vlt
-        #- msm
+        - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_1_1
@@ -348,7 +348,7 @@ ariane_hpdc_benchmarks:
     matrix:
       - SIM_TYPE:
         - vlt
-        #- msm
+        - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_1_1
@@ -372,7 +372,7 @@ ariane_hpdc_multicore:
         Y_TILES: [2]
         SIM_TYPE:
           - vlt
-          #- msm
+          - msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_${X_TILES}_${Y_TILES}
