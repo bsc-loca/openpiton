@@ -33,6 +33,9 @@ variables:
   CI_RISCV_DIR: /opt/riscv-gnu-toolchain/rvv-0.7.1/
   MODELSIM_HOME: /eda/Siemens/2022-23/RHELx86/QUESTA-CORE-PRIME_2022.4
   VERILATOR_HOME: /opt/verilator/5.014
+  MSM_BUILD_FLAGS: -sys=manycore -msm_build_args=+acc=n
+  VLT_BUILD_FLAGS: -sys=manycore
+  SIMS_FLAGS: -noclean -sim_run_args=-no_autoacc
 
 default:
   tags:
@@ -72,7 +75,7 @@ default:
     - module swap rvv/1.0.0 # Sargantana implements RVV 1.0
     - source piton/sargantana_setup.sh
     - export VERILATOR_ROOT=/opt/verilator/5.014
-  timeout: 4h
+  timeout: 6h
 
 .ariane_regression_base:
   dependencies:
@@ -82,7 +85,7 @@ default:
     - source piton/ariane_setup.sh
     - export RISCV=/opt/riscv-gnu-toolchain/rvv-0.7.1/
     - export VERILATOR_ROOT=/opt/verilator/5.014
-  timeout: 4h
+  timeout: 6h
 
 .ariane_hpdc_regression_base:
   dependencies:
@@ -92,7 +95,7 @@ default:
     - source piton/ariane_setup.sh
     - export RISCV=/opt/riscv-gnu-toolchain/rvv-0.7.1/
     - export VERILATOR_ROOT=/opt/verilator/5.014
-  timeout: 4h
+  timeout: 6h
 
 ################################################################################
 # SARGANTANA
@@ -107,12 +110,12 @@ sargantana_build:
   script:
     - piton/sargantana_build_tools.sh $CI_JOB_TOKEN
     - cd build
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_vlt_1_1
-    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_msm_1_1
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=2 -sarg -build_id=sargantana_vlt_1_2
-    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=2 -sarg -build_id=sargantana_msm_1_2
-    - sims -vlt_build -sys=manycore -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_vlt_2_2
-    - sims -msm_build -sys=manycore -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_msm_2_2
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_vlt_1_1
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -sarg -build_id=sargantana_msm_1_1
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -sarg -build_id=sargantana_vlt_1_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -sarg -build_id=sargantana_msm_1_2
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_vlt_2_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_msm_2_2
   artifacts:
     expire_in: 1 day
     when: always
@@ -131,7 +134,7 @@ sargantana_isa_tests:
         - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_1_1
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=sargantana_${SIM_TYPE}_1_1
       -group=sarg_tile1_asm_tests_p
       -group=sarg_tile1_asm_tests_v
       -group=sarg_tile1_amo_tests_p
@@ -157,7 +160,7 @@ sargantana_benchmarks:
         - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_1_1
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=sargantana_${SIM_TYPE}_1_1
       -group sarg_tile1_benchmarks
       -group sarg_tile1_mt_benchmarks
       -group sarg_tile1_simple
@@ -182,7 +185,7 @@ sargantana_multicore:
           - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=sargantana_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=sargantana_${SIM_TYPE}_${X_TILES}_${Y_TILES}
       -group sarg_tile$(($X_TILES * $Y_TILES))_simple
       -group sarg_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
     - !reference [.regression_report, script]
@@ -193,6 +196,107 @@ sargantana_multicore:
       - ./build
 
 ################################################################################
+<<<<<<< HEAD
+=======
+# Lagarto Ox
+################################################################################
+
+lox_build:
+  stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    - !reference [.lox_regression_base, before_script]
+  script:
+    - piton/lox_build_tools.sh $CI_JOB_TOKEN
+    - cd build
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -lox -build_id=lox_vlt_1_1
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -lox -build_id=lox_msm_1_1
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -lox -build_id=lox_vlt_1_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -lox -build_id=lox_msm_1_2
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -lox -build_id=lox_vlt_2_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -lox -build_id=lox_msm_2_2
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+      - ./piton/design/chip/tile/lagarto_ox/simulator/reference/build/libdisasm.so
+      - ./piton/design/chip/tile/lagarto_ox/tmp/riscv-tests/build/
+
+lox_isa_tests:
+  extends: .lox_regression_base
+  stage: sim_isa_tests
+  parallel:
+    matrix:
+      - SIM_TYPE:
+        - vlt
+        - msm
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=lox_${SIM_TYPE}_1_1
+      -group=lox_tile1_asm_tests_p
+      -group=lox_tile1_asm_tests_v
+      -group=lox_tile1_amo_tests_p
+      -group=lox_tile1_amo_tests_v
+      -group=lox_tile1_fp_tests_p
+      -group=lox_tile1_fp_tests_v
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+lox_benchmarks:
+  extends: .lox_regression_base
+  stage: sim_benchmarks
+  rules:
+    !reference [.rule_only_merge]
+  parallel:
+    matrix:
+      - SIM_TYPE:
+        - vlt
+        - msm
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=lox_${SIM_TYPE}_1_1
+      -group lox_tile1_benchmarks
+      -group lox_tile1_mt_benchmarks
+      -group lox_tile1_simple
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+lox_multicore:
+  extends: .lox_regression_base
+  stage: sim_multicore
+  rules:
+    !reference [.rule_only_merge]
+  parallel:
+    matrix:
+      - X_TILES: [1,2]
+        Y_TILES: [2]
+        SIM_TYPE:
+          - vlt
+          - msm
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=lox_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+      -group lox_tile$(($X_TILES * $Y_TILES))_simple
+      -group lox_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+################################################################################
+>>>>>>> 48eccf504 (Increase CI timeout, optimize questa builds)
 # ARIANE
 ################################################################################
 
@@ -205,12 +309,12 @@ ariane_build:
   script:
     - piton/ariane_build_tools.sh $CI_JOB_TOKEN
     - cd build
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_vlt_1_1
-    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_msm_1_1
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -build_id=ariane_vlt_1_2
-    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -build_id=ariane_msm_1_2
-    - sims -vlt_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2
-    - sims -msm_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_vlt_1_1
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -ariane -build_id=ariane_msm_1_1
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -ariane -build_id=ariane_vlt_1_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -ariane -build_id=ariane_msm_1_2
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2
   artifacts:
     expire_in: 1 day
     when: always
@@ -228,7 +332,7 @@ ariane_isa_tests:
         - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_1_1
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_${SIM_TYPE}_1_1
       -group ariane_tile1_asm_tests_p
       -group ariane_tile1_asm_tests_v
       -group ariane_tile1_amo_tests_p
@@ -254,7 +358,7 @@ ariane_benchmarks:
         - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_1_1
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_${SIM_TYPE}_1_1
       -group ariane_tile1_benchmarks
       -group ariane_tile1_simple
     - !reference [.regression_report, script]
@@ -278,7 +382,7 @@ ariane_multicore:
           - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_${SIM_TYPE}_${X_TILES}_${Y_TILES}
       -group ariane_tile$(($X_TILES * $Y_TILES))_simple
       -group ariane_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
     - !reference [.regression_report, script]
@@ -302,12 +406,12 @@ ariane_hpdc_build:
   script:
     - piton/ariane_build_tools.sh $CI_JOB_TOKEN
     - cd build
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_vlt_1_1
-    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_msm_1_1
-    - sims -vlt_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_vlt_1_2
-    - sims -msm_build -sys=manycore -x_tiles=1 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_msm_1_2
-    - sims -vlt_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_vlt_2_2
-    - sims -msm_build -sys=manycore -x_tiles=2 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_msm_2_2
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_vlt_1_1
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -ariane -hpdc -build_id=ariane_hpdc_msm_1_1
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_vlt_1_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_msm_1_2
+    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_vlt_2_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -hpdc -build_id=ariane_hpdc_msm_2_2
   artifacts:
     expire_in: 1 day
     when: always
@@ -325,7 +429,7 @@ ariane_hpdc_isa_tests:
         - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_1_1
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_hpdc_${SIM_TYPE}_1_1
       -group ariane_tile1_asm_tests_p
       -group ariane_tile1_asm_tests_v
       -group ariane_tile1_amo_tests_p
@@ -351,7 +455,7 @@ ariane_hpdc_benchmarks:
         - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_1_1
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_hpdc_${SIM_TYPE}_1_1
       -group ariane_tile1_benchmarks
       -group ariane_tile1_simple
     - !reference [.regression_report, script]
@@ -375,7 +479,7 @@ ariane_hpdc_multicore:
           - msm
   script:
     - cd build
-    - sims -sim_type=$SIM_TYPE -noclean -build_id=ariane_hpdc_${SIM_TYPE}_${X_TILES}_${Y_TILES}
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_hpdc_${SIM_TYPE}_${X_TILES}_${Y_TILES}
       -group ariane_tile$(($X_TILES * $Y_TILES))_simple
       -group ariane_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
     - !reference [.regression_report, script]
