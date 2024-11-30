@@ -45,16 +45,25 @@ module l2_data(
 
     input wire clk,
     input wire rst_n,
-    input wire clk_en,
     input wire rdw_en,
     input wire pdout_en,
     input wire deepsleep,
 
     input wire [`L2_DATA_INDEX_WIDTH-1:0] addr,
+`ifdef PARALLEL_SRAMS
+    input wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_in,
+    input wire [`L2_SRAM_CHUNKS-1:0]clk_en,
+`else
     input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_in,
+    input wire clk_en,
+`endif
     input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_mask_in,
 
+`ifdef PARALLEL_SRAMS
+    output wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_out,
+`else
     output wire [`L2_DATA_ARRAY_WIDTH-1:0] data_out,
+`endif
     output wire [`L2_DATA_ARRAY_WIDTH-1:0] pdata_out,
 
     // sram interface
@@ -160,6 +169,7 @@ end
 
 */
 
+`ifndef PARALLEL_SRAMS
 // sram_1rw_4096x144 l2_data_array(
 sram_l2_data l2_data_array(
     .MEMCLK     (clk),
@@ -176,6 +186,33 @@ sram_l2_data l2_data_array(
     .BIST_DOUT(srams_rtap_data),
     .SRAMID(`BIST_ID_L2_DATA)
 );
+`else
 
+    genvar k;
+    generate    
+    for (k = 0; k < `L2_SRAM_CHUNKS; k = k+1) begin: way
+
+       
+
+        bram_1rw_wrapper #(
+            .NAME          (""             ),
+            .DEPTH         (`L2_DATA_ARRAY_HEIGHT/4),
+            .ADDR_WIDTH    ($clog2(`L2_DATA_ARRAY_HEIGHT/4)),
+            .BITMASK_WIDTH (`L2_DATA_ARRAY_WIDTH),
+            .DATA_WIDTH    (`L2_DATA_ARRAY_WIDTH)
+        ) sram_l2_data (
+            .MEMCLK        ( clk                            ),
+            .RESET_N       ( rst_n                          ),
+            .CE            ( clk_en[k]                      ),
+            .A             ( addr[`L2_DATA_INDEX_WIDTH-1:2] ),
+            .RDWEN         ( rdw_en                         ),
+            .BW            ( data_mask_in                   ),
+            .DIN           ( data_in [`L2_DATA_ARRAY_WIDTH*k +: `L2_DATA_ARRAY_WIDTH]),
+            .DOUT          ( data_out[`L2_DATA_ARRAY_WIDTH*k +: `L2_DATA_ARRAY_WIDTH])  
+        );
+    end
+    endgenerate
+
+`endif
 
 endmodule

@@ -35,87 +35,115 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `default_nettype none
 `endif
 
-module sram_l15_data #(
-   
-   parameter L15_L1D_LINE_SIZE = 64, 
-   localparam L15_NUM_ENTRIES = `CONFIG_L15_SIZE/L15_L1D_LINE_SIZE,
-   localparam L15_ARRAY_PER_CACHELINE = L15_L1D_LINE_SIZE / `L15_DATA_ARRAY_SIZE,
-   localparam L15_DATA_ARRAY_HEIGHT_LOG2 = $clog2(L15_NUM_ENTRIES*(L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE))
+module sram_l15_data #(   
+   parameter DEPTH=`CONFIG_L15_SIZE/64,
+   localparam ADDR_WIDTH=$clog2(DEPTH),
+   `ifndef PARALLEL_SRAMS
+   localparam DATA_WIDTH = `L15_DATA_ARRAY_WIDTH
+   `else 
+   localparam DATA_WIDTH = `L15_DATA_ARRAY_WIDTH * `L15_SRAM_CHUNKS
+   `endif
 )
 (
 input wire MEMCLK,
 input wire RESET_N,
 input wire CE,
-input wire [L15_DATA_ARRAY_HEIGHT_LOG2-1:0] A,
+input wire [ADDR_WIDTH-1:0] A,
 input wire RDWEN,
-input wire [`L15_DATA_ARRAY_WIDTH-1:0] BW,
-input wire [`L15_DATA_ARRAY_WIDTH-1:0] DIN,
-output wire [`L15_DATA_ARRAY_WIDTH-1:0] DOUT,
+input wire [DATA_WIDTH-1:0] BW,
+input wire [DATA_WIDTH-1:0] DIN,
+output wire [DATA_WIDTH-1:0] DOUT,
 input wire [`BIST_OP_WIDTH-1:0] BIST_COMMAND,
 input wire [`SRAM_WRAPPER_BUS_WIDTH-1:0] BIST_DIN,
 output reg [`SRAM_WRAPPER_BUS_WIDTH-1:0] BIST_DOUT,
 input wire [`BIST_ID_WIDTH-1:0] SRAMID
 );
 
-localparam L15_DATA_ARRAY_HEIGHT = (L15_NUM_ENTRIES * L15_ARRAY_PER_CACHELINE);
-
 
 `ifdef SYNTHESIZABLE_BRAM
-wire [`L15_DATA_ARRAY_WIDTH-1:0] DOUT_bram;
-assign DOUT = DOUT_bram;
+   `ifndef PARALLEL_SRAMS
+      wire [`L15_DATA_ARRAY_WIDTH-1:0] DOUT_bram;
+      assign DOUT = DOUT_bram;
 
-bram_1rw_wrapper #(
-   .NAME          (""             ),
-   .DEPTH         (L15_DATA_ARRAY_HEIGHT),
-   .ADDR_WIDTH    (L15_DATA_ARRAY_HEIGHT_LOG2),
-   .BITMASK_WIDTH (`L15_DATA_ARRAY_WIDTH),
-   .DATA_WIDTH    (`L15_DATA_ARRAY_WIDTH)
-)   sram_l15_data (
-   .MEMCLK        (MEMCLK     ),
-   .RESET_N        (RESET_N     ),
-   .CE            (CE         ),
-   .A             (A          ),
-   .RDWEN         (RDWEN      ),
-   .BW            (BW         ),
-   .DIN           (DIN        ),
-   .DOUT          (DOUT_bram       )
-);
-      
-`else
+      bram_1rw_wrapper #(
+         .NAME          (""             ),
+         .DEPTH         (DEPTH),
+         .ADDR_WIDTH    (ADDR_WIDTH),
+         .BITMASK_WIDTH (`L15_DATA_ARRAY_WIDTH),
+         .DATA_WIDTH    (`L15_DATA_ARRAY_WIDTH)
+      )   sram_l15_data (
+         .MEMCLK        (MEMCLK     ),
+         .RESET_N       (RESET_N     ),
+         .CE            (CE         ),
+         .A             (A          ),
+         .RDWEN         (RDWEN      ),
+         .BW            (BW         ),
+         .DIN           (DIN        ),
+         .DOUT          (DOUT_bram       )
+      );
 
-reg [`L15_DATA_ARRAY_WIDTH-1:0] cache [L15_DATA_ARRAY_HEIGHT-1:0];
+   `else // PARALLEL_SRAMS
 
-integer i;
-initial
-begin
-   for (i = 0; i < L15_DATA_ARRAY_HEIGHT; i = i + 1)
+    genvar k;
+    generate    
+    for (k = 0; k < `L15_SRAM_CHUNKS; k = k+1) begin: l15_way    
+
+       bram_1rw_wrapper #(
+         .NAME          (""             ),
+         .DEPTH         (DEPTH),
+         .ADDR_WIDTH    ($clog2(DEPTH)),
+         .BITMASK_WIDTH (`L15_DATA_ARRAY_WIDTH),
+         .DATA_WIDTH    (`L15_DATA_ARRAY_WIDTH)
+      )  sram_l15_data (
+         .MEMCLK        (MEMCLK     ),
+         .RESET_N       (RESET_N     ),
+         .CE            (CE         ),
+         .A             (A  ),
+         .DIN           (DIN [`L15_DATA_ARRAY_WIDTH*k +: `L15_DATA_ARRAY_WIDTH] ),
+         .BW            (BW [`L15_DATA_ARRAY_WIDTH*k +: `L15_DATA_ARRAY_WIDTH] ),
+         .RDWEN         (RDWEN ),           
+         .DOUT          (DOUT [`L15_DATA_ARRAY_WIDTH*k +: `L15_DATA_ARRAY_WIDTH] )          
+        );
+
+    end//for
+    endgenerate 
+   `endif   // PARALLEL_SRAMS
+
+`else //SYNTHESIZABLE_BRAM
+
+   reg [DATA_WIDTH-1:0] cache [DEPTH-1:0];
+
+   integer i;
+   initial
    begin
-      cache[i] = 0;
-   end
-end
-
-reg [`L15_DATA_ARRAY_WIDTH-1:0] dout_f;
-
-assign DOUT = dout_f;
-
-always @ (posedge MEMCLK)
-begin
-   if(!RESET_N) 
-   begin
-      cache[A] <= 0;
-      dout_f <= {`L15_DATA_ARRAY_WIDTH {1'b0}};  
-   end else begin
-      if (CE)
+      for (i = 0; i < DEPTH; i = i + 1)
       begin
-         if (RDWEN == 1'b0)
-            cache[A] <= (DIN & BW) | (cache[A] & ~BW);
-         else
-            dout_f <= cache[A];
+         cache[i] = {DATA_WIDTH{1'b0}};
       end
    end
-end
 
-`endif 
+   reg [DATA_WIDTH-1:0] dout_f;
+
+   assign DOUT = dout_f;
+
+   always @ (posedge MEMCLK)
+   begin
+      if(!RESET_N) 
+      begin
+         cache[A] <=  {DATA_WIDTH{1'b0}};
+         dout_f <=  {DATA_WIDTH{1'b0}};
+      end else begin
+         if (CE)
+         begin
+            if (RDWEN == 1'b0)
+               cache[A] <= (DIN & BW) | (cache[A] & ~BW);
+            else
+               dout_f <= cache[A];
+         end
+      end
+   end
+
+`endif //SYNTHESIZABLE_BRAM
 
 endmodule
 

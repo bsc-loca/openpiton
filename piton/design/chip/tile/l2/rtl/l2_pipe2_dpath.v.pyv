@@ -156,7 +156,12 @@ module l2_pipe2_dpath(
     output wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_mask_in_S2,
 
     output reg [`L2_DATA_INDEX_WIDTH-1:0] data_addr_S2,
+`ifdef PARALLEL_SRAMS
+    output reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_in_S2,
+`else
     output reg [`L2_DATA_ARRAY_WIDTH-1:0] data_data_in_S2,
+`endif
+    
     output wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_mask_in_S2,
 
     `ifndef NO_RTL_CSM
@@ -581,6 +586,36 @@ begin
     end
 end
 
+`ifdef PARALLEL_SRAMS
+
+wire [`L2_DATA_ECC_PARITY_WIDTH-1:0] msg_data_parity_S2 [(`L2_SRAM_CHUNKS*2)-1:0];
+
+genvar k;
+generate    
+for (k = 0; k < `L2_SRAM_CHUNKS*2; k = k+1) begin: pgen
+    l2_data_pgen data_pgen( 
+        .din     (msg_data_S2[`L2_DATA_ECC_DATA_WIDTH*k +: `L2_DATA_ECC_DATA_WIDTH]),
+        .parity  (msg_data_parity_S2[k])
+    );
+end
+endgenerate
+
+always @ *
+begin
+    data_data_in_S2 = 
+        {
+        msg_data_parity_S2[7], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 7 +: `L2_DATA_ECC_DATA_WIDTH], 
+        msg_data_parity_S2[6], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 6 +: `L2_DATA_ECC_DATA_WIDTH], 
+        msg_data_parity_S2[5], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 5 +: `L2_DATA_ECC_DATA_WIDTH], 
+        msg_data_parity_S2[4], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 4 +: `L2_DATA_ECC_DATA_WIDTH], 
+        msg_data_parity_S2[3], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 3 +: `L2_DATA_ECC_DATA_WIDTH], 
+        msg_data_parity_S2[2], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 2 +: `L2_DATA_ECC_DATA_WIDTH], 
+        msg_data_parity_S2[1], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 1 +: `L2_DATA_ECC_DATA_WIDTH], 
+        msg_data_parity_S2[0], msg_data_S2[`L2_DATA_ECC_DATA_WIDTH* 0 +: `L2_DATA_ECC_DATA_WIDTH]
+        }; 
+end
+
+`else
 
 wire [`L2_DATA_ECC_PARITY_WIDTH-1:0] msg_data_parity1_S2;
 wire [`L2_DATA_ECC_PARITY_WIDTH-1:0] msg_data_parity2_S2;
@@ -595,11 +630,11 @@ l2_data_pgen data_pgen2(
     .parity         (msg_data_parity2_S2)
 );
 
-
 always @ *
 begin
     data_data_in_S2 = {msg_data_parity2_S2, msg_data_S2[127:64], msg_data_parity1_S2, msg_data_S2[63:0]}; 
 end
+`endif
 
 assign data_data_mask_in_S2 = {`L2_DATA_ARRAY_WIDTH{1'b1}}; 
 

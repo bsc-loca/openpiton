@@ -216,7 +216,12 @@ always @ (*) begin
     
     for (ii=3;ii< SUB_FLIT_WIDTH; ii=ii+1) begin : lp2
         sub_flit[ii]=64'd0; 
+    `ifdef PARALLEL_SRAMS 
+        if ((msg_length > ii-1) & is_response) sub_flit[ii][`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_f[ii-1];
+        else if ((msg_length > ii-1) &~ is_response) sub_flit[ii][`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_f[(ii-3) % BUFFER_WIDTH];
+    `else 
         if (msg_length > ii-1) sub_flit[ii][`NOC_DATA_WIDTH-1:0] = l15_noc3encoder_req_data_f[(ii-3) % BUFFER_WIDTH]; 
+    `endif
     end //for    
 end
 
@@ -254,7 +259,11 @@ end else begin : NOT_W64
          delay_next = 1'b0;
          send_done =    (msg_length < flit_state  +  NOC3_WORDS_NUM); 
          if (l15_noc3encoder_req_val == 1'b1 && flit_state == 0 &&  NOC3_WORDS_NUM > data_ptr ) begin
+    `ifdef PARALLEL_SRAMS 
+            delay_next = ~noc3encoder_l15_req_ack ;
+    `else 
             delay_next = 1'b1;
+    `endif
          end
       end
       
@@ -344,8 +353,13 @@ begin
             msg_type = `MSG_TYPE_LOAD_FWDACK;
             if (l15_noc3encoder_req_with_data)
             begin
+`ifdef PARALLEL_SRAMS 
+                msg_length = 8;
+                msg_data_size = `MSG_DATA_SIZE_64B;
+`else 
                 msg_length = 2;
                 msg_data_size = `MSG_DATA_SIZE_32B;
+`endif
             end
             else
                 msg_length = 0;
@@ -360,8 +374,13 @@ begin
            
             if (l15_noc3encoder_req_with_data)
             begin
+`ifdef PARALLEL_SRAMS 
+                msg_length = 8;
+                msg_data_size = `MSG_DATA_SIZE_64B;
+`else 
                 msg_length = 2;
                 msg_data_size = `MSG_DATA_SIZE_32B;
+`endif
             end
             else
                 msg_length = 0;

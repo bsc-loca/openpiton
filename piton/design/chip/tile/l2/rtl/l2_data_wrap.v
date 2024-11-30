@@ -46,8 +46,17 @@ module l2_data_wrap(
 
     input wire clk,
     input wire rst_n,
+`ifdef PARALLEL_SRAMS
+    input wire [`L2_SRAM_CHUNKS-1: 0] clk_en1,
+    input wire [`L2_SRAM_CHUNKS-1: 0] clk_en2,
+    input wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_in2,   
+    output wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_out,    
+`else
     input wire clk_en1,
     input wire clk_en2,
+    input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_in2,
+    output wire [`L2_DATA_ARRAY_WIDTH-1:0] data_out,    
+`endif
     input wire rdw_en1,
     input wire rdw_en2,
     input wire pdout_en,
@@ -59,10 +68,8 @@ module l2_data_wrap(
     input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_mask_in1,
 
     input wire [`L2_DATA_INDEX_WIDTH-1:0] addr2,
-    input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_in2,
     input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_mask_in2,
 
-    output wire [`L2_DATA_ARRAY_WIDTH-1:0] data_out,
     output wire [`L2_DATA_ARRAY_WIDTH-1:0] pdata_out,
 
     // sram interface
@@ -72,10 +79,16 @@ module l2_data_wrap(
 
 );
 
-reg clk_en;
+
 reg rdw_en;
 reg [`L2_DATA_INDEX_WIDTH-1:0] addr;
+`ifdef PARALLEL_SRAMS
+reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_in;
+reg [`L2_SRAM_CHUNKS-1:0]clk_en;
+`else
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_in;
+reg clk_en;
+`endif
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_mask_in;
 
 always @ *
@@ -93,10 +106,15 @@ begin
         clk_en = clk_en1;
         rdw_en = rdw_en1;
         addr = addr1;
+`ifdef PARALLEL_SRAMS
+        data_in = {`L2_SRAM_CHUNKS{data_in1}};
+`else
         data_in = data_in1;
+`endif
         data_mask_in = data_mask_in1;
     end
 end
+
 
 l2_data l2_data(
 
@@ -111,7 +129,6 @@ l2_data l2_data(
     .data_mask_in   (data_mask_in),
     .data_out       (data_out),
     .pdata_out      (pdata_out),
-
     // sram interfaces
     .srams_rtap_data (srams_rtap_data),
     .rtap_srams_bist_command (rtap_srams_bist_command),

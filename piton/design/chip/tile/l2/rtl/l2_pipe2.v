@@ -105,10 +105,16 @@ module l2_pipe2 #(
     output wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_in,
     output wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_mask_in,
 
-    output wire data_clk_en,
+
     output wire data_rdw_en,
     output wire [`L2_DATA_INDEX_WIDTH-1:0] data_addr,
+`ifdef PARALLEL_SRAMS
+    output wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_in,
+    output wire [`L2_SRAM_CHUNKS-1:0] data_clk_en,
+`else
     output wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_in,
+    output wire data_clk_en,
+`endif
     output wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_mask_in,
 
     `ifndef NO_RTL_CSM
@@ -232,6 +238,18 @@ wire stall_S3;
 
 assign msg_type_S1 = msg_type;
 
+wire data_clk_en_S2;
+
+`ifdef PARALLEL_SRAMS
+    wire second_half = data_addr[1] ;
+    assign  data_clk_en = 
+        (data_clk_en_S2==1'b0)? `L2_SRAM_CHUNKS'b0: //not enabled
+        (l2_load_32B_S2 & (~data_rdw_en) & ~second_half )? 4'b0011:  // writing first 32 B;
+        (l2_load_32B_S2 & (~data_rdw_en) & second_half  )? 4'b1100:  // writing second 32 B;
+        {`L2_SRAM_CHUNKS{1'b1}};
+`else 
+    assign  data_clk_en = data_clk_en_S2;
+`endif
 
 l2_pipe2_buf_in #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
@@ -374,7 +392,7 @@ l2_pipe2_ctrl ctrl(
     .dir_clk_en_S2              (dir_clk_en),
     .dir_rdw_en_S2              (dir_rdw_en),
     .dir_clr_en_S2              (dir_clr_en_S2),
-    .data_clk_en_S2             (data_clk_en),
+    .data_clk_en_S2             (data_clk_en_S2),
     .data_rdw_en_S2             (data_rdw_en),
     .state_owner_en_S2          (state_owner_en_S2),
     .state_owner_op_S2          (state_owner_op_S2),

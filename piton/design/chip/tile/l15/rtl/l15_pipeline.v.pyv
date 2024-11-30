@@ -130,9 +130,15 @@ module l15_pipeline #(
     output reg l15_dcache_val_s2,
     output reg l15_dcache_rw_s2,
     output reg [(L15_CACHE_INDEX_WIDTH+`L15_WAY_WIDTH+L15_SUBLINE_INDEX_WIDTH)-1:0] l15_dcache_index_s2, // Before: 128 bits After: 512 bits (5+2+(6-4) -> 9)
+    `ifdef PARALLEL_SRAMS
+    output reg [(L15_L1D_LINE_SIZE*8)-1:0] l15_dcache_write_data_s2,
+    output reg [(L15_L1D_LINE_SIZE*8)-1:0] l15_dcache_write_mask_s2,
+    input wire [(L15_L1D_LINE_SIZE*8)-1:0] dcache_l15_dout_s3,
+    `else
     output reg [`L15_UNPARAM_127_0] l15_dcache_write_data_s2,
     output reg [`L15_UNPARAM_127_0] l15_dcache_write_mask_s2,
     input wire [`L15_UNPARAM_127_0] dcache_l15_dout_s3,
+    `endif
 
     // mesi
     output reg l15_mesi_read_val_s1,
@@ -1113,7 +1119,11 @@ begin
                     || fetch_is_pcx_storenc_instruction_s1 || fetch_is_pcx_loadnc_instruction_s1 || fetch_is_pcx_flush_s1)
                     fetch_state_next_s1 = `L15_FETCH_STATE_PCX_WRITEBACK_DONE;
                 else if (fetch_is_noc2_data_invalidation_s1)
-                    fetch_state_next_s1 = `L15_FETCH_STATE_INVAL_2;
+	           `ifdef PARALLEL_SRAMS 
+                        fetch_state_next_s1 = `L15_FETCH_STATE_NORMAL;
+                    `else                   
+			fetch_state_next_s1 = `L15_FETCH_STATE_INVAL_2;
+                     `endif
                 else if (fetch_is_noc2_instruction_invalidation_s1)
                     `ifdef ICACHE_64B
                         //fetch_state_next_s1 = `L15_FETCH_STATE_ICACHE_INVAL_2;
@@ -1692,8 +1702,12 @@ begin
         begin
             if (fetch_state_s1 == `L15_FETCH_STATE_NORMAL)
             begin // we only stall on the first inval
+            `ifdef PARALLEL_SRAMS
+                decoder_noc2_ack_stage_s1 = `L15_ACK_STAGE_S3;
+            `else
                 decoder_noc2_ack_stage_s1 = `L15_ACK_STAGE_NEVER;
                 decoder_stall_on_matched_bypassed_index_s1 = 1;
+            `endif
             end
             else if (fetch_state_s1 == `L15_FETCH_STATE_INVAL_4)
             begin // we only ack on the last inval
@@ -1723,10 +1737,14 @@ begin
             decoder_lruarray_write_op_s1 = `L15_LRU_INVALIDATE_IF_TAGCHECK_WAY_IS_MES;
 
             decoder_cpx_operation_s1 = `L15_CPX_GEN_INVALIDATION_IF_TAGCHECK_MES_AND_WAYMAP_VALID;
+            `ifdef PARALLEL_SRAMS
+                decoder_noc3_operation_s1 = `L15_NOC3_GEN_INVAL_ACK_FROM_DCACHE;
+            `else
             if (predecode_is_last_inval_s1)
                 decoder_noc3_operation_s1 = `L15_NOC3_GEN_INVAL_ACK_FROM_DCACHE;
             else
                 decoder_noc3_operation_s1 = `L15_NOC3_GEN_INVAL_ACK_IF_TAGCHECK_M_FROM_DCACHE;
+            `endif
 
             decoder_csm_op_s1 = `L15_CSM_OP_EVICT_IF_M;
         end
@@ -1735,7 +1753,11 @@ begin
         begin
             if (fetch_state_s1 == `L15_FETCH_STATE_NORMAL)
             begin // we only stall on the first writeback
+            `ifdef PARALLEL_SRAMS
+                decoder_noc2_ack_stage_s1 = `L15_ACK_STAGE_S3;
+            `else
                 decoder_noc2_ack_stage_s1 = `L15_ACK_STAGE_NEVER;
+            `endif
                 decoder_stall_on_matched_bypassed_index_s1 = 1;
             end
             else if (fetch_state_s1 == `L15_FETCH_STATE_INVAL_4)
@@ -1757,10 +1779,14 @@ begin
             decoder_mesi_write_op_s1 = `L15_S3_MESI_WRITE_TAGCHECK_WAY_S_IF_ME;
             decoder_lrsc_flag_write_op_s1 = `L15_S2_LRSC_FLAG_CLEAR_TAGCHECK_WAY;
 
+            `ifdef PARALLEL_SRAMS
+                decoder_noc3_operation_s1 = `L15_NOC3_GEN_DOWNGRADE_ACK_FROM_DCACHE;
+            `else
             if (predecode_is_last_inval_s1)
                 decoder_noc3_operation_s1 = `L15_NOC3_GEN_DOWNGRADE_ACK_FROM_DCACHE;
             else
                 decoder_noc3_operation_s1 = `L15_NOC3_GEN_DOWNGRADE_ACK_IF_TAGCHECK_M_FROM_DCACHE;
+            `endif
         end
 
         `L15_REQTYPE_ACKDT_LD:
@@ -2681,7 +2707,11 @@ begin
     // Stalling logics
     // The only reason that S2 can stall is that S3 is stalled
     stall_real_s2 = val_s2 && stall_s3;
+`ifdef PARALLEL_SRAMS
+    stall_load_s2 = 1'b0 ; 
+`else
     stall_load_s2 = val_s2 && (load_64B_s2 || noc3_wb_s2 || l1_inv_s2 || mshr_write_s2 || l1d_load_s2) && cache_subline_s2 != ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1); 
+`endif 
     stall_s2 = stall_real_s2 || stall_load_s2;
 end
 
@@ -2890,12 +2920,25 @@ reg dcache_rw_s2;
 reg [L15_CACHE_INDEX_WIDTH-1:0] dcache_index_s2;
 reg [`L15_WAY_WIDTH-1:0] dcache_way_s2;
 reg [L15_SUBLINE_INDEX_WIDTH-1:0] dcache_subline_s2;
+
+`ifdef PARALLEL_SRAMS
+reg [(L15_L1D_LINE_SIZE*8)-1:0] dcache_mshr_write_mask_s2;
+reg [(L15_L1D_LINE_SIZE*8)-1:0] dcache_write_merge_mshr_noc2_s2;
+`else
 reg [`L15_UNPARAM_127_0] dcache_mshr_write_mask_s2;
 reg [`L15_UNPARAM_127_0] dcache_write_merge_mshr_noc2_s2;
+`endif
+
 reg [`L15_DCACHE_SOURCE_WIDTH-1:0] dcache_source_s2;
+`ifdef PARALLEL_SRAMS
+reg [(L15_L1D_LINE_SIZE*8)-1:0] dcache_write_mask_s2;
+reg [(L15_L1D_LINE_SIZE*8)-1:0] dcache_write_data_s2;
+reg [(L15_L1D_LINE_SIZE*8)-1:0] noc2_write_data_s2;
+`else
 reg [`L15_UNPARAM_127_0] dcache_write_mask_s2;
 reg [`L15_UNPARAM_127_0] dcache_write_data_s2;
 reg [`L15_UNPARAM_127_0] noc2_write_data_s2;
+`endif
 reg [`L15_UNPARAM_127_0] mshr_pipe_write_data_s2;
 // diag accesses
 reg [L15_CACHE_INDEX_WIDTH-1:0] dcache_diag_index_s2;
@@ -3027,6 +3070,45 @@ buffer_noc2decoder_l15_data_next = buffer_noc2decoder_l15_data;
         end
     endcase
 
+`ifdef PARALLEL_SRAMS
+
+    for (i=0;i<`L15_DATA_ARRAY_SIZE*4; i= i+1) begin
+        dcache_mshr_write_mask_s2[i*8 +: 8] = {8{mshr_pipe_write_buffer_byte_mask_s2[i]}};
+    end
+    
+    for (i=0; i<8; i= i+1) begin
+        noc2_write_data_s2[64*(7-i) +: 64] = noc2decoder_l15_data[64*i +: 64];
+    end
+    
+    
+
+    dcache_write_merge_mshr_noc2_s2 = (~dcache_mshr_write_mask_s2 & noc2_write_data_s2 ) | (dcache_mshr_write_mask_s2 & mshr_pipe_write_buffer_s2);
+    
+    case (dcache_source_s2)
+        `L15_DCACHE_SOURCE_MSHR: // 1
+        begin
+            dcache_write_mask_s2 = dcache_mshr_write_mask_s2 ;
+            dcache_write_data_s2 = mshr_pipe_write_buffer_s2 ;
+        end
+        `L15_DCACHE_SOURCE_NOC2: // 2
+        begin
+            dcache_write_mask_s2 = {512{1'b1}};
+            dcache_write_data_s2 = noc2_write_data_s2 ;
+        end
+        `L15_DCACHE_SOURCE_NOC2_AND_MSHR: //3
+        begin
+            dcache_write_mask_s2 = {512{1'b1}};
+            dcache_write_data_s2 = dcache_write_merge_mshr_noc2_s2 ;
+        end
+        `L15_DCACHE_SOURCE_PCX_DIAG: // 4
+        begin
+            dcache_write_mask_s2[`L15_UNPARAM_127_0] = dcache_diag_offset_s2 == 1'b0 ? {{64{1'b1}},64'b0} : {64'b0,{64{1'b1}}};
+            dcache_write_data_s2[`L15_UNPARAM_127_0] = {pcxdecoder_l15_data[`L15_UNPARAM_63_0],pcxdecoder_l15_data[`L15_UNPARAM_63_0]};
+        end
+    endcase
+
+`else
+    
     for (i=0;i<`L15_DATA_ARRAY_SIZE; i= i+1)
     begin
         dcache_mshr_write_mask_s2[i*8 +: 8] = {8{mshr_pipe_write_buffer_byte_mask_s2[((L15_L1D_LINE_SIZE-`L15_DATA_ARRAY_SIZE)+i)-dcache_subline_s2*`L15_DATA_ARRAY_SIZE]}};
@@ -3071,14 +3153,19 @@ buffer_noc2decoder_l15_data_next = buffer_noc2decoder_l15_data;
             dcache_write_data_s2[`L15_UNPARAM_127_0] = {pcxdecoder_l15_data[`L15_UNPARAM_63_0],pcxdecoder_l15_data[`L15_UNPARAM_63_0]};
         end
     endcase
+`endif
 
     l15_dcache_val_s2 = dcache_val_s2 && val_s2 && !stall_real_s2;
     l15_dcache_rw_s2 = dcache_rw_s2;
     l15_dcache_index_s2 = (L15_L1D_LINE_SIZE == 16) ? {dcache_index_s2, dcache_way_s2} : {dcache_index_s2, dcache_way_s2,dcache_subline_s2 };
 
+`ifdef PARALLEL_SRAMS
+    l15_dcache_write_mask_s2 = dcache_write_mask_s2;
+    l15_dcache_write_data_s2 = dcache_write_data_s2;
+`else
     l15_dcache_write_mask_s2[`L15_UNPARAM_127_0] = dcache_write_mask_s2;
     l15_dcache_write_data_s2[`L15_UNPARAM_127_0] = dcache_write_data_s2;
-
+`endif
 
     // extra data for CSM homeid table
     // encode packet format to internal format (smaller)
@@ -3167,7 +3254,11 @@ begin
     endcase
     // bugfix (stall signal needs to be here)
     // trin todo: why stall_s2 is needed
+`ifdef PARALLEL_SRAMS
+    l15_mesi_write_val_s2 = mesi_write_val_s2 && val_s2 && !stall_s2 ; // only write state in the last cycle, if have multiple sublines
+`else
     l15_mesi_write_val_s2 = mesi_write_val_s2 && val_s2 && !stall_s2 && !predecode_not_last_inv_s2; // only write state in the last cycle, if have multiple sublines
+`endif    
     l15_mesi_write_index_s2[L15_CACHE_INDEX_WIDTH-1:0] = mesi_write_index_s2;
 
     //l15_mesi_write_mask_s2 =  (mesi_write_way_s2 == 0) ? 8'b00_00_00_11 :
@@ -3922,8 +4013,12 @@ begin
     endcase
     lruarray_write_index_s3 = cache_index_s3;
 
+`ifdef PARALLEL_SRAMS
+    l15_lruarray_write_val_s3 = lruarray_write_val_s3 && val_s3 ; 
+`else
     l15_lruarray_write_val_s3 = lruarray_write_val_s3 && val_s3 && (~predecode_not_last_inv_s3) &&
         (((noc3_wb_s3 || l1_inv_s3 || load_64B_s3) && cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)) || !(noc3_wb_s3 || l1_inv_s3 || load_64B_s3));
+`endif
 
     l15_lruarray_write_data_s3 = lruarray_write_data_s3;
     l15_lruarray_write_mask_s3 = {`L15_LRUARRAY_WIDTH{1'b1}};
@@ -4268,10 +4363,14 @@ begin
         `L15_CPX_GEN_INVALIDATION_IF_TAGCHECK_MES_AND_WAYMAP_VALID:
         begin
             `ifdef PITON_ARIANE_HPDC 
+               `ifdef PARALLEL_SRAMS
+                    cpx_req_val_s3 = tagcheck_state_mes_s3 && wmt_compare_match_s3;
+               `else 
                 multicyc_inval_subline_val = (L15_L1D_LINE_SIZE==64) ? address_s3[`L15_SUBLINE_MASK]==2'b11 : 
                                             (L15_L1D_LINE_SIZE==32) ? address_s3[`L15_SUBLINE_MASK]==2'b01 || address_s3[`L15_SUBLINE_MASK]==2'b11 : 
                                                                     1'b1; // 16 B 
                 cpx_req_val_s3 = tagcheck_state_mes_s3 && (!l1_inv_multicyc_s3 || multicyc_inval_subline_val) && wmt_compare_match_s3;
+                `endif
             `else
                 cpx_req_val_s3 = tagcheck_state_mes_s3 && wmt_compare_match_s3;
             `endif
@@ -4314,8 +4413,12 @@ begin
         end
         `L15_CPX_GEN_LD_RESPONSE_FROM_NOC2:
         begin
+        `ifdef PARALLEL_SRAMS
+            cpx_req_val_s3 =  1'b1 ;
+        `else 
             cpx_req_val_s3 = (predecode_reqtype_s3 == `L15_REQTYPE_ACKDT_LD) ? 
                              (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)) ? 1'b1 : 1'b0 : 1'b1 ;
+        `endif
             cpx_type_s3 = `CPX_RESTYPE_LOAD;
             cpx_data_source_s3 = `L15_CPX_SOURCE_NOC2_BUFFER;
         end
@@ -4360,8 +4463,12 @@ begin
         end
         `L15_CPX_GEN_ATOMIC_ACK_FROM_NOC2:
         begin
+        `ifdef PARALLEL_SRAMS
+            cpx_req_val_s3 = 1'b1 ;        
+        `else
             cpx_req_val_s3 = (predecode_reqtype_s3 == `L15_REQTYPE_ACKDT_LR) ? 
                              (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)) ? 1'b1 : 1'b0 : 1'b1;
+        `endif
             cpx_type_s3 = `CPX_RESTYPE_ATOMIC_RES;
             cpx_data_source_s3 = `L15_CPX_SOURCE_NOC2_BUFFER;
             cpx_atomic_bit_s3 = 1;
@@ -4403,11 +4510,19 @@ begin
 
     l15_cpxencoder_returntype[`L15_UNPARAM_3_0] = cpx_type_s3; //default
 `ifdef PITON_ARIANE_HPDC
+    `ifdef PARALLEL_SRAMS
+        l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 ;
+    `else
     l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 && 
         (!(l1d_load_s3 || mshr_write_s3 || l1_inv_s3) || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
+    `endif
 `else
+    `ifdef PARALLEL_SRAMS
+        l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 ;
+    `else
     l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 && 
         (!(l1d_load_s3 || mshr_write_s3) || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
+    `endif
 `endif
     l15_cpxencoder_l2miss = 0;
     l15_cpxencoder_error[`L15_UNPARAM_1_0] = 0;
@@ -4460,18 +4575,38 @@ begin
         end
         `L15_CPX_SOURCE_DCACHE:
         begin
+        `ifdef PARALLEL_SRAMS
+            l15_cpxencoder_data  = 
+                {
+                dcache_l15_dout_s3[64*0 +: 64 ],dcache_l15_dout_s3[64*1 +: 64 ],
+                dcache_l15_dout_s3[64*2 +: 64 ],dcache_l15_dout_s3[64*3 +: 64 ],
+                dcache_l15_dout_s3[64*4 +: 64 ],dcache_l15_dout_s3[64*5 +: 64 ],
+                dcache_l15_dout_s3[64*6 +: 64 ],dcache_l15_dout_s3[64*7 +: 64 ]
+                };
+        `else
          l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] =  dcache_data ;
 	 dcache_dat_en=1'b1;
+        `endif
         end
         `L15_CPX_SOURCE_NOC2_BUFFER:
         begin
+        `ifdef PARALLEL_SRAMS
+            l15_cpxencoder_data = noc2decoder_l15_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];
+                //{
+                //noc2decoder_l15_data[64*1 +: 64 ],noc2decoder_l15_data[64*0 +: 64 ],
+                //noc2decoder_l15_data[64*3 +: 64 ],noc2decoder_l15_data[64*2 +: 64 ],
+                //noc2decoder_l15_data[64*5 +: 64 ],noc2decoder_l15_data[64*4 +: 64 ],
+                //noc2decoder_l15_data[64*7 +: 64 ],noc2decoder_l15_data[64*6 +: 64 ]
+                //};
+        `else
 		 if (cache_subline_s3 == 0) 
             begin   
                 buffer_noc2decoder_cpx_data_next[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0]  = noc2decoder_l15_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];
  l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] =noc2decoder_l15_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];    
 
 end else l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] = buffer_noc2decoder_cpx_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0];
-        end
+        `endif
+ end
         `L15_CPX_SOURCE_CONFIG_REGS:
         begin
             l15_cpxencoder_data[`L15_UNPARAM_63_0] = config_l15_read_res_data_s3[`L15_UNPARAM_63_0];
@@ -4536,7 +4671,11 @@ begin
         end
         `L15_NOC1_GEN_WRITEBACK_GUARD_IF_TAGCHECK_M:
         begin
+`ifdef PARALLEL_SRAMS
+            noc1_req_val_s3 = val_s3 && tagcheck_state_m_s3 ;
+`else
             noc1_req_val_s3 = val_s3 && (tagcheck_state_m_s3 || noc3_wb_s3);
+`endif
             noc1_type_s3 = `L15_NOC1_REQTYPE_WRITEBACK_GUARD;
             l15_noc1buffer_req_address = address_s3;
             creditman_noc1_mispredicted_s3 = ((noc3_wb_s3 || load_64B_s3 || l1_inv_s3) && cache_subline_s3 != 2'b0) ? 1'b0 :
@@ -4686,10 +4825,12 @@ begin
             noc1_homeid_not_required_s3 = 1'b1;
         end
     endcase
-
+`ifdef PARALLEL_SRAMS
+    l15_noc1buffer_req_val = noc1_req_val_s3 && !noc1encoder_req_staled_s3 ;
+`else    
     l15_noc1buffer_req_val = noc1_req_val_s3 && !noc1encoder_req_staled_s3 &&
                                 ((!noc3_wb_s3 && !mshr_write_s3) || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
-
+`endif
     l15_noc1buffer_req_type = noc1_type_s3;
     l15_noc1buffer_req_mshr_index = mshr_index_s3;
     l15_noc1buffer_req_mshr_type = mshr_type_s3;
@@ -4829,12 +4970,24 @@ begin
             noc3_homeid_source_s3 = `L15_HOMEID_SRC_NOC2_SOURCE;
         end
     endcase
+`ifdef PARALLEL_SRAMS
+    l15_noc3encoder_req_val = noc3_req_val_s3 && !noc3encoder_req_staled_s3;
+`else 
     l15_noc3encoder_req_val = noc3_req_val_s3 && !noc3encoder_req_staled_s3 && 
                              ( ~noc3_wb_s3 || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
-
+`endif
     l15_noc3encoder_req_type = noc3_type_s3;
-    l15_noc3encoder_req_mshr_type = mshr_type_s3;
+
+`ifdef PARALLEL_SRAMS 
+    l15_noc3encoder_req_sequenceid = //noc3_address_s3[`L15_SUBLINE_MASK];
+        predecode_fwd_subcacheline_vector_s3[3]             ? 'h3 :
+        predecode_fwd_subcacheline_vector_s3[3:2] == 2'b01  ? 'h2 :
+        predecode_fwd_subcacheline_vector_s3[3:1] == 3'b001 ? 'h1 : 'h0 ;
+`else 
     l15_noc3encoder_req_sequenceid = address_s3[`L15_SUBLINE_MASK];
+`endif
+
+    l15_noc3encoder_req_mshr_type = mshr_type_s3;
 
     l15_noc3encoder_req_threadid = threadid_s3[`L15_THREADID_MASK];
     l15_noc3encoder_req_address[`L15_PADDR_MASK] = noc3_address_s3[`L15_PADDR_MASK];
@@ -4861,6 +5014,19 @@ begin
             `endif
     endcase
 end
+
+`ifdef PARALLEL_SRAMS
+    always @* begin
+            l15_noc3encoder_req_data  = 
+                {
+                dcache_l15_dout_s3[64*0 +: 64 ],dcache_l15_dout_s3[64*1 +: 64 ],
+                dcache_l15_dout_s3[64*2 +: 64 ],dcache_l15_dout_s3[64*3 +: 64 ],
+                dcache_l15_dout_s3[64*4 +: 64 ],dcache_l15_dout_s3[64*5 +: 64 ],
+                dcache_l15_dout_s3[64*6 +: 64 ],dcache_l15_dout_s3[64*7 +: 64 ]
+                };
+    end
+
+`else
 
 reg [(L15_L1D_LINE_SIZE*8)-1: 0] dcache_l15_dout_buf;
 //This index is created to avoid an error during the building, the index is only used when the cacheline size is 64B. 
@@ -4902,6 +5068,7 @@ begin
         dcache_l15_dout_buf[(L15_L1D_LINE_SIZE*8)-1 : 0] <= dcache_l15_dout_buf[(L15_L1D_LINE_SIZE*8)-1 : 0];
     end
 end
+`endif
 
 
 
