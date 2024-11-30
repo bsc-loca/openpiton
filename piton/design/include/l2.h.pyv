@@ -66,10 +66,16 @@ L2_NUM_SETS = int(L2_SIZE / (L2_LINE_SIZE * L2_WAYS))
 // Input buffer for pipeline2
 
 `define L2_P2_HEADER_BUF_IN_WIDTH       192
+`ifdef PARALLEL_SRAMS
+`define L2_P2_DATA_BUF_IN_WIDTH         512
+`define L2_P2_DATA_BUF_IN_FLITS         8
+`else
 `define L2_P2_DATA_BUF_IN_WIDTH         128
+`define L2_P2_DATA_BUF_IN_FLITS         2
+`endif
 
 `define L2_P2_HEADER_BUF_IN_FLITS       3
-`define L2_P2_DATA_BUF_IN_FLITS         2
+
 
 `define L2_P2_HEADER_BUF_IN_SIZE        4
 `define L2_P2_DATA_BUF_IN_SIZE          16
@@ -80,10 +86,29 @@ L2_NUM_SETS = int(L2_SIZE / (L2_LINE_SIZE * L2_WAYS))
 
 // Output buffer
 
+`ifdef PARALLEL_SRAMS
+`define L2_P1_BUF_OUT_WIDTH       704
+`else
 `define L2_P1_BUF_OUT_WIDTH       320
+`endif
+
 `define L2_P1_BUF_OUT_FLITS       5
 `define L2_P1_BUF_OUT_SIZE        16
 `define L2_P1_BUF_OUT_LOG_SIZE    4
+`ifdef PARALLEL_SRAMS
+`define L2_P1_BUF_OUT_MODE_WIDTH  4
+`define L2_P1_BUF_OUT_MODE_0H0D   4'd0
+`define L2_P1_BUF_OUT_MODE_1H0D   4'd1
+`define L2_P1_BUF_OUT_MODE_1H1D   4'd2
+`define L2_P1_BUF_OUT_MODE_1H2D   4'd3
+`define L2_P1_BUF_OUT_MODE_3H0D   4'd4
+`define L2_P1_BUF_OUT_MODE_3H1D   4'd5
+`define L2_P1_BUF_OUT_MODE_3H2D   4'd6
+`define L2_P1_BUF_OUT_MODE_0H2D   4'd7
+`define L2_P1_BUF_OUT_MODE_1H8D   4'd8
+`define L2_P1_BUF_OUT_MODE_3H8D   4'd9
+`define L2_P1_BUF_OUT_MODE_1H4D   4'd10
+`else
 `define L2_P1_BUF_OUT_MODE_WIDTH  3
 `define L2_P1_BUF_OUT_MODE_0H0D   3'd0
 `define L2_P1_BUF_OUT_MODE_1H0D   3'd1
@@ -93,6 +118,7 @@ L2_NUM_SETS = int(L2_SIZE / (L2_LINE_SIZE * L2_WAYS))
 `define L2_P1_BUF_OUT_MODE_3H1D   3'd5
 `define L2_P1_BUF_OUT_MODE_3H2D   3'd6
 `define L2_P1_BUF_OUT_MODE_0H2D   3'd7
+`endif
 
 // L2 cache configuration
 
@@ -117,6 +143,7 @@ print("`define L2_LINE_SIZE_WIDTH            %d" % math.log(L2_LINE_SIZE, 2))
 
 `define L2_ENTRY_SIZE            16
 `define L2_ENTRY_SIZE_WIDTH      4
+`define L2_SRAM_CHUNKS           4
 
 
 <%

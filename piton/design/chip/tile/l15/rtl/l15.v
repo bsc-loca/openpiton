@@ -420,10 +420,15 @@ sram_l15_tag #(
 wire l15_dcache_val_s2;
 wire l15_dcache_rw_s2;
 wire [(L15_CACHE_INDEX_WIDTH+`L15_WAY_WIDTH+L15_SUBLINE_INDEX_WIDTH)-1:0] l15_dcache_index_s2;
+`ifdef PARALLEL_SRAMS
+wire [511:0] l15_dcache_write_data_s2;
+wire [511:0] l15_dcache_write_mask_s2;
+wire [511:0] dcache_l15_dout_s3;
+`else
 wire [127:0] l15_dcache_write_data_s2;
 wire [127:0] l15_dcache_write_mask_s2;
 wire [127:0] dcache_l15_dout_s3;
-
+`endif
 
 `ifndef NO_RTL_CSM
 wire [`L15_CSM_GHID_WIDTH-1:0] l15_hmt_write_data_s2;
@@ -432,22 +437,35 @@ wire [`L15_CSM_GHID_WIDTH-1:0] hmt_l15_dout_s3;
 `endif
 
 // sram_1rw_512x128 dcache(
-sram_l15_data #(
-    .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)
-) dcache(
-    .MEMCLK(clk),
-    .RESET_N(rst_n),
-    .CE(l15_dcache_val_s2),
-    .A(l15_dcache_index_s2),
-    .DIN({l15_dcache_write_data_s2}),
-    .BW({l15_dcache_write_mask_s2}),
-    .RDWEN(l15_dcache_rw_s2),
-    .DOUT({dcache_l15_dout_s3}),
-    .BIST_COMMAND(rtap_srams_bist_command),
-    .BIST_DIN(rtap_srams_bist_data),
-    .BIST_DOUT(dcache_rtap_data),
-    .SRAMID(`BIST_ID_L15_DCACHE)
-);
+`ifndef PARALLEL_SRAMS
+    localparam L15_ARRAY_PER_CACHELINE = (L15_L1D_LINE_SIZE / `L15_DATA_ARRAY_SIZE);
+    localparam L15_DATA_ARRAY_HEIGHT = (L15_NUM_ENTRIES * L15_ARRAY_PER_CACHELINE);
+`else 
+    localparam L15_DATA_ARRAY_HEIGHT = L15_NUM_ENTRIES;
+    localparam L15_DATA_INDEX_WIDTH  =L15_CACHE_INDEX_WIDTH+`L15_WAY_WIDTH+L15_SUBLINE_INDEX_WIDTH ;
+`endif
+
+    sram_l15_data #(
+        .DEPTH(L15_DATA_ARRAY_HEIGHT)
+    ) dcache (
+        .MEMCLK(clk),
+        .RESET_N(rst_n),
+        .CE(l15_dcache_val_s2),
+`ifndef PARALLEL_SRAMS        
+        .A(l15_dcache_index_s2),
+`else
+        .A(l15_dcache_index_s2[L15_DATA_INDEX_WIDTH-1:2] ),
+`endif
+        .DIN({l15_dcache_write_data_s2}),
+        .BW({l15_dcache_write_mask_s2}),
+        .RDWEN(l15_dcache_rw_s2),
+        .DOUT({dcache_l15_dout_s3}),
+        .BIST_COMMAND(rtap_srams_bist_command),
+        .BIST_DIN(rtap_srams_bist_data),
+        .BIST_DOUT(dcache_rtap_data),
+        .SRAMID(`BIST_ID_L15_DCACHE)
+    );
+
 
 // wire [127:0] l15_hmt_write_data_s2_extended = l15_hmt_write_data_s2;
 // wire [127:0] l15_hmt_write_mask_s2_extended = l15_hmt_write_mask_s2;
@@ -598,9 +616,9 @@ wire l15_lrsc_flag_read_val_s1;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_lrsc_flag_read_index_s1;
 wire l15_lrsc_flag_write_val_s2;
 wire [L15_CACHE_INDEX_WIDTH-1:0] l15_lrsc_flag_write_index_s2;
-wire [`L15_WAY_COUNT:0] l15_lrsc_flag_write_mask_s2;
-wire [`L15_WAY_COUNT:0] l15_lrsc_flag_write_data_s2;
-wire [`L15_WAY_COUNT:0] lrsc_flag_l15_dout_s2;
+wire [`L15_WAY_COUNT-1:0] l15_lrsc_flag_write_mask_s2;
+wire [`L15_WAY_COUNT-1:0] l15_lrsc_flag_write_data_s2;
+wire [`L15_WAY_COUNT-1:0] lrsc_flag_l15_dout_s2;
 
 rf_l15_lrsc_flag #(
     .L15_L1D_LINE_SIZE(L15_L1D_LINE_SIZE)

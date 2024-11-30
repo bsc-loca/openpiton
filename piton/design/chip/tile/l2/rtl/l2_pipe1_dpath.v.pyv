@@ -174,7 +174,12 @@ module l2_pipe1_dpath(
     //Inputs to Stage 3
 
     //input from the data array
+`ifdef PARALLEL_SRAMS
+    input wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_S3,
+    input wire [`L2_P1_BUF_OUT_MODE_WIDTH-1:0] msg_send_mode,
+`else
     input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_S3,
+`endif
     input wire valid_S3,
     input wire stall_S3,
     input wire stall_before_S3,
@@ -298,7 +303,11 @@ module l2_pipe1_dpath(
     output reg [`MSG_SRC_X_WIDTH-1:0] msg_send_dst_x_S4,
     output reg [`MSG_SRC_Y_WIDTH-1:0] msg_send_dst_y_S4,
     output reg [`MSG_SRC_FBITS_WIDTH-1:0] msg_send_dst_fbits_S4,
+`ifdef PARALLEL_SRAMS
+    output reg [(`L2_DATA_DATA_WIDTH*`L2_SRAM_CHUNKS)-1:0] msg_send_data_S4,
+`else
     output reg [`L2_DATA_DATA_WIDTH-1:0] msg_send_data_S4,
+`endif
 
     output reg [`L2_MSHR_ARRAY_WIDTH-1:0] mshr_data_in_S4,
     output wire [`L2_MSHR_ARRAY_WIDTH-1:0] mshr_data_mask_in_S4,
@@ -419,6 +428,9 @@ end
 //the cache line read by the 1st phase of atomic instructions
 reg [`L2_DATA_DATA_WIDTH-1:0] atomic_read_data_S1_f;
 reg [`L2_DATA_DATA_WIDTH-1:0] atomic_read_data_S1_next;
+`ifdef PARALLEL_SRAMS
+reg [`L2_DATA_DATA_WIDTH-1:0] data_ecc_out_atomic ;
+`endif
 
 always @ *
 begin
@@ -428,7 +440,11 @@ begin
     end
     else if (atomic_read_data_en_S4)
     begin
+`ifdef PARALLEL_SRAMS
+        atomic_read_data_S1_next = data_ecc_out_atomic;
+`else
         atomic_read_data_S1_next = data_data_ecc_S4;
+`endif
     end
     else
     begin
@@ -1498,12 +1514,22 @@ reg [`L2_P1_DATA_BUF_IN_WIDTH-1:0] msg_data_S4_f;
 reg req_from_owner_S4_f;
 reg [`L2_STATE_ARRAY_WIDTH-1:0] state_data_in_S4_f;
 reg [`L2_STATE_ARRAY_WIDTH-1:0] state_data_mask_in_S4_f;
+
+`ifdef PARALLEL_SRAMS
+    reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_S4_f;
+`else
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_data_S4_f;
+`endif
+
 reg [`L2_DATA_INDEX_WIDTH-1:0] data_addr_S4_f;
 reg recycled_S4_f;
 
 reg data_stalled_skid_buffer_en_S3_f;
+`ifdef PARALLEL_SRAMS
+reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_stalled_skid_buffer_S3_f;
+`else
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_stalled_skid_buffer_S3_f;
+`endif
 
 always @ (posedge clk)
 begin
@@ -1613,7 +1639,12 @@ reg [`L2_STATE_ARRAY_WIDTH-1:0] state_data_mask_in_real_S4;
 `ifndef NO_RTL_CSM
 reg [`L2_SMC_ADDR_WIDTH-1:0] smc_rd_addr_in_S4;
 `endif
+
+`ifdef PARALLEL_SRAMS
+reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_S4;
+`else
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_data_S4;
+`endif
 reg [`MSG_SDID_WIDTH-1:0] sdid_S4;
 
 always @ *
@@ -1828,9 +1859,16 @@ begin
                        (state_data_in_real_S4 & state_data_mask_in_real_S4);
 end
 
+
+`ifdef PARALLEL_SRAMS
+reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_buf_S4_f;
+reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_buf_S4_next;
+reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_trans_S4;
+`else
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_data_buf_S4_f;
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_data_buf_S4_next;
 reg [`L2_DATA_ARRAY_WIDTH-1:0] data_data_trans_S4;
+`endif
 reg [`L2_DATA_DATA_WIDTH-1:0] data_data_shift_S4;
 wire corr_error1_S4, corr_error2_S4;
 wire uncorr_error1_S4, uncorr_error2_S4;
@@ -1871,7 +1909,46 @@ begin
     end
 end
 
-l2_data_ecc data_ecc1 (
+`ifdef PARALLEL_SRAMS
+
+wire [71:0] data_ecc_in [(`L2_SRAM_CHUNKS*2)-1:0]  ; 
+wire [(`L2_DATA_DATA_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_ecc_out ;
+wire [(`L2_SRAM_CHUNKS*2)-1:0] corr_error__S4   ;
+wire [(`L2_SRAM_CHUNKS*2)-1:0] uncorr_error__S4 ;
+
+genvar k;
+generate    
+for (k = 0; k < `L2_SRAM_CHUNKS*2; k = k+1) begin: ecc
+
+    assign data_ecc_in[k] = data_data_trans_S4[72*k +: 72]; 
+
+    l2_data_ecc data_ecc (
+        .din                ( data_ecc_in[k][63:0]     ),
+        .parity             ( data_ecc_in[k][71:64]    ),
+        .dout               ( data_ecc_out[64*k +: 64] ),
+        .corr_error         ( corr_error__S4[k]        ),
+        .uncorr_error       ( uncorr_error__S4[k]      )  
+    );
+end
+endgenerate
+
+always @ * begin
+    corr_error_S4 = |corr_error__S4;
+    uncorr_error_S4 = |uncorr_error__S4;
+end
+
+always @ * begin
+    case (data_addr_S4[1:0])
+        2'b00: data_ecc_out_atomic =data_ecc_out[128*0 +: 128] ;
+        2'b01: data_ecc_out_atomic =data_ecc_out[128*1 +: 128] ;
+        2'b10: data_ecc_out_atomic =data_ecc_out[128*2 +: 128] ;
+        2'b11: data_ecc_out_atomic =data_ecc_out[128*3 +: 128] ;
+    endcase 
+end
+
+`else
+
+l2_data_ecc data_ecc (
     .din                (data_data_trans_S4[63:0]),
     .parity             (data_data_trans_S4[71:64]),
     .dout               (data_data_ecc_S4[63:0]),
@@ -1893,6 +1970,7 @@ begin
     corr_error_S4 = corr_error1_S4 | corr_error2_S4;
     uncorr_error_S4 = uncorr_error1_S4 | uncorr_error2_S4;
 end
+`endif
 
 
 always @ *
@@ -2181,7 +2259,13 @@ begin
 `endif
     else
     begin
+`ifdef PARALLEL_SRAMS
+        if (atomic_read_data_en_S4) msg_send_data_S4 = {4{data_ecc_out_atomic}};
+        else if(addr_S4[5] && (msg_send_mode ==  `L2_P1_BUF_OUT_MODE_1H4D)) msg_send_data_S4 =  {2{data_ecc_out[511:256] }};//Sending the second half chunk in 32B data size
+        else msg_send_data_S4 = data_ecc_out ;
+`else
         msg_send_data_S4 = data_data_ecc_S4;
+`endif
     end
 end
 

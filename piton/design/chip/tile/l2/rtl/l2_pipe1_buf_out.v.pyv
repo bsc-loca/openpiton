@@ -77,6 +77,14 @@ reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus1;
 reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus2;
 reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus3;
 reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus4;
+`ifdef PARALLEL_SRAMS
+reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus5;
+reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus6;
+reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus7;
+reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus8;
+reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus9;
+reg [`L2_P1_BUF_OUT_LOG_SIZE-1:0] wr_ptr_plus10;
+`endif
 reg [`L2_P1_BUF_OUT_LOG_SIZE:0] buf_rd_flits;
 
 <%
@@ -127,6 +135,22 @@ begin
     begin
         buf_rd_flits = 2;
     end
+`ifdef PARALLEL_SRAMS
+    else if (mode_in == `L2_P1_BUF_OUT_MODE_1H8D)
+    begin
+        buf_rd_flits = 9;
+    end
+    else if (mode_in == `L2_P1_BUF_OUT_MODE_3H8D)
+    begin
+        buf_rd_flits = 11;
+    end
+    else if (mode_in == `L2_P1_BUF_OUT_MODE_1H4D)
+    begin
+        buf_rd_flits =5;
+    end
+    
+
+`endif
     else
     begin
         buf_rd_flits = 0;
@@ -224,6 +248,14 @@ begin
     wr_ptr_plus2 = wr_ptr_f + 2;
     wr_ptr_plus3 = wr_ptr_f + 3;
     wr_ptr_plus4 = wr_ptr_f + 4;
+`ifdef PARALLEL_SRAMS
+    wr_ptr_plus5 = wr_ptr_f + 5;
+    wr_ptr_plus6 = wr_ptr_f + 6;
+    wr_ptr_plus7 = wr_ptr_f + 7;
+    wr_ptr_plus8 = wr_ptr_f + 8;
+    wr_ptr_plus9 = wr_ptr_f + 9;
+    wr_ptr_plus10 = wr_ptr_f + 10;
+`endif
 end
 
 
@@ -403,6 +435,46 @@ for i in range(L2_P1_BUF_OUT_SIZE):
             buf_mem_f[wr_ptr_plus3] <= data_in[`NOC_DATA_WIDTH*4-1:`NOC_DATA_WIDTH*3];
             buf_mem_f[wr_ptr_plus4] <= data_in[`NOC_DATA_WIDTH*5-1:`NOC_DATA_WIDTH*4];
         end
+`ifdef PARALLEL_SRAMS
+        else if (mode_in == `L2_P1_BUF_OUT_MODE_1H8D)
+        begin
+            buf_mem_f[wr_ptr_f] <= data_in[`NOC_DATA_WIDTH-1:0];
+            buf_mem_f[wr_ptr_plus1] <= data_in[`NOC_DATA_WIDTH*4-1 :`NOC_DATA_WIDTH*3 ];
+            buf_mem_f[wr_ptr_plus2] <= data_in[`NOC_DATA_WIDTH*5-1 :`NOC_DATA_WIDTH*4 ];
+            buf_mem_f[wr_ptr_plus3] <= data_in[`NOC_DATA_WIDTH*6-1 :`NOC_DATA_WIDTH*5 ];
+            buf_mem_f[wr_ptr_plus4] <= data_in[`NOC_DATA_WIDTH*7-1 :`NOC_DATA_WIDTH*6 ];
+            buf_mem_f[wr_ptr_plus5] <= data_in[`NOC_DATA_WIDTH*8-1 :`NOC_DATA_WIDTH*7 ];
+            buf_mem_f[wr_ptr_plus6] <= data_in[`NOC_DATA_WIDTH*9-1 :`NOC_DATA_WIDTH*8 ];
+            buf_mem_f[wr_ptr_plus7] <= data_in[`NOC_DATA_WIDTH*10-1:`NOC_DATA_WIDTH*9 ];
+            buf_mem_f[wr_ptr_plus8] <= data_in[`NOC_DATA_WIDTH*11-1:`NOC_DATA_WIDTH*10];
+        end
+        else if (mode_in == `L2_P1_BUF_OUT_MODE_3H8D)
+        begin
+            buf_mem_f[wr_ptr_f] <= data_in[`NOC_DATA_WIDTH-1:0];
+            buf_mem_f[wr_ptr_plus1]  <= data_in[`NOC_DATA_WIDTH*2-1 :`NOC_DATA_WIDTH ];
+            buf_mem_f[wr_ptr_plus2]  <= data_in[`NOC_DATA_WIDTH*3-1 :`NOC_DATA_WIDTH*2 ];
+            buf_mem_f[wr_ptr_plus3]  <= data_in[`NOC_DATA_WIDTH*4-1 :`NOC_DATA_WIDTH*3 ];
+            buf_mem_f[wr_ptr_plus4]  <= data_in[`NOC_DATA_WIDTH*5-1 :`NOC_DATA_WIDTH*4 ];
+            buf_mem_f[wr_ptr_plus5]  <= data_in[`NOC_DATA_WIDTH*6-1 :`NOC_DATA_WIDTH*5 ];
+            buf_mem_f[wr_ptr_plus6]  <= data_in[`NOC_DATA_WIDTH*7-1 :`NOC_DATA_WIDTH*6 ];
+            buf_mem_f[wr_ptr_plus7]  <= data_in[`NOC_DATA_WIDTH*8-1 :`NOC_DATA_WIDTH*7 ];
+            buf_mem_f[wr_ptr_plus8]  <= data_in[`NOC_DATA_WIDTH*9-1 :`NOC_DATA_WIDTH*8];
+            buf_mem_f[wr_ptr_plus9]  <= data_in[`NOC_DATA_WIDTH*10-1:`NOC_DATA_WIDTH*9];
+            buf_mem_f[wr_ptr_plus10] <= data_in[`NOC_DATA_WIDTH*11-1:`NOC_DATA_WIDTH*10];
+        end
+        else if (mode_in ==`L2_P1_BUF_OUT_MODE_1H4D)
+        begin 
+            buf_mem_f[wr_ptr_f] <= data_in[`NOC_DATA_WIDTH-1:0];
+            buf_mem_f[wr_ptr_plus1] <= data_in[`NOC_DATA_WIDTH*4-1 :`NOC_DATA_WIDTH*3 ];
+            buf_mem_f[wr_ptr_plus2] <= data_in[`NOC_DATA_WIDTH*5-1 :`NOC_DATA_WIDTH*4 ];
+            buf_mem_f[wr_ptr_plus3] <= data_in[`NOC_DATA_WIDTH*6-1 :`NOC_DATA_WIDTH*5 ];
+            buf_mem_f[wr_ptr_plus4] <= data_in[`NOC_DATA_WIDTH*7-1 :`NOC_DATA_WIDTH*6 ];
+        end
+
+
+
+
+`endif
     end
 
 end

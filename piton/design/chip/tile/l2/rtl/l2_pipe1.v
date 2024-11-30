@@ -106,7 +106,11 @@ module l2_pipe1(
 
     input wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_out,
 
+`ifdef PARALLEL_SRAMS
+    input wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_out,
+`else
     input wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_out,
+`endif
 
     `ifndef NO_RTL_CSM
     input wire smc_hit,
@@ -147,8 +151,11 @@ module l2_pipe1(
     output wire [`L2_DIR_INDEX_WIDTH-1:0] dir_addr,
     output wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_in,
     output wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_mask_in,
-
+`ifdef PARALLEL_SRAMS
+    output wire [`L2_SRAM_CHUNKS-1 : 0] data_clk_en,
+`else
     output wire data_clk_en,
+`endif
     output wire data_rdw_en,
     output wire [`L2_DATA_INDEX_WIDTH-1:0] data_addr,
     output wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_in,
@@ -186,6 +193,20 @@ module l2_pipe1(
 
 );
 
+wire data_clk_en_S2;
+
+`ifdef PARALLEL_SRAMS
+    wire [1:0] chunk_id = data_addr[1:0] ;
+   
+    assign  data_clk_en = 
+        (data_clk_en_S2==1'b0)? `L2_SRAM_CHUNKS'b0: //disable
+        (data_rdw_en)?  {`L2_SRAM_CHUNKS{1'b1}}: //It is a read. Enable all chunks
+                          `L2_SRAM_CHUNKS'b1 << chunk_id; //Its an atomic instruction that writes on a single chunk. Only enable the chnked that addr point to.
+   
+
+`else 
+    assign data_clk_en =data_clk_en_S2;
+`endif
 
 wire [`MSG_TYPE_WIDTH-1:0] msg_type;
 wire [`MSG_LENGTH_WIDTH-1:0] msg_length;
@@ -387,7 +408,11 @@ wire [`MSG_SRC_CHIPID_WIDTH-1:0] msg_send_dst_chipid;
 wire [`MSG_SRC_X_WIDTH-1:0] msg_send_dst_x;
 wire [`MSG_SRC_Y_WIDTH-1:0] msg_send_dst_y;
 wire [`MSG_SRC_FBITS_WIDTH-1:0] msg_send_dst_fbits;
+`ifdef PARALLEL_SRAMS
+wire [((`NOC_DATA_WIDTH*2)*`L2_SRAM_CHUNKS)-1:0] msg_send_data;
+`else
 wire [`NOC_DATA_WIDTH*2-1:0] msg_send_data;
+`endif
 wire [`NOC_DATA_WIDTH*3-1:0] msg_send_header;
 
 
@@ -654,7 +679,7 @@ l2_pipe1_ctrl ctrl(
     .dir_clk_en_S2              (dir_clk_en),
     .dir_rdw_en_S2              (dir_rdw_en),
     .dir_op_S2                  (dir_op_S2),
-    .data_clk_en_S2             (data_clk_en),
+    .data_clk_en_S2             (data_clk_en_S2),
     .data_rdw_en_S2             (data_rdw_en),
     .amo_alu_op_S2              (amo_alu_op_S2),
     .data_size_S2               (data_size_S2),
@@ -757,7 +782,9 @@ l2_pipe1_dpath dpath(
     .csm_en                     (csm_en),
     `endif
     .smt_base_addr              (smt_base_addr),
-
+`ifdef PARALLEL_SRAMS
+    .msg_send_mode              (msg_send_mode),
+`endif
 `ifdef NO_L2_CAM_MSHR
     .mshr_addr_S1               (mshr_addr),
     .mshr_mshrid_S1             (mshr_mshrid),
@@ -848,7 +875,7 @@ l2_pipe1_dpath dpath(
     .valid_S2                   (valid_S2),
     .stall_S2                   (stall_S2),
     .stall_before_S2            (stall_before_S2),
-    .data_clk_en_S2             (data_clk_en),
+    .data_clk_en_S2             (data_clk_en_S2),
     .stall_real_S2              (stall_real_S2),
     .amo_alu_op_S2              (amo_alu_op_S2),
     .msg_data_ready_S2          (msg_data_ready),

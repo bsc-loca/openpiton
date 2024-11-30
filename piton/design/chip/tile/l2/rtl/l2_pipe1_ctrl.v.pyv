@@ -2368,10 +2368,17 @@ begin
     begin
         l2_load_data_subline_S2_next = `L2_DATA_SUBLINE_0;
     end
+`ifdef PARALLEL_SRAMS
+    else if (valid_S2 && !(stall_real_S2) && (l2_wb_S2 || l2_ifill_64B_S2 || l2_load_noshare_64B_S2 || l2_data_ack_l15line_64_S2 ))
+        l2_load_data_subline_S2_next = `L2_DATA_SUBLINE_0;
+    else if (valid_S2 && !(stall_real_S2) && (l2_ifill_32B_S2 || l2_load_noshare_32B_S2 || l2_data_ack_l15line_32_S2))
+        l2_load_data_subline_S2_next = `L2_DATA_SUBLINE_0;//l2_load_data_subline_S2_f + 1; // for a 2-bit number, 3+1=0
+`else
     else if (valid_S2 && !(stall_real_S2) && (l2_wb_S2 || l2_ifill_32B_S2 || l2_ifill_64B_S2 || l2_load_noshare_32B_S2 || l2_load_noshare_64B_S2 || l2_data_ack_l15line_64_S2 || l2_data_ack_l15line_32_S2))
     begin
         l2_load_data_subline_S2_next = l2_load_data_subline_S2_f + 1; // for a 2-bit number, 3+1=0
     end
+`endif    
     else
     begin
         l2_load_data_subline_S2_next = l2_load_data_subline_S2_f; 
@@ -2393,19 +2400,35 @@ always @ *
 begin
     if (l2_data_ack_l15line_64_S2) // if Stage 4 needs to send both DataAck and StoreMem, then we need 8 cycles totally
     begin
+`ifdef PARALLEL_SRAMS
+        stall_load_S2 = (msg_state_S4_f == msg_state_0) && msg1_send_valid_S4 && valid_S4 ;       
+`else    
         stall_load_S2 = (l2_load_data_subline_S2_f != `L2_DATA_SUBLINE_3) || (msg_state_S4_f == msg_state_0 && msg1_send_valid_S4 && valid_S4);       
+`endif
     end
     else if (l2_data_ack_l15line_32_S2)
     begin
+`ifdef PARALLEL_SRAMS
+         stall_load_S2 =(msg_state_S4_f == msg_state_0 && msg1_send_valid_S4 && valid_S4) ;
+`else 
         stall_load_S2 = (l2_load_data_subline_S2_f != `L2_DATA_SUBLINE_1) || (msg_state_S4_f == msg_state_0 && msg1_send_valid_S4 && valid_S4) ;
+`endif
     end
     else if (l2_wb_S2 || l2_load_noshare_64B_S2 || l2_ifill_64B_S2)
     begin
+`ifdef PARALLEL_SRAMS
+        stall_load_S2 = n;
+`else    
         stall_load_S2 = (l2_load_data_subline_S2_f != `L2_DATA_SUBLINE_3);
+`endif
     end
     else if (l2_ifill_32B_S2 || l2_load_noshare_32B_S2)
     begin
+`ifdef PARALLEL_SRAMS
+        stall_load_S2 = n;
+`else  
         stall_load_S2 = (l2_load_data_subline_S2_f != `L2_DATA_SUBLINE_1);
+`endif
     end
     else
     begin
@@ -3467,6 +3490,9 @@ begin
         end
         else
         begin
+            `ifdef PARALLEL_SRAMS
+                msg_state_S4_next = msg_state_0;
+            `else            
             if (l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_3)
             begin
                 msg_state_S4_next = msg_state_0;
@@ -3475,6 +3501,7 @@ begin
             begin
                 msg_state_S4_next = msg_state_1;
             end
+            `endif
         end
     end
     else
@@ -3492,6 +3519,20 @@ begin
     else if (msg0_send_valid_S4 && msg1_send_valid_S4 && valid_S4
     && !(dir_data_stall_S4 || (msg_send_valid_S4 && !msg_send_ready_S4) || global_stall_S4))
     begin
+    `ifdef PARALLEL_SRAMS
+        if ((msg_state_S4_f == msg_state_0) && (~l2_data_ack_l15line_64_S4_f || ~l2_data_ack_l15line_32_S4_f))
+        begin
+            msg_state_S4_next = msg_state_1;
+        end
+        else if (msg_state_S4_f == msg_state_1)   
+        begin
+            msg_state_S4_next = msg_state_0;
+        end
+        else
+        begin
+            msg_state_S4_next = msg_state_S4_f;
+        end
+    `else
        if (msg_state_S4_f == msg_state_0 && (~l2_data_ack_l15line_64_S4_f && l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_3))
         begin
             msg_state_S4_next = msg_state_1;
@@ -3515,6 +3556,7 @@ begin
                 msg_state_S4_next = msg_state_1;
             end
         end
+    `endif
     end
     else if (~msg0_send_valid_S4 & ~msg1_send_valid_S4 & valid_S4 & req_recycle_S4)
     begin
@@ -3710,6 +3752,9 @@ begin
                     // msg_send_data_size_S4 = `MSG_DATA_SIZE_32B;
                     msg_send_cache_type_S4 = cache_type_S4_f;
                     msg_send_mshrid_S4 = mshrid_S4;
+                    `ifdef PARALLEL_SRAMS
+                        msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H4D;
+                    `else
                     if (l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_0)
                     begin
                         msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H2D;
@@ -3718,6 +3763,7 @@ begin
                     begin
                         msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_0H2D;
                     end
+                    `endif
                 end
                 else
                 begin
@@ -3752,7 +3798,12 @@ begin
                 msg_send_mshrid_S4 = mshrid_S4;
                 if (l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_0)
                 begin
+                `ifdef PARALLEL_SRAMS
+                    msg_send_mode_S4 = (data_size_S4_f==`MSG_DATA_SIZE_64B) ? `L2_P1_BUF_OUT_MODE_1H8D : 
+                    (data_size_S4_f==`MSG_DATA_SIZE_32B) ? `L2_P1_BUF_OUT_MODE_1H4D  :`L2_P1_BUF_OUT_MODE_1H2D;
+                `else
                     msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H2D;
+                `endif
                 end
                 else
                 begin
@@ -3776,7 +3827,13 @@ begin
                 msg_send_mshrid_S4 = mshrid_S4; 
                 if (l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_0)
                 begin
+                    `ifdef PARALLEL_SRAMS
+                        if( data_size_S4_f == `MSG_DATA_SIZE_64B ) msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H8D;
+                        else if( data_size_S4_f == `MSG_DATA_SIZE_32B  ) msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H4D; 
+                        else msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H2D;
+                    `else
                     msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H2D;
+                    `endif
                 end
                 else
                 begin
@@ -3792,7 +3849,14 @@ begin
                 msg_send_mshrid_S4 = mshrid_S4;
                 if (l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_0)
                 begin
+                    `ifdef PARALLEL_SRAMS
+                       if( data_size_S4_f == `MSG_DATA_SIZE_64B ) msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H8D;
+                        //else if( data_size_S4_f == `MSG_DATA_SIZE_32B  ) msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H4D;  
+                        //else msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H2D;
+                        else  msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H4D;  
+                    `else
                     msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_1H2D;
+                    `endif
                 end
                 else
                 begin
@@ -3862,7 +3926,11 @@ begin
             msg_send_mshrid_S4 = mshr_wr_index_in_S4;
             if (l2_load_data_subline_S4_f == `L2_DATA_SUBLINE_0)
             begin
+                `ifdef PARALLEL_SRAMS
+                    msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_3H8D;
+                `else
                 msg_send_mode_S4 = `L2_P1_BUF_OUT_MODE_3H2D;
+                `endif
             end
             else
             begin

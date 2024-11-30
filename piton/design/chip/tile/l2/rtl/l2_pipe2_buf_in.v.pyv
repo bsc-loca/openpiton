@@ -59,11 +59,11 @@ module l2_pipe2_buf_in #(
     input wire msg_header_ready_out,
 
     output reg msg_data_valid_out,
-    output reg [`L2_P2_DATA_BUF_IN_WIDTH-1:0] msg_data_out,
+    output wire [`L2_P2_DATA_BUF_IN_WIDTH-1:0] msg_data_out,
     input wire msg_data_ready_out
 );
 
-
+    
 <%
 import pyhplib
 from pyhplib import *
@@ -471,63 +471,35 @@ wire extra_data_buf;
 assign extra_data_buf = (msg_data_valid_in && msg_data_ready_in && msg_data_state_f == msg_data_state_1F) ? 1'b1 : 1'b0;
 `endif
 
+
+reg [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_wr_incr;
+    
+
 always @ *
 begin
-    if ((msg_data_valid_in && msg_data_ready_in) && (msg_data_valid_out && msg_data_ready_out))
+    data_wr_incr=0;
+    if (msg_data_valid_in && msg_data_ready_in)
     begin
 `ifdef L2_SEND_NC_REQ
-        data_buf_counter_next = data_buf_counter_f + 1 + extra_data_buf - `L2_P2_DATA_BUF_IN_FLITS;
+        data_wr_incr=1 + extra_data_buf;
+        //data_buf_counter_next = data_buf_counter_f + 1 + extra_data_buf - `L2_P2_DATA_BUF_IN_FLITS;
 `else
-        data_buf_counter_next = data_buf_counter_f + 1 - `L2_P2_DATA_BUF_IN_FLITS;
+        data_wr_incr=1;
+        //data_buf_counter_next = data_buf_counter_f + 1 - `L2_P2_DATA_BUF_IN_FLITS;
 `endif
-    end
-    else if (msg_data_valid_in && msg_data_ready_in)
-    begin 
-`ifdef L2_SEND_NC_REQ
-        data_buf_counter_next = data_buf_counter_f + 1 + extra_data_buf;
-`else
-        data_buf_counter_next = data_buf_counter_f + 1;
-`endif
-    end
-    else if (msg_data_valid_out && msg_data_ready_out)
-    begin 
-        data_buf_counter_next = data_buf_counter_f - `L2_P2_DATA_BUF_IN_FLITS;
-    end
-    else
-    begin
-        data_buf_counter_next = data_buf_counter_f;
-    end
+    end   
 end
 
 
 always @ (posedge clk)
 begin
-    if (!rst_n)
+    if (!rst_n) begin 
         data_buf_counter_f <= 0;
-    else
+        data_rd_ptr_f <= 0;
+    end else begin 
         data_buf_counter_f <= data_buf_counter_next;
-end
-
-always @ *
-begin
-    if (!rst_n)
-    begin   
-        data_rd_ptr_next = 0;
+        data_rd_ptr_f <= data_rd_ptr_next;
     end
-    else if (msg_data_valid_out && msg_data_ready_out)
-    begin
-        data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
-    end
-    else
-    begin
-        data_rd_ptr_next = data_rd_ptr_f;
-    end
-end
-
-
-always @ (posedge clk)
-begin
-    data_rd_ptr_f <= data_rd_ptr_next;
 end
 
 always @ *
@@ -572,8 +544,8 @@ end
 
 always @ *
 begin
-    msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
-    msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
+  //  msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
+  //  msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
 end
 
 
@@ -747,6 +719,11 @@ always @(*)begin
     end//valid
 end
 
+wire [`L2_P2_DATA_BUF_IN_LOG_SIZE:0] data_wr_incr = 
+    (data_en==2'b11)? 2 :
+    (data_en==2'b01)? 1 : 0;
+
+    
 
 always @ (*)begin
     //header pointers
@@ -760,11 +737,11 @@ always @ (*)begin
 
     //data pointers
     data_wr_ptr_next = data_wr_ptr_f +  data_en [0] + data_en[1];
-    data_buf_counter_next = data_buf_counter_f + data_en [0] + data_en[1];
-    data_rd_ptr_next = data_rd_ptr_f;
+    //data_buf_counter_next = data_buf_counter_f + data_en [0] + data_en[1];
+   // data_rd_ptr_next = data_rd_ptr_f;
     if(msg_data_valid_out && msg_data_ready_out) begin 
-        data_buf_counter_next = data_buf_counter_f + data_en [0] + data_en[1] -`L2_P2_DATA_BUF_IN_FLITS;
-        data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
+       // data_buf_counter_next = data_buf_counter_f + data_en [0] + data_en[1] -`L2_P2_DATA_BUF_IN_FLITS;
+       // data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
     end
 end
 
@@ -777,8 +754,8 @@ wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_1= {{(2*`NOC_DATA_WIDTH){1'
 always @ (*)begin
     msg_header_valid_out = (!header_buf_empty) && (header_buf_counter_f >= msg_header_flits);
     msg_header_out = (msg_header_flits == 3) ? msg_header_out_3 : msg_header_out_1;
-    msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
-    msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
+  //  msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
+  //  msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
 end
 
 
@@ -1009,11 +986,11 @@ always @ (*)begin
 
     //data pointers
     data_wr_ptr_next = data_wr_ptr_f +  data_wr_incr;
-    data_buf_counter_next = data_buf_counter_f + data_wr_incr;
-    data_rd_ptr_next = data_rd_ptr_f;
+  //  data_buf_counter_next = data_buf_counter_f + data_wr_incr;
+  //  data_rd_ptr_next = data_rd_ptr_f;
     if(msg_data_valid_out && msg_data_ready_out) begin 
-        data_buf_counter_next = data_buf_counter_f + data_wr_incr -`L2_P2_DATA_BUF_IN_FLITS;
-        data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
+      //  data_buf_counter_next = data_buf_counter_f + data_wr_incr -`L2_P2_DATA_BUF_IN_FLITS;
+   //     data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
     end
 end
 
@@ -1026,8 +1003,8 @@ wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_1= {{(2*`NOC_DATA_WIDTH){1'
 always @ (*)begin
     msg_header_valid_out = (!header_buf_empty) && (header_buf_counter_f >= msg_header_flits);
     msg_header_out = (msg_header_flits == 3) ? msg_header_out_3 : msg_header_out_1;
-    msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
-    msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
+  //  msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
+  //  msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
 end
 
 
@@ -1295,11 +1272,11 @@ always @ (*)begin
 
     //data pointers
     data_wr_ptr_next = data_wr_ptr_f +  data_wr_incr;
-    data_buf_counter_next = data_buf_counter_f + data_wr_incr;
-    data_rd_ptr_next = data_rd_ptr_f;
+   // data_buf_counter_next = data_buf_counter_f + data_wr_incr;
+   // data_rd_ptr_next = data_rd_ptr_f;
     if(msg_data_valid_out && msg_data_ready_out) begin 
-        data_buf_counter_next = data_buf_counter_f + data_wr_incr -`L2_P2_DATA_BUF_IN_FLITS;
-        data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
+   //     data_buf_counter_next = data_buf_counter_f + data_wr_incr -`L2_P2_DATA_BUF_IN_FLITS;
+    //    data_rd_ptr_next = data_rd_ptr_f + `L2_P2_DATA_BUF_IN_FLITS;
     end
 end
 
@@ -1311,9 +1288,7 @@ wire [`L2_P2_HEADER_BUF_IN_WIDTH-1:0] msg_header_out_1= {{(2*`NOC_DATA_WIDTH){1'
 
 always @ (*)begin
     msg_header_valid_out = (!header_buf_empty) && (header_buf_counter_f >= msg_header_flits);
-    msg_header_out = (msg_header_flits == 3) ? msg_header_out_3 : msg_header_out_1;
-    msg_data_valid_out = (data_buf_counter_f >= `L2_P2_DATA_BUF_IN_FLITS);
-    msg_data_out = {data_buf_mem_f[data_rd_ptr_plus1], data_buf_mem_f[data_rd_ptr_f]}; 
+    msg_header_out = (msg_header_flits == 3) ? msg_header_out_3 : msg_header_out_1; 
 end
 
 
@@ -1375,12 +1350,47 @@ end
 
 %>
 
-/*
+localparam DATA_OUT_WORD_NUM = `L2_P2_DATA_BUF_IN_WIDTH/64;
+genvar i;
+reg [`MSG_LENGTH_WIDTH-1 : 0] message_out_length_s2;
+always @ (posedge clk)
+begin
+    if (!rst_n)begin 
+        message_out_length_s2<=0;
+    end else begin 
+       if (msg_header_valid_out && msg_header_ready_out) message_out_length_s2<=(msg_header_out[`MSG_TYPE] == `MSG_TYPE_WB_REQ)? msg_header_out[`MSG_LENGTH]-2 : msg_header_out[`MSG_LENGTH];
+    end
+end
 
+wire [`MSG_LENGTH_WIDTH-1 : 0] data_rd_ptr_inc = 
+    (DATA_OUT_WORD_NUM==2)? 2 :
+    (message_out_length_s2==1)? 2 :
+    (message_out_length_s2 > DATA_OUT_WORD_NUM )? DATA_OUT_WORD_NUM:
+    message_out_length_s2;
+
+generate 
+    for(i=0;i< DATA_OUT_WORD_NUM;i=i+1) begin: Dout
+        assign msg_data_out [(i+1)*64-1 : i*64] = data_buf_mem_f[data_rd_ptr_f+i]; 
+    end
+endgenerate
+
+always @(*) msg_data_valid_out = (data_buf_counter_f >= data_rd_ptr_inc) && (data_rd_ptr_inc!=0);
+
+always @ *
+begin   
+    
+    data_buf_counter_next = data_buf_counter_f + data_wr_incr;
+    data_rd_ptr_next = data_rd_ptr_f;
+    if(msg_data_valid_out && msg_data_ready_out) begin 
+        data_buf_counter_next = data_buf_counter_f + data_wr_incr -data_rd_ptr_inc;  
+        data_rd_ptr_next = data_rd_ptr_f + data_rd_ptr_inc;//`L2_P2_DATA_BUF_IN_FLITS;
+    end    
+end
+
+/*
 always @(posedge clk) begin
 if(msg_header_valid_out && msg_header_ready_out)
     $display ("\tmsg_header_out= %h %m",msg_header_out);
-
     if( msg_data_valid_out && msg_data_ready_out) begin
         $display ("\tmsg_data_out=%h",msg_data_out);
         if(msg_data_out=='d0)begin 

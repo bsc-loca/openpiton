@@ -223,6 +223,8 @@ module piton_pck_monitor #(
     wire [`MSG_LENGTH_WIDTH-1       :0] pck_size;
     integer flit_cnt, pck_cnt;
     reg print_en;
+    wire  [`MSG_TYPE_WIDTH-1:0] type_in = flit_in [`MSG_TYPE];
+    reg   [`MSG_TYPE_WIDTH-1:0] type_reg;
 
     always @ (posedge clk) begin
         if (reset)  begin
@@ -231,6 +233,7 @@ module piton_pck_monitor #(
             print_en<=1'b0;
         end else begin
             if(valid & ready & header) len_reg <=   length_in+1;
+            if(valid & ready & header) type_reg <=   type_in;
             if(valid & ready) flit_cnt <= (tail)? 0 : flit_cnt+1;
             if(print_en)  print_the_pck();
             if(valid & ready & tail) begin
@@ -248,8 +251,13 @@ module piton_pck_monitor #(
     end
 
     assign pck_size =  len_reg;
-
-
+/*
+    wire [15*8-1:0] msg_type_string;
+    l2_msg_type_parse parse(
+        .msg_type(type_reg),
+        .msg_type_string(msg_type_string)
+    );
+*/
 
     task automatic print_the_pck;
         integer i,j;
@@ -261,6 +269,7 @@ module piton_pck_monitor #(
     //      $display("      #Hdr Time:    %d", hdr_time);
             $display("      #Pck:         %d", pck_cnt);
             $display("      #pck size:    %d", pck_size);
+    //        $display("      #type:        %s", msg_type_string);
     //     $display("      #total Flit:  %d", flit_cnt);
 
             for(i=0; i<pck_size; i=i+1)begin

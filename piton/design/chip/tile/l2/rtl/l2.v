@@ -172,18 +172,31 @@ wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_mask_in_p2;
 
 wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_data_out;
 
-wire data_clk_en_p1;
+
 wire data_rdw_en_p1;
 wire [`L2_DATA_INDEX_WIDTH-1:0] data_addr_p1;
 wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_in_p1;
 wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_mask_in_p1;
 
-wire data_clk_en_p2;
+
 wire data_rdw_en_p2;
 wire [`L2_DATA_INDEX_WIDTH-1:0] data_addr_p2;
-wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_in_p2;
+`ifdef PARALLEL_SRAMS
+    wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_in_p2;
+    wire [`L2_SRAM_CHUNKS-1:0] data_clk_en_p1;
+    wire [`L2_SRAM_CHUNKS-1:0] data_clk_en_p2;
+`else
+    wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_in_p2;
+    wire data_clk_en_p1;
+    wire data_clk_en_p2;
+`endif
 wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_mask_in_p2;
+
+`ifdef PARALLEL_SRAMS
+    wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_out;
+`else
 wire [`L2_DATA_ARRAY_WIDTH-1:0] data_data_out;
+`endif
 
 `ifndef NO_RTL_CSM
 wire smc_rd_en;
@@ -264,8 +277,6 @@ wire [`PHY_ADDR_WIDTH-1:0] pipe2_addr_S3;
 wire active_S1;
 wire active_S2;
 wire active_S3;
-
-
 
 
 
@@ -477,8 +488,6 @@ l2_data_wrap data_wrap(
     .addr2                  (data_addr_p2),
     .data_in2               (data_data_in_p2),
     .data_mask_in2          (data_data_mask_in_p2),
-
-
     .data_out               (data_data_out),
     .pdata_out              (),
 
