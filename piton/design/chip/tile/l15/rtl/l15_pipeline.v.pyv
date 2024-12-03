@@ -3080,8 +3080,6 @@ buffer_noc2decoder_l15_data_next = buffer_noc2decoder_l15_data;
         noc2_write_data_s2[64*(7-i) +: 64] = noc2decoder_l15_data[64*i +: 64];
     end
     
-    
-
     dcache_write_merge_mshr_noc2_s2 = (~dcache_mshr_write_mask_s2 & noc2_write_data_s2 ) | (dcache_mshr_write_mask_s2 & mshr_pipe_write_buffer_s2);
     
     case (dcache_source_s2)
