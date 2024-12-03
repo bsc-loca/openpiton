@@ -2744,25 +2744,23 @@ sub parse_args
     if ($opt{l2_mshr_entries}) {
         $ENV{L2_MSHR_ENTRIES} = $opt{l2_mshr_entries};
     }
-    
-    
-my @nocs_width = (
-    "noc1_width",
-    "noc2_width",
-    "noc3_width"
+
+  my %valid_widths = (
+    "noc1_width" => [64, 128, 256, 512],
+    "noc2_width" => [64, 128, 256, 512, 576, 704],
+    "noc3_width" => [64, 128, 256, 512, 576, 704],
   );
-  my @nocs_valid_width = (64,128,256,512);
-  foreach my $config (@nocs_width) {
-    GetOptions (\%opt,
-            "${config}=s",
-    );
+  
+  foreach my $config (sort keys %valid_widths) {
+    GetOptions(\%opt, "${config}=s");
     my $ucn = uc($config);
     if ($opt{$config}) {
         my $value = $opt{$config};
-        unless ( grep( /^$value$/, @nocs_valid_width ) ) {
-             die (" Error $value is not avalid width for $config. The valid values are @nocs_valid_width\n");
+        my $valid_widths_ref = $valid_widths{$config};  # Reference the correct array of valid widths
+        unless (grep { $_ == $value } @$valid_widths_ref) {
+            die("Error: $value is not a valid width for $config. The valid values are @$valid_widths_ref\n");
         }
-        $ENV{$ucn} = $opt{$config};    
+        $ENV{$ucn} = $opt{$config};
     }
   }
   $ENV{PROTOSYN_RUNTIME_DESIGN_PATH} = $ENV{DV_ROOT} . "/verif/env/manycore";
