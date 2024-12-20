@@ -762,8 +762,14 @@ begin
         `MSG_TYPE_WB_REQ:
         begin
             begin
+            //To adapt with parametric cache line, where the entire or two sublines are sent in wb requet
+            if (l2_load_64B_S2 || 
+               (l2_load_32B_S2 && l2_way_state_subline_S2 == ({{(`L2_SUBLINE_BITS-2){2'b0}}, 2'b11} << addr_S2[`L2_DATA_SUBLINE]))) begin 
+                cs_S2 = {y,     y,         wr,         y,       n,         `OP_CLR,     y,        `OP_CLR,    n,       
+                         y,     `L2_VD_DIRTY,  y,      `L2_MESI_I,     n,      `L2_LRU_CLR};
+
             //should be the last line
-            if (l2_way_state_subline_S2 == ({{(`L2_SUBLINE_BITS-1){1'b0}}, 1'b1} << addr_S2[`L2_DATA_SUBLINE]))
+            end else if (l2_way_state_subline_S2 == ({{(`L2_SUBLINE_BITS-1){1'b0}}, 1'b1} << addr_S2[`L2_DATA_SUBLINE]))
             begin
                 cs_S2 = {y,     y,         wr,         y,       n,         `OP_CLR,     y,        `OP_SUB,    n,       
                          y,     `L2_VD_DIRTY,  y,      `L2_MESI_I,     n,      `L2_LRU_CLR};
@@ -1220,4 +1226,11 @@ end
 
 `endif
 */
+
+always @(posedge clk)begin 
+         if (valid_S2 & ~stall_S2 & ~subline_valid_S2 & ~msg_data_ready_S2 & msg_length_S2_f != 0) begin 
+        $error("**Possible Error**: Message type %d contains a data field, but it was not consumed by L2_pipe2 because the subline flag was not valid.", msg_type_S2_f);  //or $fatal for immediate termination  
+    end
+end
+
 endmodule
