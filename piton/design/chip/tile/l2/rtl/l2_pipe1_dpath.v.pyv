@@ -2260,7 +2260,7 @@ begin
     else
     begin
 `ifdef PARALLEL_SRAMS
-        if (atomic_read_data_en_S4) msg_send_data_S4 = {4{data_ecc_out_atomic}};
+        if (atomic_read_data_en_S4 || (msg_send_mode ==  `L2_P1_BUF_OUT_MODE_1H2D)) msg_send_data_S4 = {4{data_ecc_out_atomic}};
         else if(addr_S4[5] && (msg_send_mode ==  `L2_P1_BUF_OUT_MODE_1H4D)) msg_send_data_S4 =  {2{data_ecc_out[511:256] }};//Sending the second half chunk in 32B data size
         else msg_send_data_S4 = data_ecc_out ;
 `else

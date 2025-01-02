@@ -764,7 +764,7 @@ begin
             begin
             //To adapt with parametric cache line, where the entire or two sublines are sent in wb requet
             if (l2_load_64B_S2 || 
-               (l2_load_32B_S2 && l2_way_state_subline_S2 == ({{(`L2_SUBLINE_BITS-2){2'b0}}, 2'b11} << addr_S2[`L2_DATA_SUBLINE]))) begin 
+               (l2_load_32B_S2 && l2_way_state_subline_S2 == ({{(`L2_SUBLINE_BITS-2){1'b0}}, 2'b11} << addr_S2[`L2_DATA_SUBLINE]))) begin 
                 cs_S2 = {y,     y,         wr,         y,       n,         `OP_CLR,     y,        `OP_CLR,    n,       
                          y,     `L2_VD_DIRTY,  y,      `L2_MESI_I,     n,      `L2_LRU_CLR};
 
