@@ -4329,6 +4329,14 @@ always @(posedge clk) begin
     end       
 end
 
+wire [127:0] lrsc_data;
+assign lrsc_data[`L15_UNPARAM_63_0] = ((size_s3 == `MSG_DATA_SIZE_4B) ?
+                {7'b0,(~tagcheck_lrsc_flag_s3),24'b0, 7'b0,(~tagcheck_lrsc_flag_s3),24'b0} :
+                {7'b0,(~tagcheck_lrsc_flag_s3),56'b0});
+assign lrsc_data[`L15_UNPARAM_127_64] = ((size_s3 == `MSG_DATA_SIZE_4B) ?
+                {7'b0,(~tagcheck_lrsc_flag_s3),24'b0, 7'b0,(~tagcheck_lrsc_flag_s3),24'b0} :
+                {7'b0,(~tagcheck_lrsc_flag_s3),56'b0}); // write 0 on success
+
 always @ *
 begin
     cpx_req_val_s3 = 0;
@@ -4564,12 +4572,14 @@ begin
     case (cpx_data_source_s3)
         `L15_CPX_SOURCE_LRSC_FLAG:
         begin
-            l15_cpxencoder_data[`L15_UNPARAM_63_0] = ((size_s3 == `MSG_DATA_SIZE_4B) ?
+           /* l15_cpxencoder_data[`L15_UNPARAM_63_0] = ((size_s3 == `MSG_DATA_SIZE_4B) ?
                 {7'b0,(~tagcheck_lrsc_flag_s3),24'b0, 7'b0,(~tagcheck_lrsc_flag_s3),24'b0} :
                 {7'b0,(~tagcheck_lrsc_flag_s3),56'b0});
             l15_cpxencoder_data[`L15_UNPARAM_127_64] = ((size_s3 == `MSG_DATA_SIZE_4B) ?
                 {7'b0,(~tagcheck_lrsc_flag_s3),24'b0, 7'b0,(~tagcheck_lrsc_flag_s3),24'b0} :
                 {7'b0,(~tagcheck_lrsc_flag_s3),56'b0}); // write 0 on success
+        */
+            l15_cpxencoder_data[L1_MAX_DATA_PACKETS_BITS_WIDTH-1:0] ={(L1_MAX_DATA_PACKETS_BITS_WIDTH/128){lrsc_data}};
         end
         `L15_CPX_SOURCE_DCACHE:
         begin
