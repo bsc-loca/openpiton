@@ -30,7 +30,7 @@ variables:
   GIT_CLEAN_FLAGS: -ffdx
   GIT_DEPTH: 1
   GIT_SUBMODULE_DEPTH: 1
-  CI_RISCV_DIR: /opt/riscv-gnu-toolchain/rvv-0.7.1/
+  CI_RISCV_DIR: /opt/riscv-gnu-toolchain/rvv-1.0.0/
   MODELSIM_HOME: /eda/Siemens/2022-23/RHELx86/QUESTA-CORE-PRIME_2022.4
   VERILATOR_HOME: /opt/verilator/5.014
   MSM_BUILD_FLAGS: -sys=manycore -msm_build_args=+acc=n
@@ -56,7 +56,7 @@ default:
     ## Setup tools
     - . /load_modulefiles_bash.sh
     - module load gcc/10.5.0
-    - module load rvv/0.7.1
+    - module load rvv/1.0.0
     - module load verilator/5.014
 
 .rule_only_merge:
@@ -72,7 +72,7 @@ default:
     - sargantana_build
   before_script:
     - !reference [default, before_script]
-    - module swap rvv/1.0.0 # Sargantana implements RVV 1.0
+#    - module swap rvv/1.0.0 # Sargantana implements RVV 1.0
     - source piton/sargantana_setup.sh
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 6h
@@ -92,7 +92,7 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
-    - export RISCV=/opt/riscv-gnu-toolchain/rvv-0.7.1/
+    - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 6h
 
@@ -102,7 +102,7 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
-    - export RISCV=/opt/riscv-gnu-toolchain/rvv-0.7.1/
+    - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
     - export VERILATOR_ROOT=/opt/verilator/5.014
   timeout: 6h
 
