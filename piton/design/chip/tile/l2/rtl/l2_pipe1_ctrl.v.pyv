@@ -335,8 +335,10 @@ module l2_pipe1_ctrl(
 
 
 <%
-L2_OWNER_BITS = 6
-L2_DIR_ARRAY_WIDTH = 64
+from pyhplib import *
+import math
+L2_DIR_ARRAY_WIDTH = int(PITON_NUM_TILES)
+L2_OWNER_BITS =   int(1) if L2_DIR_ARRAY_WIDTH <= 2 else math.ceil(math.log2(L2_DIR_ARRAY_WIDTH))
 %>
 
 localparam y = 1'b1;

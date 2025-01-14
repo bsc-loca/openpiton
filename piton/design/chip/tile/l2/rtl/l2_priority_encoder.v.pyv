@@ -43,8 +43,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `include "define.tmp.h"
 
 <%
+from pyhplib import *
+L2_DIR_ARRAY_WIDTH = int(PITON_NUM_TILES)
 L2_OWNER_BITS  = 8
-L2_DIR_ARRAY_WIDTH = 64
 %>
 
 <%

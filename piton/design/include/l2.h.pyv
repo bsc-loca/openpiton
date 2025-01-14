@@ -224,7 +224,10 @@ print("`define L2_DATA_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS*L2_WAYS
 
 `define L2_DIR_INDEX_WIDTH      `L2_TAG_INDEX_WIDTH+`L2_WAYS_WIDTH
 //`define L2_DIR_INDEX_WIDTH      10 
-`define L2_DIR_SHARER_BITS      64
+<%
+print("`define L2_DIR_SHARER_BITS     %d" % (PITON_NUM_TILES))
+%>
+//`define L2_DIR_SHARER_BITS      64
 `define L2_DIR_ARRAY_WIDTH      `L2_DIR_SHARER_BITS
 <%
 print("`define L2_DIR_ARRAY_HEIGHT     %d" % (L2_NUM_SETS*L2_WAYS))
@@ -255,7 +258,12 @@ print("`define L2_DIR_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS*L2_WAYS,
 
 `define L2_SUBLINE_BITS         4
 
-`define L2_OWNER_BITS           6
+//`define L2_OWNER_BITS           6
+<%
+L2_DIR_ARRAY_WIDTH = int(PITON_NUM_TILES)
+L2_OWNER_BITS =   int(1) if L2_DIR_ARRAY_WIDTH <= 2 else math.ceil(math.log2(L2_DIR_ARRAY_WIDTH))
+print("`define L2_OWNER_BITS     %d" % (L2_OWNER_BITS))
+%>
 //`define L2_OWNER_X_WIDTH        3
 //`define L2_OWNER_Y_WIDTH        3
 //`define L2_OWNER_XY             2:0
@@ -273,7 +281,7 @@ print("`define L2_DIR_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS*L2_WAYS,
 `define L2_LRU_CLR              1'b0
 
 
-`define L2_STATE_WAY_WIDTH      15
+`define L2_STATE_WAY_WIDTH      (`L2_OWNER_BITS+9) //15
 `define L2_STATE_DATA_WIDTH     `L2_STATE_WAY_WIDTH*`L2_WAYS
 `define L2_STATE_ARRAY_WIDTH    `L2_STATE_DATA_WIDTH+`L2_WAYS_WIDTH+`L2_WAYS
 <%
@@ -283,12 +291,12 @@ print("`define L2_STATE_ARRAY_HEIGHT_LOG2     %d" % (math.log(L2_NUM_SETS,2)))
 
 // State decomposition 
 
-`define L2_STATE_SDID           9:0
-`define L2_STATE_OWNER          5:0
-`define L2_STATE_SUBLINE        9:6
-`define L2_STATE_DI             10
-`define L2_STATE_VD             12:11
-`define L2_STATE_MESI           14:13
+`define L2_STATE_SDID           `L2_OWNER_BITS+3:0 //9:0  
+`define L2_STATE_OWNER          `L2_OWNER_BITS-1:0 //5:0
+`define L2_STATE_SUBLINE        `L2_OWNER_BITS+3:`L2_OWNER_BITS   //9:6
+`define L2_STATE_DI             `L2_OWNER_BITS+4   //10
+`define L2_STATE_VD             `L2_OWNER_BITS+6:`L2_OWNER_BITS+5//12:11
+`define L2_STATE_MESI           `L2_OWNER_BITS+8:`L2_OWNER_BITS+7//14:13
 `define L2_STATE_LRU            `L2_STATE_DATA_WIDTH+`L2_WAYS-1:`L2_STATE_DATA_WIDTH
 `define L2_STATE_RB             `L2_STATE_ARRAY_WIDTH-1:`L2_STATE_DATA_WIDTH+`L2_WAYS
 `define L2_STATE_DATA           `L2_STATE_DATA_WIDTH-1:0
