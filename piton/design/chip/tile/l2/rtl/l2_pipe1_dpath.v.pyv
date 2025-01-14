@@ -595,10 +595,12 @@ begin
     end
 end
 
-wire [`L2_OWNER_BITS-1:0] flat_id_S2;
+wire [(`HOME_ID_WIDTH-1):0] flat_id_tmp;
+wire [`L2_OWNER_BITS-1:0] flat_id_S2=flat_id_tmp [`L2_OWNER_BITS-1:0];
+
 
 xy_to_flat_id flat_id_gen(
-    .flat_id    (flat_id_S2),
+    .flat_id    (flat_id_tmp),
     .x_coord    (src_x_S2_f),
     .y_coord    (src_y_S2_f)
 );
@@ -2077,13 +2079,24 @@ wire [(`NOC_X_WIDTH-1) : 0] owner_x_S4;
 wire [(`NOC_Y_WIDTH-1) : 0] owner_y_S4; 
 wire [(`NOC_X_WIDTH-1) : 0] sharer_x_S4; 
 wire [(`NOC_Y_WIDTH-1) : 0] sharer_y_S4; 
+
+reg [(`HOME_ID_WIDTH-1):0] flat_id_in1;
+reg [(`HOME_ID_WIDTH-1):0] flat_id_in2;
+
+always @ * begin 
+    flat_id_in1=`HOME_ID_WIDTH'd0;
+    flat_id_in2=`HOME_ID_WIDTH'd0;
+    flat_id_in1 [`L2_OWNER_BITS-1:0] = l2_way_state_owner_S4_f  [`L2_OWNER_BITS-1:0];
+    flat_id_in2 [`L2_OWNER_BITS-1:0] = dir_sharer_S4  [`L2_OWNER_BITS-1:0];
+end
+
 flat_id_to_xy owner_xy_gen(
-    .flat_id            (l2_way_state_owner_S4_f),
+    .flat_id            (flat_id_in1),
     .x_coord            (owner_x_S4),
     .y_coord            (owner_y_S4)
 );
 flat_id_to_xy sharer_xy_gen(
-    .flat_id            (dir_sharer_S4),
+    .flat_id            (flat_id_in2),
     .x_coord            (sharer_x_S4),
     .y_coord            (sharer_y_S4)
 );
