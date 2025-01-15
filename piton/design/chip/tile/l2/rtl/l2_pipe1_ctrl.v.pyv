@@ -4130,16 +4130,23 @@ wire [`L2_DIR_ARRAY_WIDTH-1:0] dir_sharer_mask_S4;
 wire nonzero_sharer_S4;
 
 <%
-
-print('''
-l2_priority_encoder_%d priority_encoder_%dbits( ''' % (L2_OWNER_BITS, L2_OWNER_BITS))
+if PITON_NUM_TILES == 1:
+    print('''
+    //l2_priority_encoder_0
+    assign dir_sharer_S4 = ~dir_data_sel_S4;
+    assign dir_sharer_mask_S4 =  ~dir_data_sel_S4;
+    assign nonzero_sharer_S4 = dir_data_sel_S4;
+    ''')
+else:
+    print(f'''
+    l2_priority_encoder_{L2_OWNER_BITS} priority_encoder_{L2_OWNER_BITS}bits( 
+        .data_in        (dir_data_sel_S4),
+        .data_out       (dir_sharer_S4),
+        .data_out_mask  (dir_sharer_mask_S4),
+        .nonzero_out    (nonzero_sharer_S4)
+    );
+    ''')
 %>
-    .data_in        (dir_data_sel_S4),
-    .data_out       (dir_sharer_S4),
-    .data_out_mask  (dir_sharer_mask_S4),
-    .nonzero_out    (nonzero_sharer_S4)
-);
-
 /*
 always @ *
 begin
