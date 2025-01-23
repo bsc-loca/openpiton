@@ -75,7 +75,7 @@ else
   #ci/install-verilator.sh
 
   # build the RISCV tests if necessary
-  VERSION="v1.1.0"
+  VERSION="v1.2.0"
   cd tmp
 
   TESTS_URL="https://gitlab.bsc.es/hwdesign/rtl/uncore/riscv-tests.git"

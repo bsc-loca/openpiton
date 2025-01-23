@@ -52,7 +52,7 @@ else
   cd ${SARG_ROOT}
 
   # build the RISCV tests if necessary
-  VERSION="v1.1.0"
+  VERSION="v1.2.0"
   mkdir -p ${SARG_ROOT}/tmp
   cd tmp
 
