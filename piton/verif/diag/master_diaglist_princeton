@@ -354,10 +354,10 @@ pico-amoxor     amoxor_w.S
             sarg-dhrystone          dhrystone.riscv
             //sarg-fd-bubblesort      fd-bubblesort.riscv
             //sarg-fd-matrix_mult     fd-matrix_mult.riscv
-            sarg-fd-median          fd-median.riscv
-            sarg-fd-multiply        fd-multiply.riscv
-            sarg-fd-spmv            fd-spmv.riscv
-            sarg-fd-vvadd           fd-vvadd.riscv
+            sarg-fp-median          fp-median.riscv
+            sarg-fp-multiply        fp-multiply.riscv
+            sarg-fp-spmv            fp-spmv.riscv
+            sarg-fp-vvadd           fp-vvadd.riscv
             //sarg-fibonacci          fibonacci.riscv
             sarg-histogram          histogram.riscv
             //sarg-int-bubblesort     int-bubblesort.riscv
@@ -367,7 +367,7 @@ pico-amoxor     amoxor_w.S
             sarg-int-spmv           int-spmv.riscv
             sarg-int-vvadd          int-vvadd.riscv
             sarg-mm                 mm.riscv
-            sarg-qsort              qsort.riscv
+            sarg-int-qsort              int-qsort.riscv
             sarg-rsort              rsort.riscv
             sarg-towers             towers.riscv
         </runargs>
@@ -669,10 +669,10 @@ pico-amoxor     amoxor_w.S
             sarg-dhrystone          dhrystone.riscv
             //sarg-fd-bubblesort      fd-bubblesort.riscv
             //sarg-fd-matrix_mult     fd-matrix_mult.riscv
-            sarg-fd-median          fd-median.riscv
-            sarg-fd-multiply        fd-multiply.riscv
-            sarg-fd-spmv            fd-spmv.riscv
-            sarg-fd-vvadd           fd-vvadd.riscv
+            sarg-fp-median          fp-median.riscv
+            sarg-fp-multiply        fp-multiply.riscv
+            sarg-fp-spmv            fp-spmv.riscv
+            sarg-fp-vvadd           fp-vvadd.riscv
             //sarg-fibonacci          fibonacci.riscv
             sarg-histogram          histogram.riscv
             //sarg-int-bubblesort     int-bubblesort.riscv
@@ -682,7 +682,7 @@ pico-amoxor     amoxor_w.S
             sarg-int-spmv           int-spmv.riscv
             sarg-int-vvadd          int-vvadd.riscv
             sarg-mm                 mm.riscv
-            sarg-qsort              qsort.riscv
+            sarg-int-qsort              int-qsort.riscv
             sarg-rsort              rsort.riscv
             sarg-towers             towers.riscv
         </runargs>
