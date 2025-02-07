@@ -4843,9 +4843,12 @@ begin
     l15_noc1buffer_req_mshr_index = mshr_index_s3;
     l15_noc1buffer_req_mshr_type = mshr_type_s3;
     l15_noc1buffer_req_non_cacheable = non_cacheable_s3;
-    l15_noc1buffer_req_size = (noc1_type_s3 == `L15_NOC1_REQTYPE_ST_UPGRADE_REQUEST || noc1_type_s3 == `L15_NOC1_REQTYPE_ST_FILL_REQUEST) ? 
-                              (L15_L1D_LINE_SIZE==64) ? `MSG_DATA_SIZE_64B :
-                              (L15_L1D_LINE_SIZE==32) ? `MSG_DATA_SIZE_32B : `MSG_DATA_SIZE_16B : size_s3;
+    l15_noc1buffer_req_size = (
+        noc1_type_s3 == `L15_NOC1_REQTYPE_ST_UPGRADE_REQUEST ||
+        noc1_type_s3 == `L15_NOC1_REQTYPE_ST_FILL_REQUEST    ||
+        noc1_type_s3 == `L15_NOC1_REQTYPE_LR_REQUEST) ?
+            (L15_L1D_LINE_SIZE==64) ? `MSG_DATA_SIZE_64B :
+            (L15_L1D_LINE_SIZE==32) ? `MSG_DATA_SIZE_32B : `MSG_DATA_SIZE_16B : size_s3;
     l15_noc1buffer_req_prefetch = prefetch_s3;
     // l15_noc1buffer_req_blkstore = 0; // not using block stores
     // l15_noc1buffer_req_blkinitstore = 0; // not using block stores
