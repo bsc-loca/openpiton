@@ -19,8 +19,6 @@
 
 #define NUM_WORDS 16
 
-int main(int argc, char** argv) {
-
   volatile static uint32_t amo_cnt[NUM_WORDS] = {0x33221100,
                                                  0x77665544,
                                                  0xBBAA9988,
@@ -54,6 +52,8 @@ int main(int argc, char** argv) {
                                       0xAAAAAAAA,
                                       0xBBBBBBBB,
                                       0xCCCCCCCC};
+
+int main(int argc, char** argv) {
 
   for (uint32_t k=0; k<NUM_WORDS; k++) {
     ATOMIC_OP(amo_cnt[k], (k+1), add, w);

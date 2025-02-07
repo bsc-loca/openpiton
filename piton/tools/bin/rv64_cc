@@ -17,9 +17,12 @@
 # second argument can be used to pass additional arguments to GCC.
 
 # Todo: upgrade from IMAC -> IMACFD when FP is available
+set -x
 RISCV_GCC=${RV64_TARGET_TRIPLE}-gcc
-RISCV_GCC_OPTS="-march=${RV64_MARCH} -mabi=${RV64_MABI} -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf $2"
+RISCV_GCC_OPTS="-march=${RV64_MARCH} -mabi=${RV64_MABI} -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf $2 "
 RISCV_LINK_OPTS="-static -nostdlib -nostartfiles -lm -lgcc "
+RISCV_GCC_VERSION=$($RISCV_GCC -dumpversion)
+RISCV_GCC_MAJOR_VERSION=$(echo $RISCV_GCC_VERSION | cut -f1 -d.)
 
 if [ -n "${SARG_ROOT}" ]; then
     RISCV_LINK_OPTS+="-T ${DV_ROOT}/verif/diag/assembly/include/riscv/sargantana/link.ld"
@@ -34,6 +37,15 @@ else
     INCS="-I${DV_ROOT}/verif/diag/assembly/include/riscv/ariane"
 fi
 
+# Compiler version specific fixups
+if [[ ${RISCV_GCC_MAJOR_VERSION} -eq "14" && -n "${SARG_ROOT}" ]]; then
+    # Reason: GCC 14+ autovectorizes some code, and Sargantana does not support LMUL > 1 yet
+    RISCV_GCC_OPTS+="-mrvv-max-lmul=m1 -fopt-info "
+    # Reason: Even though the previous setting limits the lmul of local optimizations,
+    # if the compiler adds builtin functions, these might already be vectorized with
+    # illegal LMUL options and, thus, must be disabled:
+    RISCV_GCC_OPTS+="-fno-builtin "
+fi
 
 if [ -n "${SARG_ROOT}" ]; then
    ${RISCV_GCC} ${INCS} ${RISCV_GCC_OPTS} -o diag.exe $1                        \
