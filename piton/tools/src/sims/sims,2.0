@@ -1556,7 +1556,7 @@ sub generic_sim_build
       $build_cmd .= "-Wno-BLKANDNBLK " ;
       $build_cmd .= "-Wno-TIMESCALEMOD " ;
       $build_cmd .= "-DPITON_DPI " ;
-      $build_cmd .= "--unroll-count 256 " ;
+      $build_cmd .= "--unroll-count 8192 " ;
       $build_cmd .= "-CFLAGS -DVERILATOR " ;
       $build_cmd .= "-CFLAGS -DPITON_DPI " ;
       #$build_cmd .= "-CFLAGS -lstdc++ " ;
