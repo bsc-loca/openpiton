@@ -111,17 +111,14 @@ begin
     bypass_f <= bypass_next;
 end
 
+integer i;
 always @ *
 begin
     if (bypass_f)
     begin
-<%
-for i in range(L2_STATE_ARRAY_WIDTH):
-    print('''
-        data_out[%d] = data_mask_in_buf[%d] ? data_in_buf[%d] : data_out_real[%d];
-    ''' % (i, i, i, i))
-
-%>
+        for (i = 0; i < `L2_STATE_ARRAY_WIDTH; i = i + 1) begin
+            data_out[i] = data_mask_in_buf[i] ? data_in_buf[i] : data_out_real[i];
+        end
     end
     else
     begin
