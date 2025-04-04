@@ -4450,7 +4450,13 @@ begin
             // third, stbuffer's L1-mapped way must be valid
 
             cpx_req_val_s3 = 1'b1;
-            cpx_invalidate_l1_s3 = stbuf_compare_match_val_s3 && wmt_compare_match_s3 ;
+            `ifdef PITON_ARIANE_HPDC
+                // Do not send invalidations to HPDC after store request as it is fully coherent
+                // This prevents a 2-cycle bubble on each store...
+                cpx_invalidate_l1_s3 = 1'b0;
+            `else
+                cpx_invalidate_l1_s3 = stbuf_compare_match_val_s3 && wmt_compare_match_s3 ;
+            `endif
             cpx_type_s3 = `CPX_RESTYPE_STORE_ACK;
             cpx_inval_way_s3 = wmt_compare_match_way_s3;
         end
@@ -4458,7 +4464,13 @@ begin
         begin
             cpx_req_val_s3 = tagcheck_state_me_s3;
             cpx_type_s3 = `CPX_RESTYPE_STORE_ACK;
-            cpx_invalidate_l1_s3 = wmt_compare_match_s3; 
+            `ifdef PITON_ARIANE_HPDC
+                // Do not send invalidations to HPDC after store request as it is fully coherent
+                // This prevents a 2-cycle bubble on each store...
+                cpx_invalidate_l1_s3 = 1'b0;
+            `else
+                cpx_invalidate_l1_s3 = wmt_compare_match_s3;
+            `endif
             cpx_inval_way_s3 = wmt_compare_match_way_s3;
         end
         `L15_CPX_GEN_IFILL_RESPONSE_FROM_NOC2:
