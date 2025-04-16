@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Vcmp_top.h"
 #include "verilated.h"
 #include <iostream>
+#include <csignal>
 //#define VERILATOR_VCD
 #if defined(VERILATOR_VCD)
 #include "verilated_vcd_c.h"
@@ -148,6 +149,17 @@ void reset_and_init() {
     std::cout << "Reset complete" << std::endl << std::flush;
 }
 
+void exit_handler(int _signal) {
+    std::cout << "Interrupted!" << std::endl;
+    
+    #if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
+    std::cout << "Trace done" << std::endl;
+    tfp->close();
+    #endif
+    
+    exit(1);
+}
+
 int main(int argc, char **argv, char **env) {
 std::cout << "Started" << std::endl << std::flush;
 Verilated::commandArgs(argc, argv);
@@ -166,6 +178,12 @@ tfp->open ("my_top.vcd");
 
 Verilated::debug(1);
 #endif
+
+std::signal(SIGINT, exit_handler);
+std::signal(SIGTERM, exit_handler);
+std::signal(SIGSEGV, exit_handler);
+std::signal(SIGABRT, exit_handler);
+std::signal(SIGILL, exit_handler);
 
 reset_and_init();
 
