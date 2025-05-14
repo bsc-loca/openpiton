@@ -3,8 +3,7 @@
 	url = https://github.com/u-boot/u-boot.git
 [submodule "piton/design/chip/tile/sargantana"]
 	path = piton/design/chip/tile/sargantana
-	url = ../../core-tile/sargantana_tile.git
-	branch = ft/openpiton-hwdesign
+	url = ../core_tile.git
 [submodule "piton/design/common/pulp-platform/axi"]
 	path = piton/design/common/pulp-platform/axi
 	url = https://github.com/pulp-platform/axi.git
@@ -17,7 +16,6 @@
 [submodule "piton/design/chipset/bsc_rv64_peripherals"]
 	path = piton/design/chipset/bsc_rv64_peripherals
 	url = ../bsc_rv64_peripherals.git
-	branch = main
 [submodule "piton/design/chip/tile/ariane"]
 	path = piton/design/chip/tile/ariane
-	url = ../../cores/cva6.git
+	url = https://github.com/openhwgroup/cva6.git
