@@ -1547,7 +1547,7 @@ sub generic_sim_build
 	
     if ($opt{vlt_build}) {
       $build_cmd = "verilator -cc " ;
-      $build_cmd .= "-Os -exe $dv_root/tools/verilator/my_top.cpp " ;
+      $build_cmd .= "-O2 -exe $dv_root/tools/verilator/my_top.cpp " ;
       $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
       $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
       $build_cmd .= "$dv_root/tools/pli/iop/iob_main.cc " ;

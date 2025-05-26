@@ -76,15 +76,6 @@ export ARIANE_ROOT=${PITON_ROOT}/piton/design/chip/tile/ariane/
 export CXX=g++ CC=gcc
 # customize this to a fast local disk
 
-if [ "$RISCV" ==  "" ]
-then
-  export RISCV=$HOME/scratch/riscv_install
-fi
-
-if [ "VERILATOR_ROOT" ==  "" ]
-then
-export VERILATOR_ROOT=$ARIANE_ROOT/tmp/verilator-4.014/
-fi
 # setup paths
 export PATH=$RISCV/bin:$VERILATOR_ROOT/bin:$PATH
 export LIBRARY_PATH=$RISCV/lib
