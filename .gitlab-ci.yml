@@ -59,6 +59,9 @@ default:
     - module load rvv/1.0.0
     - module load verilator/5.032
 
+    ## Setup Environment
+    - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
+
 .rule_only_merge:
   - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
 
@@ -72,7 +75,6 @@ default:
     - sargantana_build
   before_script:
     - !reference [default, before_script]
-#    - module swap rvv/1.0.0 # Sargantana implements RVV 1.0
     - source piton/sargantana_setup.sh
   timeout: 6h
 
@@ -90,7 +92,6 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
-    - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
   timeout: 6h
 
 .ariane_hpdc_regression_base:
@@ -99,7 +100,6 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
-    - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
   timeout: 6h
 
 ################################################################################
