@@ -1396,6 +1396,7 @@ if (TILE_TYPE == `LAGARTO_OX_RV64_TILE) begin : g_lox_core
              transducer_l15_amo_op,
              transducer_l15_be} = l15_req;
 
+    localparam DCACHE_MSHR_WAYS = 2;
 
     lagarto_ox_wrapper #(
 <%
@@ -1407,11 +1408,19 @@ str = '''
         .InitMappedBase  ( {40'h00_8000_0000, 40'hFF_F000_0000}   ),
         .InitMappedEnd   ( {40'h24_0000_0000, 40'hFF_F200_0000}  ),
         .InitBROMBase    ( 40'hFF_F101_0000  ),
-        .InitBROMEnd     ( 40'hFF_F200_0000 )
+        .InitBROMEnd     ( 40'hFF_F200_0000 ),
+
+        .MEM_DATA_SIZE(`CONF_HPDCACHE_REQ_WORDS * 64),
+        .DCACHE_NUM_SETS((`CONFIG_L1D_SIZE/`CONFIG_L1D_ASSOCIATIVITY)/(`CONFIG_L1D_CACHELINE_WIDTH/8)),
+        .DCACHE_NUM_WAYS(`CONFIG_L1D_ASSOCIATIVITY),
+        .DCACHE_LINE_WIDTH(`CONFIG_L1D_CACHELINE_WIDTH),
+        .DCACHE_MSHR_SETS((`L15_NUM_THREADS / DCACHE_MSHR_WAYS)),
+        .DCACHE_MSHR_WAYS(DCACHE_MSHR_WAYS)
+
         `ifdef WRITE_BYTE_MASK
         ,
-        .WriteCoalescingEn      (1'b1),
-        .WriteCoalescingTh      (32'd2)
+        .WR_COALESCING_EN      (1'b1),
+        .WR_COALESCING_TH      (32'd2)
         `endif
   ''' 
 print(str)
@@ -1419,7 +1428,6 @@ print(str)
     ) core (
         .clk_i       ( clk_gated    ),
         .reset_l     ( rst_n_f      ),
-        .spc_grst_l  ( spc_grst_l   ),
         .hart_id_i   ( {{64-`JTAG_FLATID_WIDTH{1'b0}}, flat_tileid} ),
         .boot_addr_i ( 40'hFFF1010000 ),
         .time_irq_i  ( timer_irq_i  ),
@@ -1433,53 +1441,33 @@ print(str)
         .external_hpm_i (external_hpm_i),
         `endif
         
-        // Debug Ring connections
-        .debug_core_stall_i                     ( 1'b0 ),
-    
-        .debug_pc_valid_i                       ( 1'b0 ),
-        .debug_core_set_pc_i                    ( 63'b0 ),
+        // Debug connections
+        .debug_contr_hart_reset_i(1'b0),
+        .debug_contr_halt_req_i(1'b0),
+        .debug_contr_resume_req_i(1'b0),
+        .debug_contr_progbuf_req_i(1'b0),
+        .debug_contr_halt_on_reset_i(1'b0),
+        .debug_reg_rnm_read_en_i(1'b0),
+        .debug_reg_rnm_read_reg_i(),
+        .debug_reg_rf_en_i(1'b0),
+        .debug_reg_rf_preg_i(),
+        .debug_reg_rf_we_i(1'b0),
+        .debug_reg_rf_wdata_i(),
 
-        .debug_core_reg_read_i                  ( 1'b0 ),
-        .debug_core_reg_raddr_i                 ( 0 ),
-        .core_debug_reglist_paddr_o             (  ),
-
-        .debug_core_preg_read_i                 ( 1'b0 ),
-        .debug_core_preg_write_i                ( 1'b0 ),
-        .debug_core_preg_addr_i                 ( 0 ),
-        .debug_core_preg_wdata_i                ( 0 ),
-        .core_debug_preg_rdata_o                (  ),
-        .core_debug_rob_empty_o                 (  ),
-
-        .debug_core_halt_req_i                  (1'b0),
-        .debug_core_resume_req_i                (1'b0),
-        .core_debug_halt_ack_o                  (  ), //TODO: CHECK IF MATCHES STRUCT MSB
-        .core_debug_resume_ack_o                (  ), //TODO: CHECK IF MATCHES STRUCT MSB
-        .visa_dp_ifu_deco_wr_o                  (  ),
-        .visa_dp_ifu_deco_grant_o               (  ),
-        .visa_dp_rnm_bke_wr_o                   (  ),
-        .visa_dp_rnm_bke_grant_o                (  ),
-        .visa_dp_disp_barrier_o                 (  ),
-        .visa_dp_disp_integer_o                 (  ),
-        .visa_dp_disp_fp_o                      (  ),
-        .visa_dp_disp_mem_o                     (  ),
-        .visa_dp_commit_o                       (  ),
-        .visa_dcache_resp_valid_o               (  ),
-        .visa_icache_resp_valid_o               (  ),
-        .visa_event_vm_enable_o                 (  ),
-        .visa_event_interrupt_o                 (  ),
-        .visa_event_exception_o                 (  ),
-        .visa_event_csr_priv_lvl_o              (  )
+        .debug_contr_halt_ack_o(),
+        .debug_contr_halted_o(),
+        .debug_contr_resume_ack_o(),
+        .debug_contr_running_o(),
+        .debug_contr_progbuf_ack_o(),
+        .debug_contr_parked_o(),
+        .debug_contr_unavail_o(),
+        .debug_contr_progbuf_xcpt_o(),
+        .debug_contr_havereset_o(),
+        .debug_reg_rnm_read_resp_o(),
+        .debug_reg_rf_rdata_o()
     );
 
-    assign debug_register_read_pc_o = 40'b0;
-    assign debug_fetch_pc_o         = 40'b0;
-    assign debug_execute_pc_o       = 40'b0;
-    assign debug_writeback_pc_o     = 40'b0;
-    assign debug_decode_pc_o        = 40'b0;
-    assign debug_writeback_pc_valid_o = 1'b0;
-    assign debug_mem_addr_o          = 64'b0;
-    assign debug_writeback_we_o      = 1'b0;
-    assign debug_writeback_addr_o    = 5'b0;
+    assign spc_grst_l = rst_n_f;
 
 `endif // ifdef PITON_LOX
   end

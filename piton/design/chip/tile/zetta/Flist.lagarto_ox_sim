@@ -1,0 +1,7 @@
+ ../lagarto_ox/simulator/models/hdl/escher_konata_dump_behav.sv
+ ../lagarto_ox/simulator/models/hdl/escher_commit_log_behav.sv
+ ../lagarto_ox/simulator/models/hdl/escher_commit_log_br_behav.sv
+ ../lagarto_ox/simulator/models/cxx/escher_dpi_konata.cpp
+ ../lagarto_ox/simulator/models/cxx/loadelf.cpp
+ ../lagarto_ox/simulator/models/cxx/dpi_perfect_memory.cpp
+ ../lagarto_ox/simulator/models/cxx/dpi_commit_log.cpp
