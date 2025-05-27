@@ -722,7 +722,7 @@ pico-amoxor     amoxor_w.S
     // note: these asm tests assume that the RISCV tests have been precompiled with the
     // correct environment
     <sarg_tile2_mt_benchmarks>
-        <runargs -x_tiles=1 -y_tiles=2 -sarg -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+        <runargs -x_tiles=1 -y_tiles=2 -sarg -precompiled -rtl_timeout=1000000000 -max_cycle=100000000 -asm_diag_path=$SARG_ROOT/tmp/riscv-tests/build/benchmarks_2c>
             sarg-mt-axpy            mt-axpy.riscv
             //sarg-mt-blackscholes    mt-blackscholes.riscv
             sarg-mt-histogram       mt-histogram.riscv
@@ -751,7 +751,7 @@ pico-amoxor     amoxor_w.S
     // note: these asm tests assume that the RISCV tests have been precompiled with the
     // correct environment
     <sarg_tile4_mt_benchmarks>
-        <runargs -x_tiles=2 -y_tiles=2 -sarg -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+        <runargs -x_tiles=2 -y_tiles=2 -sarg -precompiled -rtl_timeout=1000000000 -max_cycle=100000000 -asm_diag_path=$SARG_ROOT/tmp/riscv-tests/build/benchmarks_4c>
             sarg-mt-axpy            mt-axpy.riscv
             //sarg-mt-blackscholes    mt-blackscholes.riscv
             sarg-mt-histogram       mt-histogram.riscv
@@ -1102,7 +1102,7 @@ pico-amoxor     amoxor_w.S
     // note: these asm tests assume that the RISCV tests have been precompiled with the
     // correct environment
     <lox_tile2_mt_benchmarks>
-        <runargs -x_tiles=1 -y_tiles=2 -lox -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+        <runargs -x_tiles=1 -y_tiles=2 -lox -precompiled -rtl_timeout=1000000000 -max_cycle=100000000 -asm_diag_path=$LOX_ROOT/tmp/riscv-tests/build/benchmarks_2c>
             lox-mt-axpy            mt-axpy.riscv
             //lox-mt-blackscholes    mt-blackscholes.riscv
             lox-mt-histogram       mt-histogram.riscv
@@ -1131,7 +1131,7 @@ pico-amoxor     amoxor_w.S
     // note: these asm tests assume that the RISCV tests have been precompiled with the
     // correct environment
     <lox_tile4_mt_benchmarks>
-        <runargs -x_tiles=2 -y_tiles=2 -lox -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+        <runargs -x_tiles=2 -y_tiles=2 -lox -precompiled -rtl_timeout=1000000000 -max_cycle=100000000 -asm_diag_path=$LOX_ROOT/tmp/riscv-tests/build/benchmarks_4c>
             lox-mt-axpy            mt-axpy.riscv
             //lox-mt-blackscholes    mt-blackscholes.riscv
             lox-mt-histogram       mt-histogram.riscv
@@ -1160,7 +1160,7 @@ pico-amoxor     amoxor_w.S
     // note: these asm tests assume that the RISCV tests have been precompiled with the
     // correct environment
     <ariane_tile2_mt_benchmarks>
-        <runargs -x_tiles=1 -y_tiles=2 -ariane -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+        <runargs -x_tiles=1 -y_tiles=2 -ariane -precompiled -rtl_timeout=1000000000 -max_cycle=100000000 -asm_diag_path=$ARIANE_ROOT/tmp/riscv-tests/build/benchmarks_2c>
             ariane-mt-axpy            mt-axpy.riscv
             //ariane-mt-blackscholes    mt-blackscholes.riscv
             ariane-mt-histogram       mt-histogram.riscv
@@ -1189,7 +1189,7 @@ pico-amoxor     amoxor_w.S
     // note: these asm tests assume that the RISCV tests have been precompiled with the
     // correct environment
     <ariane_tile4_mt_benchmarks>
-        <runargs -x_tiles=2 -y_tiles=2 -ariane -precompiled -rtl_timeout=1000000000 -max_cycle=100000000>
+        <runargs -x_tiles=2 -y_tiles=2 -ariane -precompiled -rtl_timeout=1000000000 -max_cycle=100000000 -asm_diag_path=$ARIANE_ROOT/tmp/riscv-tests/build/benchmarks_4c>
             ariane-mt-axpy            mt-axpy.riscv
             //ariane-mt-blackscholes    mt-blackscholes.riscv
             ariane-mt-histogram       mt-histogram.riscv
