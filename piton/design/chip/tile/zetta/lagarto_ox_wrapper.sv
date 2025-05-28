@@ -204,6 +204,7 @@ assign rst_n = wake_up_cnt_q[$high(wake_up_cnt_q)] & reset_l;
 `endif // INTEL_FSCAN_CTECH
 
 lagarto_ox_top #(
+    .CORE_SYSTEM_DIRECT_RSTN                (1'b1), // OpenPiton already provides a synchronizer, use direct reset and do not instantiate one inside ox
     .N_IO_SECTIONS                          (NIOSections),
     .INIT_IO_BASE                           (InitIOBase),
     .INIT_IO_END                            (InitIOEnd),
