@@ -1,4 +1,4 @@
-image: registry.gitlab.bsc.es/hwdesign/containerhub/questa_riscv:latest
+image: registry.gitlab.bsc.es/hwdesign/containerhub/questa-vip:latest
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
 ## so only the open merge request will be executed and not the commit_branch. PIPELINE_BRANCH will be used to refer to
@@ -31,7 +31,7 @@ variables:
   GIT_DEPTH: 1
   GIT_SUBMODULE_DEPTH: 1
   CI_RISCV_DIR: /opt/riscv-gnu-toolchain/rvv-1.0.0/
-  MODELSIM_HOME: /eda/Siemens/2022-23/RHELx86/QUESTA-CORE-PRIME_2022.4
+  MODELSIM_HOME: /apps/Siemens/2024.2/RHELx86/QUESTA-CORE-PRIME_2024.2
   VERILATOR_HOME: /opt/verilator/5.032
   MSM_BUILD_FLAGS: -sys=manycore -msm_build_args=+acc=n
   VLT_BUILD_FLAGS: -sys=manycore
