@@ -33,8 +33,8 @@ variables:
   CI_RISCV_DIR: /opt/riscv-gnu-toolchain/rvv-1.0.0/
   MODELSIM_HOME: /apps/Siemens/2024.2/RHELx86/QUESTA-CORE-PRIME_2024.2
   VERILATOR_HOME: /opt/verilator/5.032
-  MSM_BUILD_FLAGS: -sys=manycore -msm_build_args=+acc=n
-  VLT_BUILD_FLAGS: -sys=manycore
+  MSM_BUILD_FLAGS: -sys=hpc -msm_build_args=+acc=n
+  VLT_BUILD_FLAGS: -sys=hpc
   SIMS_FLAGS: -noclean -sim_run_args=-no_autoacc
   CI_TAGS: dv
 
