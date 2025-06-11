@@ -35,7 +35,7 @@ variables:
   VERILATOR_HOME: /opt/verilator/5.032
   MSM_BUILD_FLAGS: -sys=hpc -msm_build_args=+acc=n
   VLT_BUILD_FLAGS: -sys=hpc
-  SIMS_FLAGS: -noclean -sim_run_args=-no_autoacc
+  SIMS_FLAGS: -noclean -sim_run_args=-no_autoacc -diaglist ../piton/verif/diag/bsc_hpc_diaglist
   CI_TAGS: dv
 
 default:
