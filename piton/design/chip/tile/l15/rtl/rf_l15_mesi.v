@@ -74,14 +74,11 @@ module rf_l15_mesi #(
 
 
 
-// reg read_valid_f;
-reg [L15_CACHE_INDEX_WIDTH-1:0] read_index_f;
-reg [L15_CACHE_INDEX_WIDTH-1:0] write_index_f;
-reg [`L15_MESI_ARRAY_WIDTH-1:0] write_data_f;
-reg [`L15_MESI_ARRAY_WIDTH-1:0] write_mask_f;
-reg write_valid_f;
 
-reg [`L15_MESI_ARRAY_WIDTH-1:0] regfile [0:L15_SET_COUNT-1];
+reg [L15_CACHE_INDEX_WIDTH-1:0] read_index_f;
+
+
+reg [`L15_MESI_ARRAY_WIDTH-1:0] regfile [L15_SET_COUNT-1:0];
 
 always @ (posedge clk)
 begin
@@ -100,24 +97,6 @@ end
 assign read_data = regfile[read_index_f];
 
 // Write port
-always @ (posedge clk)
-begin
- if(!rst_n)
-  begin
-   write_valid_f <= 1'b0 ; 
-   write_data_f <= {`L15_MESI_ARRAY_WIDTH {1'b0}};
-   write_mask_f <= {`L15_MESI_ARRAY_WIDTH {1'b0}};
-  end else begin
-   write_valid_f <= write_valid;
-   if (write_valid)
-   begin
-      write_data_f <= write_data;
-      write_index_f <= write_index;
-      write_mask_f <= write_mask;
-   end
-end
-end
-
 integer numset;
 always @ (posedge clk)
 begin
@@ -128,10 +107,9 @@ begin
       end
    end
    else
-   if (write_valid_f)
+   if (write_valid)
    begin
-      // regfile[write_index] <= (write_data & write_mask) | (regfile[write_index] & ~write_mask);
-      regfile[write_index_f] <= (write_data_f & write_mask_f) | (regfile[write_index_f] & ~write_mask_f);
+      regfile[write_index] <= (write_data & write_mask) | (regfile[write_index] & ~write_mask);
    end
 end
 endmodule

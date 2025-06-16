@@ -70,63 +70,30 @@ module rf_l15_wmt #(
    output wire [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] read_data
    );
 
-// reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] data_out_f;
-
-// reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] regfile [0:127];
-
-// always @ (posedge clk)
-// begin
-//    if (read_valid)
-//       data_out_f <= regfile[read_index];
-// end
+reg [L1D_CACHE_INDEX_WIDTH-1:0] read_index_f;
 
 
-// assign read_data = data_out_f;
-
-
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] data_out_f;
-reg [L1D_CACHE_INDEX_WIDTH - 1 : 0] write_index_f;
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] write_data_f;
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] write_mask_f;
-reg write_valid_f;
-
-reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] regfile [0:L1D_SET_COUNT-1];
+reg [(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1))-1:0] regfile [L1D_SET_COUNT-1:0];
 
 always @ (posedge clk)
 begin
 
 	if(!rst_n)
-	  data_out_f <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)){1'b0}} ;
+   begin
+      read_index_f <= 0;
+   end
 	else 
    	if (read_valid)
-     	 data_out_f <= regfile[read_index];
+      read_index_f <= read_index;
+   else
+      read_index_f <= read_index_f;
 end
 
 
-assign read_data = data_out_f;
+// read port
+assign read_data = regfile[read_index_f];
 
 // Write port
-
-always @ (posedge clk)
-begin
-
-  if(!rst_n) begin
-  	 write_valid_f <= 1'b0 ; 
-  	 write_data_f  <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)) {1'b0}};
-  	 write_index_f <= {(L1D_CACHE_INDEX_WIDTH) {1'b0}};
-  	 write_mask_f  <= {(`L1D_WAY_COUNT*(L15_WMT_DATA_WIDTH+1)) {1'b0}};	 
-  	
- end else begin	
-   write_valid_f <= write_valid;
-   if (write_valid)
-   begin
-      write_data_f <= write_data;
-      write_index_f <= write_index;
-      write_mask_f <= write_mask;
-   end
- end
-end
-
 integer numset, numway;
 always @ (posedge clk)
 begin
@@ -139,10 +106,9 @@ begin
       end
    end
    else
-   if (write_valid_f)
+   if (write_valid)
    begin
-      // regfile[write_index] <= (write_data & write_mask) | (regfile[write_index] & ~write_mask);
-      regfile[write_index_f] <= (write_data_f & write_mask_f) | (regfile[write_index_f] & ~write_mask_f);
+      regfile[write_index] <= (write_data & write_mask) | (regfile[write_index] & ~write_mask);
    end
 end
 endmodule
