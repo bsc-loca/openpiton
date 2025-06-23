@@ -76,7 +76,7 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/sargantana_setup.sh
-  timeout: 6h
+  timeout: 8h
 
 .lox_regression_base:
   dependencies:
@@ -84,7 +84,7 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/lox_setup.sh
-  timeout: 6h
+  timeout: 10h
 
 .ariane_regression_base:
   dependencies:
@@ -92,7 +92,7 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
-  timeout: 6h
+  timeout: 8h
 
 .ariane_hpdc_regression_base:
   dependencies:
@@ -100,7 +100,7 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/ariane_setup.sh
-  timeout: 6h
+  timeout: 8h
 
 ################################################################################
 # SARGANTANA
