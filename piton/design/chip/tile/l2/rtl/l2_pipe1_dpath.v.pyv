@@ -2265,11 +2265,10 @@ begin
         msg_send_data_S4 = {2{msg_data_S4_f}};
     end
 `ifdef L2_SEND_NC_REQ
-    else if ((msg_type_S4 == `MSG_TYPE_NC_LOAD_REQ) && (msg_send_type_S4 == `MSG_TYPE_DATA_ACK))
+    else if ((msg_type_S4 == `MSG_TYPE_NC_LOAD_REQ) && (msg_send_type_S4 == `MSG_TYPE_DATA_ACK) && (msg_send_length_S4 == 1))
     begin
         `ifdef PARALLEL_SRAMS
-        if (msg_send_length_S4 == 1) msg_send_data_S4 = addr_S4[3] ? {2{data_ecc_out[127:64]}} : {2{data_ecc_out[63:0]}};
-        else msg_send_data_S4 = data_ecc_out;
+        msg_send_data_S4 = addr_S4[3] ? {2{data_ecc_out_atomic[127:64]}} : {2{data_ecc_out_atomic[63:0]}};
         `else
         msg_send_data_S4 = addr_S4[3] ? {2{data_data_ecc_S4[127:64]}} : {2{data_data_ecc_S4[63:0]}};
         `endif
