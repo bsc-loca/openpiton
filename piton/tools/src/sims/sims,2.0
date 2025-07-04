@@ -654,11 +654,11 @@ sub run_injobq
 
   if (!($opt{dryrun})) {
     my $returncode = system ($cmd) ;
-    while ($returncode) {
-      sleep 30;
-      print "Submit failed" ;
-      $returncode = system ($cmd) ;
-    }
+    #while ($returncode) {
+    #  sleep 30;
+    #  print "Submit failed" ;
+    #  $returncode = system ($cmd) ;
+    #}
   }
 
   # Restore global options ..
@@ -1629,7 +1629,7 @@ sub generic_sim_build
     }
 
     if ($opt{vlt_build}) {
-      $build_cmd = "make -j -C $model_path/obj_dir -f Vcmp_top.mk Vcmp_top" ;
+      $build_cmd = "make -j4 -C $model_path/obj_dir -f Vcmp_top.mk Vcmp_top" ;
 
       print "$prg: $build_cmd\n";
 
