@@ -368,6 +368,10 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_LOX")     if ($opt{lox}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
 
+if ($opt{hpdc} || $opt{sarg} || $opt{lox}) {
+    push (@{$opt{config_cpp_args}}, "-DENABLE_HPDC");
+}
+
 if ($opt{ariane}) {
   if ($opt{hpdc}) {
     push (@{$opt{config_rtl}}, "PITON_ARIANE_HPDC");
