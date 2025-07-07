@@ -60,6 +60,7 @@ module l2_pipe2_buf_in #(
 
     output reg msg_data_valid_out,
     output wire [`L2_P2_DATA_BUF_IN_WIDTH-1:0] msg_data_out,
+    output wire [3:0] msg_data_size_out,
     input wire msg_data_ready_out
 );
 
@@ -1889,6 +1890,7 @@ begin
         data_rd_ptr_next = data_rd_ptr_f + data_rd_ptr_inc;//`L2_P2_DATA_BUF_IN_FLITS;
     end    
 end
+assign msg_data_size_out = data_rd_ptr_inc [3:0];
 
 /*
 always @(posedge clk) begin

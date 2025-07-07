@@ -217,7 +217,6 @@ wire state_rb_en_S2;
 wire dir_clr_en_S2;
 wire l2_load_64B_S2;
 wire l2_load_32B_S2;
-wire l2_load_16B_S2;
 wire [`L2_DATA_SUBLINE_WIDTH-1:0] l2_load_data_subline_S2;
 //wire [`PHY_ADDR_WIDTH-1:0] addr_S2;
 wire l2_tag_hit_S2;
@@ -241,6 +240,7 @@ assign msg_type_S1 = msg_type;
 
 wire data_clk_en_S2;
 
+wire [3:0] data_data_in_size;
 `ifdef PARALLEL_SRAMS
     wire [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_data_in_tmp;
     reg [(`L2_DATA_ARRAY_WIDTH*`L2_SRAM_CHUNKS)-1:0] data_shifted;
@@ -250,7 +250,7 @@ wire data_clk_en_S2;
         data_shifted = data_data_in_tmp;
         if(data_clk_en_S2==1'b0) clk_en_tmp = `L2_SRAM_CHUNKS'b0;
         else if (~data_rdw_en) begin
-            if(l2_load_16B_S2) begin
+            if(data_data_in_size<=2) begin
                 case(data_addr[1:0])
                     2'b00: begin 
                         clk_en_tmp = 4'b0001;  // writing first 16 B;
@@ -269,7 +269,7 @@ wire data_clk_en_S2;
                         data_shifted [(4*`L2_DATA_ARRAY_WIDTH)-1 : (3*`L2_DATA_ARRAY_WIDTH)]= data_data_in_tmp [`L2_DATA_ARRAY_WIDTH-1:0];
                     end
                 endcase
-            end else if (l2_load_32B_S2) begin
+            end else if (data_data_in_size<=4) begin
                 case(data_addr[1])
                     1'b0: begin 
                         clk_en_tmp = 4'b0011;  // writing first 32 B;
@@ -280,9 +280,7 @@ wire data_clk_en_S2;
                         data_shifted [(4*`L2_DATA_ARRAY_WIDTH)-1 : (2*`L2_DATA_ARRAY_WIDTH)]=  data_data_in_tmp [(2*`L2_DATA_ARRAY_WIDTH)-1:0];
                     end
                 endcase
-            end else if (l2_load_64B_S2) begin
-                clk_en_tmp = `L2_SRAM_CHUNKS'b1111; // writing all four chunks;
-            end else begin //?
+            end else begin 
                 clk_en_tmp = `L2_SRAM_CHUNKS'b1111;
             end
         end else begin
@@ -314,6 +312,7 @@ l2_pipe2_buf_in #(
 
     .msg_data_valid_out     (msg_data_valid),
     .msg_data_out           (msg_data),
+    .msg_data_size_out      (data_data_in_size),
     .msg_data_ready_out     (msg_data_ready)
 );
 
@@ -455,7 +454,6 @@ l2_pipe2_ctrl ctrl(
     .state_rb_en_S2             (state_rb_en_S2),
     .l2_load_64B_S2             (l2_load_64B_S2),
     .l2_load_32B_S2             (l2_load_32B_S2),
-    .l2_load_16B_S2             (l2_load_16B_S2),
     .l2_load_data_subline_S2    (l2_load_data_subline_S2),
     .msg_data_ready_S2          (msg_data_ready),
     `ifndef NO_RTL_CSM

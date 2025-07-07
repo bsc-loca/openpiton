@@ -162,7 +162,6 @@ module l2_pipe2_ctrl(
 
     output reg l2_load_64B_S2, 
     output reg l2_load_32B_S2, 
-    output reg l2_load_16B_S2,
     output reg [`L2_DATA_SUBLINE_WIDTH-1:0] l2_load_data_subline_S2,
 
     output reg msg_data_ready_S2,
@@ -983,13 +982,11 @@ end
 assign state_rb_en_S2 = n;
 
 always @ *
-begin
-    l2_load_16B_S2 = n;
-    l2_load_32B_S2 = n;
-    l2_load_64B_S2 = n;
+begin    
     if (msg_type_S2_f == `MSG_TYPE_LOAD_MEM_ACK)
     begin
         l2_load_64B_S2 = y;
+        l2_load_32B_S2 = n;
     end
     else if (msg_type_S2_f == `MSG_TYPE_WB_REQ)
     begin
@@ -997,15 +994,10 @@ begin
         l2_load_32B_S2 = (msg_length_S2_f == 6) ? y : n;
     end
 `ifdef L2_SEND_NC_REQ
-    else if ((msg_type_S2_f == `MSG_TYPE_NC_LOAD_MEM_ACK))
+    else if ((msg_type_S2_f == `MSG_TYPE_NC_LOAD_MEM_ACK) && (msg_length_S2_f == 4))
     begin
-        if(msg_length_S2_f == 8) begin 
-        l2_load_64B_S2 = y;
-        end else if(msg_length_S2_f == 4) begin 
+        l2_load_64B_S2 = n;
         l2_load_32B_S2 = y;
-        end else begin
-        l2_load_16B_S2 = y;
-        end
     end
 `endif
     else    
