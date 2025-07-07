@@ -36,10 +36,11 @@ variables:
   MSM_BUILD_FLAGS: -sys=manycore -msm_build_args=+acc=n
   VLT_BUILD_FLAGS: -sys=manycore
   SIMS_FLAGS: -noclean -sim_run_args=-no_autoacc
+  CI_TAGS: dv
 
 default:
   tags:
-    - dv
+    - $CI_TAGS
   before_script:
     ## Access to repos
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/".insteadOf "https://gitlab.bsc.es/"
@@ -134,9 +135,9 @@ sargantana_isa_tests:
   stage: sim_isa_tests
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=sargantana_${SIM_TYPE}_1_1
@@ -160,9 +161,9 @@ sargantana_benchmarks:
     !reference [.rule_only_merge]
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=sargantana_${SIM_TYPE}_1_1
@@ -185,9 +186,11 @@ sargantana_multicore:
     matrix:
       - X_TILES: [1,2]
         Y_TILES: [2]
-        SIM_TYPE:
-          - vlt
-          - msm
+        SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - X_TILES: [1,2]
+        Y_TILES: [2]
+        SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=sargantana_${SIM_TYPE}_${X_TILES}_${Y_TILES}
@@ -232,9 +235,9 @@ lox_isa_tests:
   stage: sim_isa_tests
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=lox_${SIM_TYPE}_1_1
@@ -258,9 +261,9 @@ lox_benchmarks:
     !reference [.rule_only_merge]
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=lox_${SIM_TYPE}_1_1
@@ -283,9 +286,11 @@ lox_multicore:
     matrix:
       - X_TILES: [1,2]
         Y_TILES: [2]
-        SIM_TYPE:
-          - vlt
-          - msm
+        SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - X_TILES: [1,2]
+        Y_TILES: [2]
+        SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=lox_${SIM_TYPE}_${X_TILES}_${Y_TILES}
@@ -329,9 +334,9 @@ ariane_isa_tests:
   stage: sim_isa_tests
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_${SIM_TYPE}_1_1
@@ -355,9 +360,9 @@ ariane_benchmarks:
     !reference [.rule_only_merge]
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_${SIM_TYPE}_1_1
@@ -379,9 +384,11 @@ ariane_multicore:
     matrix:
       - X_TILES: [1,2]
         Y_TILES: [2]
-        SIM_TYPE:
-          - vlt
-          - msm
+        SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - X_TILES: [1,2]
+        Y_TILES: [2]
+        SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_${SIM_TYPE}_${X_TILES}_${Y_TILES}
@@ -426,9 +433,9 @@ ariane_hpdc_isa_tests:
   stage: sim_isa_tests
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_hpdc_${SIM_TYPE}_1_1
@@ -452,9 +459,9 @@ ariane_hpdc_benchmarks:
     !reference [.rule_only_merge]
   parallel:
     matrix:
-      - SIM_TYPE:
-        - vlt
-        - msm
+      - SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_hpdc_${SIM_TYPE}_1_1
@@ -476,9 +483,11 @@ ariane_hpdc_multicore:
     matrix:
       - X_TILES: [1,2]
         Y_TILES: [2]
-        SIM_TYPE:
-          - vlt
-          - msm
+        SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - X_TILES: [1,2]
+        Y_TILES: [2]
+        SIM_TYPE: msm
   script:
     - cd build
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_hpdc_${SIM_TYPE}_${X_TILES}_${Y_TILES}
