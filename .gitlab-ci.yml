@@ -133,6 +133,7 @@ sargantana_build:
 sargantana_isa_tests:
   extends: .sargantana_regression_base
   stage: sim_isa_tests
+  needs: [sargantana_build]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -159,6 +160,7 @@ sargantana_benchmarks:
   stage: sim_benchmarks
   rules:
     !reference [.rule_only_merge]
+  needs: [sargantana_build, sargantana_isa_tests]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -182,6 +184,7 @@ sargantana_multicore:
   stage: sim_multicore
   rules:
     !reference [.rule_only_merge]
+  needs: [sargantana_build, sargantana_benchmarks]
   parallel:
     matrix:
       - X_TILES: [1,2]
@@ -233,6 +236,7 @@ lox_build:
 lox_isa_tests:
   extends: .lox_regression_base
   stage: sim_isa_tests
+  needs: [lox_build]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -259,6 +263,7 @@ lox_benchmarks:
   stage: sim_benchmarks
   rules:
     !reference [.rule_only_merge]
+  needs: [lox_build, lox_isa_tests]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -282,6 +287,7 @@ lox_multicore:
   stage: sim_multicore
   rules:
     !reference [.rule_only_merge]
+  needs: [lox_build, lox_benchmarks]
   parallel:
     matrix:
       - X_TILES: [1,2]
@@ -332,6 +338,7 @@ ariane_build:
 ariane_isa_tests:
   extends: .ariane_regression_base
   stage: sim_isa_tests
+  needs: [ariane_build]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -358,6 +365,7 @@ ariane_benchmarks:
   stage: sim_benchmarks
   rules:
     !reference [.rule_only_merge]
+  needs: [ariane_build, ariane_isa_tests]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -380,6 +388,7 @@ ariane_multicore:
   stage: sim_multicore
   rules:
     !reference [.rule_only_merge]
+  needs: [ariane_build, ariane_benchmarks]
   parallel:
     matrix:
       - X_TILES: [1,2]
@@ -431,6 +440,7 @@ ariane_hpdc_build:
 ariane_hpdc_isa_tests:
   extends: .ariane_hpdc_regression_base
   stage: sim_isa_tests
+  needs: [ariane_hpdc_build]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -457,6 +467,7 @@ ariane_hpdc_benchmarks:
   stage: sim_benchmarks
   rules:
     !reference [.rule_only_merge]
+  needs: [ariane_hpdc_build, ariane_hpdc_isa_tests]
   parallel:
     matrix:
       - SIM_TYPE: vlt
@@ -479,6 +490,7 @@ ariane_hpdc_multicore:
   stage: sim_multicore
   rules:
     !reference [.rule_only_merge]
+  needs: [ariane_hpdc_build, ariane_hpdc_benchmarks]
   parallel:
     matrix:
       - X_TILES: [1,2]
