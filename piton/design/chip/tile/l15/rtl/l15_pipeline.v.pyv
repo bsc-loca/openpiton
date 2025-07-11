@@ -4563,7 +4563,7 @@ begin
         l15_cpxencoder_inval_dcache_inval = cpx_invalidate_l1_s3; // default
         // l15_cpxencoder_inval_icache_inval = cpx_icache_inval_s3; // default
         l15_cpxencoder_inval_icache_inval = 0; // default
-        l15_cpxencoder_inval_way[`L15_UNPARAM_1_0] = cpx_inval_way_s3[`L15_UNPARAM_1_0];
+        l15_cpxencoder_inval_way = cpx_inval_way_s3;
         l15_cpxencoder_blockinitstore = blockstore_s3 || blockstoreinit_s3;
     end
     
