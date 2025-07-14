@@ -111,6 +111,7 @@ sargantana_build:
   stage: build
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+    CI_TAGS: non_resources
   before_script:
     - !reference [.sargantana_regression_base, before_script]
   script:
@@ -214,6 +215,7 @@ lox_build:
   stage: build
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+    CI_TAGS: non_resources
   before_script:
     - !reference [.lox_regression_base, before_script]
   script:
@@ -317,6 +319,7 @@ ariane_build:
   stage: build
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+    CI_TAGS: non_resources
   before_script:
     - !reference [.ariane_regression_base, before_script]
   script:
@@ -419,6 +422,7 @@ ariane_hpdc_build:
   stage: build
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+    CI_TAGS: non_resources
   before_script:
     - !reference [.ariane_hpdc_regression_base, before_script]
   script:
