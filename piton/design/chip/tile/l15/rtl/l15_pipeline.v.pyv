@@ -2584,8 +2584,8 @@ reg noc3_wb_s2;
 reg l1_inv_s2;
 reg l1_inv_multicyc_s2;
 reg load_64B_s2;
-reg l1d_load_s2 = 1'b0;
-reg mshr_write_s2 = 1'b0;
+reg l1d_load_s2;
+reg mshr_write_s2;
 
 always @ (posedge clk) 
 begin

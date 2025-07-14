@@ -51,6 +51,7 @@ parameter SIZE = 1;
 input wire clk;
 input wire [SIZE-1:0] presyncdata;
 output reg [SIZE-1:0] syncdata;
+reg [SIZE-1:0] presyncdata_tmp;
 
 `ifdef PITON_ARIANE
 // this prevents SV assertion failures in Ariane
@@ -58,13 +59,9 @@ output reg [SIZE-1:0] syncdata;
 `define SIM_RST_INIT
 // pragma translate_on
 `ifdef SIM_RST_INIT
-  reg [SIZE-1:0] presyncdata_tmp = {{SIZE}{1'b0}};
-`else
-  reg [SIZE-1:0] presyncdata_tmp;
+  initial presyncdata_tmp = {{SIZE}{1'b0}};
 `endif
 `undef SIM_RST_INIT
-`else
-  reg [SIZE-1:0] presyncdata_tmp;
 `endif
 
 
