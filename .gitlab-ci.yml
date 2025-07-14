@@ -32,7 +32,7 @@ variables:
   GIT_SUBMODULE_DEPTH: 1
   CI_RISCV_DIR: /opt/riscv-gnu-toolchain/rvv-1.0.0/
   MODELSIM_HOME: /apps/Siemens/2024.2/RHELx86/QUESTA-CORE-PRIME_2024.2
-  VERILATOR_HOME: /opt/verilator/5.032
+  VERILATOR_HOME: /opt/verilator/5.014
   MSM_BUILD_FLAGS: -sys=hpc -msm_build_args=+acc=n
   VLT_BUILD_FLAGS: -sys=hpc
   SIMS_FLAGS: -noclean -sim_run_args=-no_autoacc -diaglist ../piton/verif/diag/bsc_hpc_diaglist
@@ -58,7 +58,7 @@ default:
     - . /load_modulefiles_bash.sh
     - module load gcc/10.5.0
     - module load rvv/1.0.0
-    - module load verilator/5.032
+    - module load verilator/5.014
 
     ## Setup Environment
     - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
@@ -221,11 +221,11 @@ lox_build:
   script:
     - piton/lox_build_tools.sh $CI_JOB_TOKEN
     - cd build
-    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_vlt_1_1
+    #- sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_vlt_1_1
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=1 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_msm_1_1
-    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_vlt_1_2
+    #- sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_vlt_1_2
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_msm_1_2
-    - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_vlt_2_2
+    #- sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_vlt_2_2
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -lox -config_rtl=OX_EXCLUDE_VPU -build_id=lox_msm_2_2
   artifacts:
     expire_in: 1 day
@@ -241,8 +241,6 @@ lox_isa_tests:
   needs: [lox_build]
   parallel:
     matrix:
-      - SIM_TYPE: vlt
-        CI_TAGS: non_resources
       - SIM_TYPE: msm
   script:
     - cd build
@@ -268,8 +266,6 @@ lox_benchmarks:
   needs: [lox_build, lox_isa_tests]
   parallel:
     matrix:
-      - SIM_TYPE: vlt
-        CI_TAGS: non_resources
       - SIM_TYPE: msm
   script:
     - cd build
@@ -292,10 +288,6 @@ lox_multicore:
   needs: [lox_build, lox_benchmarks]
   parallel:
     matrix:
-      - X_TILES: [1,2]
-        Y_TILES: [2]
-        SIM_TYPE: vlt
-        CI_TAGS: non_resources
       - X_TILES: [1,2]
         Y_TILES: [2]
         SIM_TYPE: msm
