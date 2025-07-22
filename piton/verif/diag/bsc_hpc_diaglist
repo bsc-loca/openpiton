@@ -292,6 +292,7 @@
             ariane-hello-world  hello_world.c
             ariane-accu         accu_test.c
             ariane-amo-align    amo_align.c
+            ariane-icache-inval icache_inval_test.c
         </runargs>
     </ariane_tile1_simple>
 
@@ -625,6 +626,7 @@
             sarg-amo-align    amo_align.c
             sarg-vector-wt    vectorial_mem_access_test.c
             sarg-lrsc-check   lrsc_check.c
+            sarg-icache-inval icache_inval_test.c
         </runargs>
     </sarg_tile1_simple>
 
@@ -1005,6 +1007,7 @@
             lox-hello-world  hello_world.c
             lox-accu         accu_test.c
             lox-amo-align    amo_align.c
+            lox-icache-inval icache_inval_test.c
         </runargs>
     </lox_tile1_simple>
 
