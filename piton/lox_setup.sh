@@ -74,7 +74,7 @@ export LIBRARY_PATH=$RISCV/lib
 export LD_LIBRARY_PATH=$RISCV/lib
 export C_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
 export CPLUS_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
-export HPDCACHE_ROOT=$LOX_ROOT/rtl/dcache
+export HPDCACHE_ROOT=$LOX_ROOT/modules/lagarto_ox_top/rtl/local_submodules/dcache
 export HPDCACHE_DIR=$HPDCACHE_ROOT
 
 # source OpenPiton setup script
