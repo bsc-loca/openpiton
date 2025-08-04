@@ -6,7 +6,7 @@ int function[] = {
 };
 
 int main(int argc, char ** argv) {
-    func_ptr_t fn = function;
+    func_ptr_t fn = (func_ptr_t) function;
     int result;
 
     // Run initial version of the function, check result
