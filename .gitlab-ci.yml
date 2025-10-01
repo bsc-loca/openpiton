@@ -336,8 +336,8 @@ ariane_build:
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2_mmc_real -multimc=2 -multimc_indices=0,3 -hbm -hbm_lat=tools/pli/Realistic_lat/curves_src/cxl.zip
     - sims -vlt_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2_mmc_real -multimc=2 -multimc_indices=0,3 -hbm -hbm_lat=tools/pli/Realistic_lat/curves_src/cxl.zip
-    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2_mmc_fix  -multimc=2 -multimc_indices=1,2 -hbm -hbm_lat=100
-    - sims -vlt_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2_mmc_fix  -multimc=2 -multimc_indices=1,2 -hbm -hbm_lat=100
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2_mmc_fix  -multimc=2 -multimc_indices=1,2 -hbm -hbm_lat=100 -pronoc
+    - sims -vlt_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2_mmc_fix  -multimc=2 -multimc_indices=1,2 -hbm -hbm_lat=100 -pronoc
   artifacts:
     expire_in: 1 day
     when: always

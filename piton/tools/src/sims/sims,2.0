@@ -173,6 +173,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'parallel' => 0,
         'ost1' => 0,
         'ariane' => 0,
+        'pronoc' => 0,
         'hpdc' => 0,
         'sarg' => 0,
         'lox' => 0,
@@ -337,6 +338,7 @@ GetOptions (\%opt,
             'sarg!',
             'lox!',
             'hbm_lat=s',
+            'pronoc!',
             'multimc=s',
             'multimc_indices=s',
             'pico!',
@@ -375,6 +377,7 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_LOX")     if ($opt{lox}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
 push (@{$opt{config_cpp_args}}, "-DHBM_DEF")        if ($opt{hbm}) ;
+push (@{$opt{config_cpp_args}}, "-DFLIST_PRONOC")  if ($opt{pronoc}) ;
 if ($opt{hpdc} || $opt{sarg} || $opt{lox}) {
     push (@{$opt{config_cpp_args}}, "-DENABLE_HPDC");
 }
@@ -1129,6 +1132,10 @@ sub gen_config
   }
 
   close (OCONF);
+    my $param_path = "$ENV{PITON_ROOT}/piton/design/chip/ProNoC/mpsoc/rtl/src_noc/";
+    if ( -f "${param_path}/noc_localparam.v") {
+        rename ("${param_path}/noc_localparam.v","${param_path}/noc_localparam.v.tmp");
+    }
 }
 
 ################################################################################
@@ -1298,6 +1305,11 @@ sub pre_build
 
   # generate the rtl config file
   &gen_config ($opt{model});
+  if ($opt{pronoc}) {
+    print "Create 3 phyical NoCs for OpenPiton from ProNoC RTL code ...\n";
+    `bash $dv_root/design/chip/ProNoC/mpsoc/script/phy_noc_gen/OpenPiton_nocs_gen.sh` ;
+    die  ("Error: Failed to generate 3 physical NoCs from the ProNoC RTL code! ") if ($?) ; 
+  }
 
   # Generate the flist file
   &gen_flist ();
@@ -2963,8 +2975,13 @@ sub parse_args
   $ENV{PITON_SARG}     = $opt{sarg};
   $ENV{PITON_LOX}      = $opt{lox};
   $ENV{PITON_RV64_PLATFORM}   = "1" if ($opt{rv64_platform});
+  $ENV{PITON_PRONOC}   = $opt{pronoc};  
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
+  push (@{$opt{config_rtl}}, "PITON_PRONOC")   if ($opt{pronoc});
   
+  $ENV{PRONOC_T1}= $opt{x_tiles};
+  $ENV{PRONOC_T2}= $opt{y_tiles};
+  $ENV{PRONOC_T3}= "1";
   my @mc_map;
   $ENV{PITON_EXTRA_MEMS} =0;
 if ($opt{multimc}>0){
@@ -3367,6 +3384,8 @@ VERILOG COMPILATION RELATED
            with -ariane, this specifies that the HPDCache will be used with the Ariane core.
            If not specified, Ariane will use its default dCache (WT_DCACHE)
 
+    -pronoc
+           this specifies that the ProNoC NoC shall be used instead of PitonNoC.      
 VERILOG RUNTIME RELATED
 
     -multimc=n

@@ -24,3 +24,6 @@
 [submodule "piton/design/chip/tile/lagarto_ox"]
 	path = piton/design/chip/tile/lagarto_ox
 	url = ../../core-tile/lagarto_ox_tile.git
+[submodule "piton/design/chip/ProNoC"]
+	path = piton/design/chip/ProNoC
+	url = ../../../fpga/third-party/bsc-pronoc.git
