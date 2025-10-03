@@ -143,7 +143,6 @@ dynamic_input_route_request_calc tail_calc(.route_req_n(route_req_n_out),
                                            .abs_y(abs_y),
                                            .abs_chip_id(abs_chip_id),
                                            .final_bits(final_bits),
-                                           .length(length),
                                            .header_in(header));
 
 always @ (header_last_f or thanks_all_f or count_zero_f)

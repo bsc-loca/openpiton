@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module dynamic_input_route_request_calc(route_req_n, route_req_e, route_req_s, route_req_w, route_req_p, 
                                         default_ready_n, default_ready_e, default_ready_s, default_ready_w, default_ready_p, 
-                                        my_loc_x_in, my_loc_y_in, my_chip_id_in, abs_x, abs_y, abs_chip_id, final_bits, length, header_in);
+                                        my_loc_x_in, my_loc_y_in, my_chip_id_in, abs_x, abs_y, abs_chip_id, final_bits, header_in);
 
 // begin port declarations
 
@@ -62,12 +62,11 @@ input [`XY_WIDTH-1:0] abs_x;
 input [`XY_WIDTH-1:0] abs_y;
 input [`CHIP_ID_WIDTH-1:0] abs_chip_id;
 
-input [2:0] final_bits;
-input [`PAYLOAD_LEN-1:0] length;
-input header_in;
+input wire [2:0] final_bits;
+input wire header_in;
 
 // end port declarations
-   
+
 //fbit declarations
 `define FINAL_NONE	3'b000
 `define FINAL_WEST	3'b010
@@ -141,4 +140,3 @@ assign default_ready_p = route_req_p;
 //instantiations
 
 endmodule
-   

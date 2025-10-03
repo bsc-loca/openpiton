@@ -1,7 +1,6 @@
 // VPU
 
 +incdir+../lagarto_ox/modules/core_system_vpu/rtl/local_submodules/vpu/src/modules/vector_lane/functional_unit/bsc-fpu/modules/al_fpu/rtl/local_includes
-+incdir+../lagarto_ox/modules/core_system_vpu/rtl/local_submodules/vpu/src/checkers
 +incdir+../lagarto_ox/modules/core_system_vpu/rtl/local_submodules/vpu/src/include
 +incdir+../lagarto_ox/modules/core_system_vpu/rtl/local_submodules/vpu/src/modules/top/dv
 
@@ -126,7 +125,6 @@
 
 // HLIB
 
-+incdir+../lagarto_ox/modules/core_system_vpu/rtl/local_submodules/hlib/modules/escher/core_system/rtl/local_includes
 +incdir+../lagarto_ox/modules/core_system_vpu/rtl/local_submodules/hlib/modules/escher/fetch/rtl/local_includes
 +incdir+../lagarto_ox/modules/core_system_vpu/rtl/local_submodules/hlib/modules/escher/escher_fpnew/rtl/local_includes
 

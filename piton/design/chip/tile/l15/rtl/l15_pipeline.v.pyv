@@ -430,7 +430,7 @@ reg [`L15_MESI_TRANS_STATE_WIDTH-1:0] mshr_state_array [`L15_MSHR_COUNT-1:0];
 `endif
 reg [`L15_PADDR_MASK] mshr_address_array [`L15_MSHR_COUNT-1:0];
 reg [`L15_WAY_MASK] mshr_way_array [`L15_MSHR_COUNT-1:0];
-integer i=0;
+integer i;
 
 always @ *
 begin
@@ -552,8 +552,8 @@ begin
             predecode_dcache_load_s1 = predecode_mshr_read_control_s1[`L15_CONTROL_LOAD];
             predecode_fwd_subcacheline_vector_s1 = noc2decoder_l15_fwd_subcacheline_vector;
 
-            predecode_dcache_noc2_store_im_s1 = mshr_type_array[predecode_mshr_index_s1] == `L15_MSHR_TYPE_ST && mshr_state_array[predecode_mshr_index_s1] == `L15_MESI_TRANSITION_STATE_IM;
-            predecode_dcache_noc2_store_sm_s1 = mshr_type_array[predecode_mshr_index_s1] == `L15_MSHR_TYPE_ST && mshr_state_array[predecode_mshr_index_s1] == `L15_MESI_TRANSITION_STATE_SM;
+            predecode_dcache_noc2_store_im_s1 = (mshr_type_array[predecode_mshr_index_s1] == `L15_MSHR_TYPE_ST) && (mshr_state_array[predecode_mshr_index_s1] == `L15_MESI_TRANSITION_STATE_IM);
+            predecode_dcache_noc2_store_sm_s1 = (mshr_type_array[predecode_mshr_index_s1] == `L15_MSHR_TYPE_ST) && (mshr_state_array[predecode_mshr_index_s1] == `L15_MESI_TRANSITION_STATE_SM);
 
 
             predecode_address_plus0_s1 = {noc2decoder_l15_address[39:6], 2'b00, noc2decoder_l15_address[`L15_UNPARAM_3_0]};
@@ -727,7 +727,8 @@ begin
             predecode_address_s1 = pcxdecoder_l15_address;
             predecode_size_s1 = pcxdecoder_l15_size;
             predecode_threadid_s1[`L15_THREADID_MASK] = pcxdecoder_l15_threadid[`L15_THREADID_MASK];
-            predecode_mshr_index_s1 = {0, pcxdecoder_l15_threadid};
+            // predecode_mshr_index_s1 = {0, pcxdecoder_l15_threadid};
+            predecode_mshr_index_s1 = pcxdecoder_l15_threadid;
             predecode_l1_replacement_way_s1 = pcxdecoder_l15_l1rplway;
             predecode_non_cacheable_s1 = pcxdecoder_l15_nc;
             predecode_blockstore_bit_s1 = pcxdecoder_l15_blockstore;
@@ -902,8 +903,8 @@ begin
     // GENERATE INTERRUPT
     // `define L15_INT_VEC_DIS 40'h98_0000_0800
     // predecode_int_vec_dis_s1 = (pcxdecoder_l15_address == `L15_INT_VEC_DIS); // 40b compare
-    predecode_int_vec_dis_s1 = (pcxdecoder_l15_address[39:32] == constant_int_vec_dis_address[39:32] 
-                              && pcxdecoder_l15_address[11:8] == constant_int_vec_dis_address[11:8]); 
+    predecode_int_vec_dis_s1 = ((pcxdecoder_l15_address[39:32] == constant_int_vec_dis_address[39:32])
+                              && (pcxdecoder_l15_address[11:8] == constant_int_vec_dis_address[11:8])); 
 
 
     // TAG CHECKING
@@ -1017,15 +1018,15 @@ reg decoder_creditman_noc1_unreserve_s1;
 
 always @ *
 begin
-    creditman_noc1_req = val_s1 && !stall_s1 && (decoder_creditman_noc1_needed != 2'd0);
+    creditman_noc1_req = val_s1 && (!stall_s1) && (decoder_creditman_noc1_needed != 2'd0);
 
     // misprediction is necessary because we want to allocate buffer at the beginning but not until
     //  tag access will the pipeline know whether a noc1 transaction is needed or not
-    creditman_noc1_upX = noc1encoder_l15_req_sent || creditman_noc1_mispredicted_s3;
-    creditman_noc1_up1 = noc1encoder_l15_req_sent ^ creditman_noc1_mispredicted_s3;
-    creditman_noc1_up2 = noc1encoder_l15_req_sent && creditman_noc1_mispredicted_s3;
-    creditman_noc1_down1 = creditman_noc1_req && decoder_creditman_noc1_needed == 2'd1;
-    creditman_noc1_down2 = creditman_noc1_req && decoder_creditman_noc1_needed == 2'd2;
+    creditman_noc1_upX = (noc1encoder_l15_req_sent || creditman_noc1_mispredicted_s3);
+    creditman_noc1_up1 = (noc1encoder_l15_req_sent ^ creditman_noc1_mispredicted_s3);
+    creditman_noc1_up2 = (noc1encoder_l15_req_sent && creditman_noc1_mispredicted_s3);
+    creditman_noc1_down1 = creditman_noc1_req && (decoder_creditman_noc1_needed == 2'd1);
+    creditman_noc1_down2 = creditman_noc1_req && (decoder_creditman_noc1_needed == 2'd2);
 
     creditman_noc1_add2 = creditman_noc1_up2 && ~creditman_noc1_req;
     creditman_noc1_add1 = (creditman_noc1_up2 && creditman_noc1_down1) || (creditman_noc1_up1 && ~creditman_noc1_req);
@@ -1039,18 +1040,18 @@ begin
     creditman_noc1_data_down1 = creditman_noc1_req && decoder_creditman_req_8B_s1;
     creditman_noc1_data_down2 = creditman_noc1_req && decoder_creditman_req_16B_s1;
 
-    creditman_noc1_data_add2 = creditman_noc1_data_up2 && !creditman_noc1_data_down1 && !creditman_noc1_data_down2;
-    creditman_noc1_data_add1 = creditman_noc1_data_up1 &&  !creditman_noc1_data_down1 && !creditman_noc1_data_down2 ||
-                            creditman_noc1_data_up2 && creditman_noc1_data_down1;
-    creditman_noc1_data_minus2 = creditman_noc1_data_down2 && !creditman_noc1_data_up1 && !creditman_noc1_data_up2;
-    creditman_noc1_data_minus1 = creditman_noc1_data_down1 &&  !creditman_noc1_data_up1 && !creditman_noc1_data_up2 ||
-                            creditman_noc1_data_down2 && creditman_noc1_data_up1;
+    creditman_noc1_data_add2 = creditman_noc1_data_up2 && (!creditman_noc1_data_down1) && (!creditman_noc1_data_down2);
+    creditman_noc1_data_add1 = (creditman_noc1_data_up1 && (!creditman_noc1_data_down1) && (!creditman_noc1_data_down2)) ||
+                            (creditman_noc1_data_up2 && creditman_noc1_data_down1);
+    creditman_noc1_data_minus2 = creditman_noc1_data_down2 && (!creditman_noc1_data_up1) && (!creditman_noc1_data_up2);
+    creditman_noc1_data_minus1 = (creditman_noc1_data_down1 && (!creditman_noc1_data_up1) && (!creditman_noc1_data_up2)) ||
+                            (creditman_noc1_data_down2 && creditman_noc1_data_up1);
 
 
-    creditman_noc1_reserve_add1 = (creditman_noc1_reserve_s3 && !stall_s3 && val_s3) 
-                                    && !(val_s1 && !stall_s1 && decoder_creditman_noc1_unreserve_s1);
-    creditman_noc1_reserve_minus1 = !(creditman_noc1_reserve_s3 && !stall_s3 && val_s3) 
-                                    && (val_s1 && !stall_s1 && decoder_creditman_noc1_unreserve_s1);
+    creditman_noc1_reserve_add1 = (creditman_noc1_reserve_s3 && (!stall_s3) && val_s3)
+                                    && !(val_s1 && (!stall_s1) && decoder_creditman_noc1_unreserve_s1);
+    creditman_noc1_reserve_minus1 = !(creditman_noc1_reserve_s3 && (!stall_s3) && val_s3)
+                                    && (val_s1 && (!stall_s1) && decoder_creditman_noc1_unreserve_s1);
 end
 
 ////////////////////////////////
@@ -1086,27 +1087,27 @@ end
 always @ *
 begin
     fetch_is_pcx_atomic_instruction_s1 =
-        (predecode_reqtype_s1 == `L15_REQTYPE_CAS ||
-         predecode_reqtype_s1 == `L15_REQTYPE_SWP_LOADSTUB ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_LR ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_SC ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_ADD ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_AND ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_OR ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_XOR ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAX ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAXU ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_MIN ||
-         predecode_reqtype_s1 == `L15_REQTYPE_AMO_MINU);
+        ((predecode_reqtype_s1 == `L15_REQTYPE_CAS) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_SWP_LOADSTUB) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_LR) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_SC) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_ADD) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_AND) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_OR) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_XOR) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAX) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAXU) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MIN) ||
+        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MINU));
     // fetch_is_pcx_blockstore_instruction_s1 = 0;
     fetch_is_pcx_storenc_instruction_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_WRITETHROUGH) && !predecode_int_vec_dis_s1;
     fetch_is_pcx_loadnc_instruction_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_LOAD_NC);
-    fetch_is_noc2_data_invalidation_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_INVALIDATION ||
-                                    predecode_reqtype_s1 == `L15_REQTYPE_DOWNGRADE);
+    fetch_is_noc2_data_invalidation_s1 = ((predecode_reqtype_s1 == `L15_REQTYPE_INVALIDATION) ||
+                                    (predecode_reqtype_s1 == `L15_REQTYPE_DOWNGRADE));
     fetch_is_noc2_instruction_invalidation_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_ICACHE_INVALIDATION);
-    fetch_is_noc2_ackdt_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_LD || predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_ST_IM || predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_LR);
+    fetch_is_noc2_ackdt_s1 = ((predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_LD) || (predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_ST_IM) || (predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_LR));
     fetch_state_next_s1 = `L15_FETCH_STATE_NORMAL;
-    fetch_is_pcx_flush_s1 = predecode_reqtype_s1 == `L15_REQTYPE_LINE_FLUSH;
+    fetch_is_pcx_flush_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_LINE_FLUSH);
 
     case (fetch_state_s1)
         `L15_FETCH_STATE_NORMAL:
@@ -2101,11 +2102,11 @@ begin
     stall_tmp_operand2 = {1'b0, creditman_noc1_reserve[`L15_UNPARAM_3_0]};
     stall_tmp_result = stall_tmp_operand1 - stall_tmp_operand2;
 
-    stall_noc1_command_buffer_1_unavail_s1 = (stall_tmp_result[`L15_UNPARAM_3_0] == 4'b0) || stall_tmp_result[4] == 1'b0;
+    stall_noc1_command_buffer_1_unavail_s1 = (stall_tmp_result[`L15_UNPARAM_3_0] == 4'b0) || (stall_tmp_result[4] == 1'b0);
     stall_noc1_command_buffer_2_unavail_s1 = stall_noc1_command_buffer_1_unavail_s1 || (stall_tmp_result[`L15_UNPARAM_3_0] == 4'b1);
 
-    stall_noc1_command_buffer_unavail_s1 = (decoder_creditman_noc1_needed == 2'd1 && stall_noc1_command_buffer_1_unavail_s1)
-                                        || (decoder_creditman_noc1_needed == 2'd2 && stall_noc1_command_buffer_2_unavail_s1);
+    stall_noc1_command_buffer_unavail_s1 = ((decoder_creditman_noc1_needed == 2'd1) && stall_noc1_command_buffer_1_unavail_s1)
+                                        || ((decoder_creditman_noc1_needed == 2'd2) && stall_noc1_command_buffer_2_unavail_s1);
     // only stall if it's an PCX request (noc2 does not stall)
     stall_pcx_noc1_buffer_s1 = (stall_noc1_command_buffer_unavail_s1 || stall_noc1_data_buffer_unavail_s1)
                                             && (predecode_source_s1 == `L15_PREDECODE_SOURCE_PCX)
@@ -2275,7 +2276,7 @@ reg [L15_L1D_LINE_SIZE-1:0] write_mask_s1;
     reg [L15_L1D_LINE_SIZE-1:0] write_mask_32B_s1;
     reg [L15_L1D_LINE_SIZE-1:0] write_mask_64B_s1;
 `else
-    reg [5:0] offset_mask_s1 = {{6-L15_LINE_SIZE_WIDTH{1'b0}},{L15_LINE_SIZE_WIDTH{1'b1}}};
+    reg [5:0] offset_mask_s1;
 `endif
 // reg odd_extended_word_s1;
 always @ *
@@ -2310,7 +2311,7 @@ begin
     endcase
 
 `ifdef WRITE_BYTE_MASK
-
+offset_mask_s1 = {{6-L15_LINE_SIZE_WIDTH{1'b0}},{L15_LINE_SIZE_WIDTH{1'b1}}};
 if(`L15_BYTE_MASK_WIDHT == 8) begin
     write_mask_s1 = (offset_mask_s1[3])         ? (predecode_address_s1[3])     ? {8'b0,pcxdecoder_l15_be} : {pcxdecoder_l15_be,8'b0} :
                                                     write_mask_s1;
@@ -2710,7 +2711,8 @@ begin
 `ifdef PARALLEL_SRAMS
     stall_load_s2 = 1'b0 ; 
 `else
-    stall_load_s2 = val_s2 && (load_64B_s2 || noc3_wb_s2 || l1_inv_s2 || mshr_write_s2 || l1d_load_s2) && cache_subline_s2 != ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1); 
+    stall_load_s2 =  ((val_s2 && ((((load_64B_s2 || noc3_wb_s2) || l1_inv_s2) || mshr_write_s2) || l1d_load_s2)) &&
+    (cache_subline_s2 != ((L15_L1D_LINE_SIZE /`L15_DATA_ARRAY_SIZE) - 1)));
 `endif 
     stall_s2 = stall_real_s2 || stall_load_s2;
 end
@@ -2758,18 +2760,18 @@ wire [L15_CACHE_TAG_WIDTH-1:0] flush_way_tag_s2 = dtag_l15_dout_s2 >> (flush_way
 wire [`L15_PADDR_WIDTH-1:0] flush_way_address_s2 = {flush_way_tag_s2, address_s2[L15_IDX_HI:L15_IDX_LOW],{L15_SUBLINE_INDEX_WIDTH{1'b0}}, 4'b0};
 
 // expanding some useful signals
-wire tagcheck_state_me_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M || tagcheck_state_s2 == `L15_MESI_STATE_E;
-wire tagcheck_state_mes_s2 = tagcheck_state_me_s2 || tagcheck_state_s2 == `L15_MESI_STATE_S;
+wire tagcheck_state_me_s2 = (tagcheck_state_s2 == `L15_MESI_STATE_M) || (tagcheck_state_s2 == `L15_MESI_STATE_E);
+wire tagcheck_state_mes_s2 = tagcheck_state_me_s2 || (tagcheck_state_s2 == `L15_MESI_STATE_S);
 wire tagcheck_state_s_s2 = tagcheck_state_s2 == `L15_MESI_STATE_S;
 wire tagcheck_state_m_s2 = tagcheck_state_s2 == `L15_MESI_STATE_M;
 wire tagcheck_state_e_s2 = tagcheck_state_s2 == `L15_MESI_STATE_E;
 
 wire lru_state_m_s2 = lru_state_s2 == `L15_MESI_STATE_M;
-wire lru_state_mes_s2 = lru_state_m_s2 || lru_state_s2 == `L15_MESI_STATE_E || lru_state_s2 == `L15_MESI_STATE_S;
+wire lru_state_mes_s2 = lru_state_m_s2 || (lru_state_s2 == `L15_MESI_STATE_E) || (lru_state_s2 == `L15_MESI_STATE_S);
 
 wire flush_state_m_s2 = flush_state_s2 == `L15_MESI_STATE_M;
-wire flush_state_me_s2 = flush_state_m_s2 || flush_state_s2 == `L15_MESI_STATE_E;
-wire flush_state_mes_s2 = flush_state_me_s2 || flush_state_s2 == `L15_MESI_STATE_S;
+wire flush_state_me_s2 = flush_state_m_s2 || (flush_state_s2 == `L15_MESI_STATE_E);
+wire flush_state_mes_s2 = flush_state_me_s2 || (flush_state_s2 == `L15_MESI_STATE_S);
 
 wire [`L15_CACHE_TAG_RAW_WIDTH-1:0] dtag_tag_way_s2[`L15_WAY_COUNT-1:0];
 wire [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way_s2[`L15_WAY_COUNT-1:0]; 
@@ -2788,9 +2790,9 @@ wire [`L15_MESI_STATE_WIDTH-1:0] mesi_state_way_s2[`L15_WAY_COUNT-1:0];
 always @ *
 begin
     // lru_way or states should remains the same when we scan the sublines (in 4 cycles)
-    noc3_wb_s2 = (noc1_operation_s2 == `L15_NOC1_GEN_WRITEBACK_GUARD_IF_LRU_M && lru_state_m_s2) ||
-                 (noc1_operation_s2 == `L15_NOC1_GEN_WRITEBACK_GUARD_IF_FLUSH_M && flush_state_m_s2) ||
-                 (noc1_operation_s2 == `L15_NOC1_GEN_WRITEBACK_GUARD_IF_TAGCHECK_M && tagcheck_state_m_s2);
+    noc3_wb_s2 = ((noc1_operation_s2 == `L15_NOC1_GEN_WRITEBACK_GUARD_IF_LRU_M) && lru_state_m_s2) ||
+                 ((noc1_operation_s2 == `L15_NOC1_GEN_WRITEBACK_GUARD_IF_FLUSH_M) && flush_state_m_s2) ||
+                 ((noc1_operation_s2 == `L15_NOC1_GEN_WRITEBACK_GUARD_IF_TAGCHECK_M) && tagcheck_state_m_s2);
 end
 
 always @ *
@@ -2803,28 +2805,28 @@ end
 always @ *
 begin
     l1d_load_s2 =  
-                   cpx_operation_s2 == `L15_CPX_GEN_LD_RESPONSE_FROM_DCACHE ||
-                   cpx_operation_s2 == `L15_CPX_GEN_LD_RESPONSE_FROM_CSM || 
-                   (cpx_operation_s2 == `L15_CPX_GEN_LD_RESPONSE_IF_TAGCHECK_MES_FROM_DCACHE && tagcheck_state_mes_s2); 
+                   (cpx_operation_s2 == `L15_CPX_GEN_LD_RESPONSE_FROM_DCACHE) ||
+                   (cpx_operation_s2 == `L15_CPX_GEN_LD_RESPONSE_FROM_CSM) ||
+                   ((cpx_operation_s2 == `L15_CPX_GEN_LD_RESPONSE_IF_TAGCHECK_MES_FROM_DCACHE) && tagcheck_state_mes_s2);
 end
 
 //Active when the L1.5 sends the data requested from the L1D and the data is in a MSHR
 always @ *
 begin
     mshr_write_s2 =  
-                   (dcache_operation_s2 == `L15_DCACHE_WRITE_TAGCHECK_WAY_IF_ME_FROM_MSHR && tagcheck_state_me_s2) ||
-                   (dcache_operation_s2 == `L15_DCACHE_WRITE_TAGCHECK_WAY_IF_LRSC_SET_FROM_MSHR && tagcheck_state_m_s2) || 
-                   dcache_operation_s2 == `L15_DCACHE_WRITE_MSHR_WAY_FROM_MSHR || 
-                   dcache_operation_s2 == `L15_DCACHE_WRITE_LRU_WAY_FROM_NOC2_AND_MSHR ; 
+                   ((dcache_operation_s2 == `L15_DCACHE_WRITE_TAGCHECK_WAY_IF_ME_FROM_MSHR) && tagcheck_state_me_s2) ||
+                   ((dcache_operation_s2 == `L15_DCACHE_WRITE_TAGCHECK_WAY_IF_LRSC_SET_FROM_MSHR) && tagcheck_state_m_s2) ||
+                   (dcache_operation_s2 == `L15_DCACHE_WRITE_MSHR_WAY_FROM_MSHR) ||
+                   (dcache_operation_s2 == `L15_DCACHE_WRITE_LRU_WAY_FROM_NOC2_AND_MSHR) ;
 end
 
 always @ *
 begin
     // TODO: should we consider the pure invalidation? CPX_GEN_XX_INVALIDATIOM 
-    l1_inv_s2          = ((cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_TAGCHECK_MES_AND_WAYMAP_VALID && tagcheck_state_mes_s2) ||
-                         (cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_LRU_MES_AND_WAYMAP_VALID && lru_state_mes_s2) ||
-                         (cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_FLUSH_MES_AND_WAYMAP_VALID && flush_state_mes_s2)) && !predecode_multicyc_invordowngrade_s2;
-    l1_inv_multicyc_s2 = (cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_TAGCHECK_MES_AND_WAYMAP_VALID && tagcheck_state_mes_s2) && predecode_multicyc_invordowngrade_s2;
+    l1_inv_s2          = (((cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_TAGCHECK_MES_AND_WAYMAP_VALID) && tagcheck_state_mes_s2) ||
+                         ((cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_LRU_MES_AND_WAYMAP_VALID) && lru_state_mes_s2) ||
+                         ((cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_FLUSH_MES_AND_WAYMAP_VALID) && flush_state_mes_s2)) && !predecode_multicyc_invordowngrade_s2;
+    l1_inv_multicyc_s2 = ((cpx_operation_s2 == `L15_CPX_GEN_INVALIDATION_IF_TAGCHECK_MES_AND_WAYMAP_VALID) && tagcheck_state_mes_s2) && predecode_multicyc_invordowngrade_s2;
 end
 
 
@@ -2847,8 +2849,8 @@ begin
         for i in range(CONFIG_L15_ASSOCIATIVITY):
             if (i > 0):
                 print("else")
-            print('''if (address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way_s2[{0}][L15_CACHE_TAG_WIDTH-1:0]
-                            && mesi_state_way_s2[{0}] != `L15_MESI_STATE_I) begin
+            print('''if ((address_cache_tag_s2[L15_CACHE_TAG_WIDTH-1:0] == dtag_tag_way_s2[{0}][L15_CACHE_TAG_WIDTH-1:0])
+                            && (mesi_state_way_s2[{0}] != `L15_MESI_STATE_I)) begin
                         tagcheck_way_s2 = {0};
                         `ifdef EXTERNAL_HPM_EVENT_NUM 
                         tag_hit_s2=1'b1;
@@ -2868,7 +2870,7 @@ wire [`L15_WAY_WIDTH-1:0] lru_round_robin_turn_s2 = lruarray_l15_dout_s2[`L15_LR
 always @ *
 begin
     lru_way_s2 = 1'bx;
-    if (&lru_used_bits_s2 == 1'b1)
+    if ((&lru_used_bits_s2) == 1'b1)
     begin
         // if all were used
         lru_way_s2 = lru_round_robin_turn_s2;
@@ -3072,7 +3074,7 @@ buffer_noc2decoder_l15_data_next = buffer_noc2decoder_l15_data;
 
 `ifdef PARALLEL_SRAMS
 
-    for (i=0;i<`L15_DATA_ARRAY_SIZE*4; i= i+1) begin
+    for (i=0;i<(`L15_DATA_ARRAY_SIZE*4); i= i+1) begin
         dcache_mshr_write_mask_s2[i*8 +: 8] = {8{mshr_pipe_write_buffer_byte_mask_s2[i]}};
     end
     
@@ -3100,7 +3102,7 @@ buffer_noc2decoder_l15_data_next = buffer_noc2decoder_l15_data;
         end
         `L15_DCACHE_SOURCE_PCX_DIAG: // 4
         begin
-            dcache_write_mask_s2[`L15_UNPARAM_127_0] = dcache_diag_offset_s2 == 1'b0 ? {{64{1'b1}},64'b0} : {64'b0,{64{1'b1}}};
+            dcache_write_mask_s2[`L15_UNPARAM_127_0] = (dcache_diag_offset_s2 == 1'b0) ? {{64{1'b1}},64'b0} : {64'b0,{64{1'b1}}};
             dcache_write_data_s2[`L15_UNPARAM_127_0] = {pcxdecoder_l15_data[`L15_UNPARAM_63_0],pcxdecoder_l15_data[`L15_UNPARAM_63_0]};
         end
     endcase
@@ -3147,7 +3149,7 @@ buffer_noc2decoder_l15_data_next = buffer_noc2decoder_l15_data;
         end
         `L15_DCACHE_SOURCE_PCX_DIAG:
         begin
-            dcache_write_mask_s2[`L15_UNPARAM_127_0] = dcache_diag_offset_s2 == 1'b0 ? {{64{1'b1}},64'b0} : {64'b0,{64{1'b1}}};
+            dcache_write_mask_s2[`L15_UNPARAM_127_0] = (dcache_diag_offset_s2 == 1'b0) ? {{64{1'b1}},64'b0} : {64'b0,{64{1'b1}}};
             dcache_write_data_s2[`L15_UNPARAM_127_0] = {pcxdecoder_l15_data[`L15_UNPARAM_63_0],pcxdecoder_l15_data[`L15_UNPARAM_63_0]};
         end
     endcase
@@ -3747,20 +3749,20 @@ begin
     // expanding some signals
     tagcheck_way_mask_s3 = `L15_WAY_COUNT'b1 << tagcheck_way_s3;
 
-    tagcheck_state_me_s3 = tagcheck_state_s3 == `L15_MESI_STATE_M || tagcheck_state_s3 == `L15_MESI_STATE_E;
-    tagcheck_state_mes_s3 = tagcheck_state_s3 == `L15_MESI_STATE_M || tagcheck_state_s3 == `L15_MESI_STATE_E
-                                                        || tagcheck_state_s3 == `L15_MESI_STATE_S;
+    tagcheck_state_me_s3 = (tagcheck_state_s3 == `L15_MESI_STATE_M) || (tagcheck_state_s3 == `L15_MESI_STATE_E);
+    tagcheck_state_mes_s3 = (tagcheck_state_s3 == `L15_MESI_STATE_M) || (tagcheck_state_s3 == `L15_MESI_STATE_E)
+                                                        || (tagcheck_state_s3 == `L15_MESI_STATE_S);
     tagcheck_state_s_s3 = tagcheck_state_s3 == `L15_MESI_STATE_S;
     tagcheck_state_m_s3 = tagcheck_state_s3 == `L15_MESI_STATE_M;
     tagcheck_state_e_s3 = tagcheck_state_s3 == `L15_MESI_STATE_E;
 
     lru_state_m_s3 = lru_state_s3 == `L15_MESI_STATE_M;
-    lru_state_mes_s3 = lru_state_s3 == `L15_MESI_STATE_M || lru_state_s3 == `L15_MESI_STATE_E
-                                                        || lru_state_s3 == `L15_MESI_STATE_S;
+    lru_state_mes_s3 = (lru_state_s3 == `L15_MESI_STATE_M) || (lru_state_s3 == `L15_MESI_STATE_E)
+                                                        || (lru_state_s3 == `L15_MESI_STATE_S);
 
     flush_state_m_s3 = flush_state_s3 == `L15_MESI_STATE_M;
-    flush_state_mes_s3 = flush_state_s3 == `L15_MESI_STATE_M || flush_state_s3 == `L15_MESI_STATE_E
-                                                        || flush_state_s3 == `L15_MESI_STATE_S;
+    flush_state_mes_s3 = (flush_state_s3 == `L15_MESI_STATE_M) || (flush_state_s3 == `L15_MESI_STATE_E)
+                                                        || (flush_state_s3 == `L15_MESI_STATE_S);
 
     cache_index_s3 = address_s3[L15_IDX_HI:L15_IDX_LOW];
     cache_index_l1d_s3 = address_s3[L1D_IDX_HI:L1D_IDX_LOW] ;
@@ -3804,7 +3806,7 @@ end
 always @* begin
     // stale logics
     if (!cpxencoder_req_staled_s3)
-        cpxencoder_req_staled_s3_next = (!stall_for_cpx_s3 && stall_for_noc3_s3) ? 1'b1 : 1'b0;
+        cpxencoder_req_staled_s3_next = ((!stall_for_cpx_s3) && stall_for_noc3_s3) ? 1'b1 : 1'b0;
     else
         cpxencoder_req_staled_s3_next = stall_s3 ? 1'b1 : 1'b0;
 end
@@ -3818,7 +3820,7 @@ end
 
 always @* begin
     if (!noc3encoder_req_staled_s3)
-        noc3encoder_req_staled_s3_next = (!stall_for_noc3_s3 && stall_for_cpx_s3) ? 1'b1 : 1'b0;
+        noc3encoder_req_staled_s3_next = ((!stall_for_noc3_s3) && stall_for_cpx_s3) ? 1'b1 : 1'b0;
     else
         noc3encoder_req_staled_s3_next = stall_s3 ? 1'b1 : 1'b0;
 end
@@ -4015,7 +4017,7 @@ begin
     l15_lruarray_write_val_s3 = lruarray_write_val_s3 && val_s3 ; 
 `else
     l15_lruarray_write_val_s3 = lruarray_write_val_s3 && val_s3 && (~predecode_not_last_inv_s3) &&
-        (((noc3_wb_s3 || l1_inv_s3 || load_64B_s3) && cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)) || !(noc3_wb_s3 || l1_inv_s3 || load_64B_s3));
+        (((noc3_wb_s3 || l1_inv_s3 || load_64B_s3) && (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1))) || !(noc3_wb_s3 || l1_inv_s3 || load_64B_s3));
 `endif
 
     l15_lruarray_write_data_s3 = lruarray_write_data_s3;
@@ -4372,10 +4374,10 @@ begin
                `ifdef PARALLEL_SRAMS
                     cpx_req_val_s3 = tagcheck_state_mes_s3 && wmt_compare_match_s3;
                `else 
-                multicyc_inval_subline_val = (L15_L1D_LINE_SIZE==64) ? address_s3[`L15_SUBLINE_MASK]==2'b11 : 
-                                            (L15_L1D_LINE_SIZE==32) ? address_s3[`L15_SUBLINE_MASK]==2'b01 || address_s3[`L15_SUBLINE_MASK]==2'b11 : 
+                multicyc_inval_subline_val = (L15_L1D_LINE_SIZE==64) ? (address_s3[`L15_SUBLINE_MASK]==2'b11) :
+                                            (L15_L1D_LINE_SIZE==32) ? (address_s3[`L15_SUBLINE_MASK]==2'b01) || (address_s3[`L15_SUBLINE_MASK]==2'b11) :
                                                                     1'b1; // 16 B 
-                cpx_req_val_s3 = tagcheck_state_mes_s3 && (!l1_inv_multicyc_s3 || multicyc_inval_subline_val) && wmt_compare_match_s3;
+                cpx_req_val_s3 = tagcheck_state_mes_s3 && ((!l1_inv_multicyc_s3) || multicyc_inval_subline_val) && wmt_compare_match_s3;
                 `endif
             `else
                 cpx_req_val_s3 = tagcheck_state_mes_s3 && wmt_compare_match_s3;
@@ -4532,14 +4534,14 @@ begin
         l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 ;
     `else
     l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 && 
-        (!(l1d_load_s3 || mshr_write_s3 || l1_inv_s3) || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
+        (!(l1d_load_s3 || mshr_write_s3 || l1_inv_s3) || (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)));
     `endif
 `else
     `ifdef PARALLEL_SRAMS
         l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 ;
     `else
     l15_cpxencoder_val = val_s3 && cpx_req_val_s3 && !cpxencoder_req_staled_s3 && 
-        (!(l1d_load_s3 || mshr_write_s3) || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
+        (!(l1d_load_s3 || mshr_write_s3) || (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)));
     `endif
 `endif
     l15_cpxencoder_l2miss = 0;
@@ -4676,7 +4678,7 @@ begin
             noc1_type_s3 = `L15_NOC1_REQTYPE_WRITEBACK_GUARD;
             l15_noc1buffer_req_address = lru_way_address_s3;
             // mispredicted signal only lasts for one cycle (the first one in a 4-cycle burst) in order to make the noc1 credit correct
-            creditman_noc1_mispredicted_s3 = ((noc3_wb_s3 || load_64B_s3 || l1_inv_s3) && cache_subline_s3 != 2'b0) ? 1'b0 : 
+            creditman_noc1_mispredicted_s3 = ((noc3_wb_s3 || load_64B_s3 || l1_inv_s3) && (cache_subline_s3 != 2'b0)) ? 1'b0 :
                                              (noc1_req_val_s3 ? 1'b0 : val_s3);
             noc1_homeid_source_s3 = `L15_HOMEID_SRC_HMT;
         end
@@ -4685,7 +4687,7 @@ begin
             noc1_req_val_s3 = val_s3 && (flush_state_m_s3 || noc3_wb_s3);
             noc1_type_s3 = `L15_NOC1_REQTYPE_WRITEBACK_GUARD;
             l15_noc1buffer_req_address = flush_way_address_s3;
-            creditman_noc1_mispredicted_s3 = ((noc3_wb_s3 || load_64B_s3 || l1_inv_s3) && cache_subline_s3 != 2'b0) ? 1'b0 :
+            creditman_noc1_mispredicted_s3 = ((noc3_wb_s3 || load_64B_s3 || l1_inv_s3) && (cache_subline_s3 != 2'b0)) ? 1'b0 :
                                              noc1_req_val_s3 ? 1'b0 : val_s3;
             noc1_homeid_source_s3 = `L15_HOMEID_SRC_HMT;
         end
@@ -4698,7 +4700,7 @@ begin
 `endif
             noc1_type_s3 = `L15_NOC1_REQTYPE_WRITEBACK_GUARD;
             l15_noc1buffer_req_address = address_s3;
-            creditman_noc1_mispredicted_s3 = ((noc3_wb_s3 || load_64B_s3 || l1_inv_s3) && cache_subline_s3 != 2'b0) ? 1'b0 :
+            creditman_noc1_mispredicted_s3 = ((noc3_wb_s3 || load_64B_s3 || l1_inv_s3) && (cache_subline_s3 != 2'b0)) ? 1'b0 :
                                              noc1_req_val_s3 ? 1'b0 : val_s3;
             noc1_homeid_source_s3 = `L15_HOMEID_SRC_HMT;
         end
@@ -4716,7 +4718,7 @@ begin
             noc1_type_s3 = `L15_NOC1_REQTYPE_LD_REQUEST;
             l15_noc1buffer_req_address = address_s3;
             noc1_homeid_source_s3 = `L15_HOMEID_SRC_CSM_MODULE;
-            creditman_noc1_mispredicted_s3 = ( l1d_load_s3 && cache_subline_s3 != 2'b0) ? 1'b0 :
+            creditman_noc1_mispredicted_s3 = ( l1d_load_s3 && (cache_subline_s3 != 2'b0)) ? 1'b0 :
                                               noc1_req_val_s3 ? 1'b0 : val_s3;
             creditman_noc1_reserve_s3 = noc1_req_val_s3 ? 1'b1 : 1'b0;
         end
@@ -4743,9 +4745,9 @@ begin
             noc1_data_source_s3 = `L15_NOC1_SOURCE_PCX_64B;
             l15_noc1buffer_req_address = address_s3;
             noc1_homeid_source_s3 = `L15_HOMEID_SRC_CSM_MODULE;
-            creditman_noc1_mispredicted_s3 = ( mshr_write_s3 && cache_subline_s3 != 2'b0) ? 1'b0 :
+            creditman_noc1_mispredicted_s3 = ( mshr_write_s3 && (cache_subline_s3 != 2'b0)) ? 1'b0 :
                                               noc1_req_val_s3 ? 1'b0 : val_s3;
-            creditman_noc1_reserve_s3 = ( mshr_write_s3 && cache_subline_s3 != 2'b0) ? 1'b0 : 
+            creditman_noc1_reserve_s3 = ( mshr_write_s3 && (cache_subline_s3 != 2'b0)) ? 1'b0 :
                                           noc1_req_val_s3 ? 1'b1 : 1'b0;
         end
         `L15_NOC1_GEN_DATA_LR_REQUEST:
@@ -4849,16 +4851,16 @@ begin
     l15_noc1buffer_req_val = noc1_req_val_s3 && !noc1encoder_req_staled_s3 ;
 `else    
     l15_noc1buffer_req_val = noc1_req_val_s3 && !noc1encoder_req_staled_s3 &&
-                                ((!noc3_wb_s3 && !mshr_write_s3) || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
+                                ((!noc3_wb_s3 && !mshr_write_s3) || (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)));
 `endif
     l15_noc1buffer_req_type = noc1_type_s3;
     l15_noc1buffer_req_mshr_index = mshr_index_s3;
     l15_noc1buffer_req_mshr_type = mshr_type_s3;
     l15_noc1buffer_req_non_cacheable = non_cacheable_s3;
     l15_noc1buffer_req_size = (
-        noc1_type_s3 == `L15_NOC1_REQTYPE_ST_UPGRADE_REQUEST ||
-        noc1_type_s3 == `L15_NOC1_REQTYPE_ST_FILL_REQUEST    ||
-        noc1_type_s3 == `L15_NOC1_REQTYPE_LR_REQUEST) ?
+        (noc1_type_s3 == `L15_NOC1_REQTYPE_ST_UPGRADE_REQUEST) ||
+        (noc1_type_s3 == `L15_NOC1_REQTYPE_ST_FILL_REQUEST)    ||
+        (noc1_type_s3 == `L15_NOC1_REQTYPE_LR_REQUEST)) ?
             (L15_L1D_LINE_SIZE==64) ? `MSG_DATA_SIZE_64B :
             (L15_L1D_LINE_SIZE==32) ? `MSG_DATA_SIZE_32B : `MSG_DATA_SIZE_16B : size_s3;
     l15_noc1buffer_req_prefetch = prefetch_s3;
@@ -4897,7 +4899,7 @@ begin
     case (noc1_homeid_source_s3)
         `L15_HOMEID_SRC_CSM_MODULE:
         begin
-            l15_noc1buffer_req_homeid = csm_l15_res_data_s3;
+            l15_noc1buffer_req_homeid = csm_l15_res_data_s3[`PACKET_HOME_ID_WIDTH-1:0];
             l15_noc1buffer_req_homeid_val = csm_l15_res_val_s3;
         end
 `ifndef NO_RTL_CSM
@@ -4997,18 +4999,18 @@ begin
     l15_noc3encoder_req_val = noc3_req_val_s3 && !noc3encoder_req_staled_s3;
 `else 
     l15_noc3encoder_req_val = noc3_req_val_s3 && !noc3encoder_req_staled_s3 && 
-                             ( ~noc3_wb_s3 || cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1));
+                             ( ~noc3_wb_s3 || (cache_subline_s3 == ((L15_L1D_LINE_SIZE/`L15_DATA_ARRAY_SIZE)-1)));
 `endif
     l15_noc3encoder_req_type = noc3_type_s3;
 
-`ifdef PARALLEL_SRAMS 
+    `ifdef PARALLEL_SRAMS
     l15_noc3encoder_req_sequenceid = //noc3_address_s3[`L15_SUBLINE_MASK];
-        predecode_fwd_subcacheline_vector_s3[3]             ? 'h3 :
-        predecode_fwd_subcacheline_vector_s3[3:2] == 2'b01  ? 'h2 :
-        predecode_fwd_subcacheline_vector_s3[3:1] == 3'b001 ? 'h1 : 'h0 ;
-`else 
+        (predecode_fwd_subcacheline_vector_s3[3])             ? 'h3 :
+        (predecode_fwd_subcacheline_vector_s3[3:2] == 2'b01)  ? 'h2 :
+        (predecode_fwd_subcacheline_vector_s3[3:1] == 3'b001) ? 'h1 : 'h0 ;
+    `else
     l15_noc3encoder_req_sequenceid = address_s3[`L15_SUBLINE_MASK];
-`endif
+    `endif
 
     l15_noc3encoder_req_mshr_type = mshr_type_s3;
 
@@ -5030,7 +5032,7 @@ begin
                 // overrides homeid source to the static address gen (still) in CSM module
                 //  since the homeid cache/table is removed
                 //  csm_l15_res_data_s3 signal is shared with the write-back guard
-                l15_noc3encoder_req_homeid = csm_l15_res_data_s3;
+                l15_noc3encoder_req_homeid = csm_l15_res_data_s3[`PACKET_HOME_ID_WIDTH-1:0];
             `else
                 // otherwise use the homeid table
                 l15_noc3encoder_req_homeid = expanded_hmt_homeid_s3;

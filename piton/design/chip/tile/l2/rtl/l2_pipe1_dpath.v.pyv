@@ -694,7 +694,7 @@ for i in range(L2_WAYS):
     print("always @ *")
     print("begin")
     print('''    if ((addr_S2_f[`L2_TAG] == tag_data_way_S2[%d]) &&
-(state_way_S2[%d][`L2_STATE_VD] == `L2_VD_CLEAN || state_way_S2[%d][`L2_STATE_VD] == `L2_VD_DIRTY ))''' % (i, i, i))
+((state_way_S2[%d][`L2_STATE_VD] == `L2_VD_CLEAN) || (state_way_S2[%d][`L2_STATE_VD] == `L2_VD_DIRTY) ))''' % (i, i, i))
     print("    begin")
     print("        tag_hit_way_S2[%d] = 1'b1;" % (i))
     print("    end")
@@ -723,7 +723,7 @@ l2_priority_encoder_%d priority_encoder_tag_cmp_%dbits( ''' % (L2_WAYS_WIDTH, L2
 
 always @ *
 begin
-    if (special_addr_type_S2 || msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ)
+    if (special_addr_type_S2 || (msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ))
     begin
         l2_tag_hit_S2 = 1'b0;
     end
@@ -810,7 +810,7 @@ begin
     end
     else
 */
-    if (special_addr_type_S2 || msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ)
+    if (special_addr_type_S2 || (msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ))
     begin
         l2_way_sel_S2 = addr_S2[`L2_ADDR_WAY];
     end
@@ -827,13 +827,13 @@ end
 always @ *
 begin
     if (special_addr_type_S2
-     || msg_type_S2 == `MSG_TYPE_WBGUARD_REQ
-     || msg_type_S2 == `MSG_TYPE_NC_STORE_REQ)
+     || (msg_type_S2 == `MSG_TYPE_WBGUARD_REQ)
+     || (msg_type_S2 == `MSG_TYPE_NC_STORE_REQ))
     begin
         l2_evict_S2 = 1'b0;
     end
-    else if (!l2_tag_hit_S2 && (state_way_S2[l2_way_sel_S2][`L2_STATE_VD] == `L2_VD_CLEAN ||
-        state_way_S2[l2_way_sel_S2][`L2_STATE_VD] == `L2_VD_DIRTY))
+    else if (!l2_tag_hit_S2 && ((state_way_S2[l2_way_sel_S2][`L2_STATE_VD] == `L2_VD_CLEAN) ||
+        (state_way_S2[l2_way_sel_S2][`L2_STATE_VD] == `L2_VD_DIRTY)))
     begin
         l2_evict_S2 = 1'b1;
     end
@@ -846,13 +846,13 @@ end
 always @ *
 begin
     if (special_addr_type_S2
-     || msg_type_S2 == `MSG_TYPE_WBGUARD_REQ)
+     || (msg_type_S2 == `MSG_TYPE_WBGUARD_REQ))
     begin
         l2_wb_S2 = 1'b0;
     end
     else if (( l2_evict_S2 || (l2_tag_hit_S2 && 
-    (msg_type_S2 == `MSG_TYPE_NC_LOAD_REQ || msg_type_S2 == `MSG_TYPE_NC_STORE_REQ || 
-     msg_type_S2 == `MSG_TYPE_L2_DIS_FLUSH_REQ || msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ)))
+    ((msg_type_S2 == `MSG_TYPE_NC_LOAD_REQ) || (msg_type_S2 == `MSG_TYPE_NC_STORE_REQ) || 
+     (msg_type_S2 == `MSG_TYPE_L2_DIS_FLUSH_REQ) || (msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ))))
     && (state_way_S2[l2_way_sel_S2][`L2_STATE_MESI] == `L2_MESI_I)
     && (state_way_S2[l2_way_sel_S2][`L2_STATE_VD] == `L2_VD_DIRTY))
     begin
@@ -868,7 +868,7 @@ end
 // Three more conditions: Special_addr, NC_ld, Atomic_op
 always @ *
 begin
-    if (((((data_size_S2 == `MSG_DATA_SIZE_64B) || (data_size_S2 == `MSG_DATA_SIZE_32B)) && ((l2_tag_hit_S2 && (!l2_ifill_32B_S2)) && (((msg_type_S2 == `MSG_TYPE_LOAD_REQ) && ((((l2_way_state_mesi_S2 == `L2_MESI_I) || (((l2_way_state_mesi_S2 == `L2_MESI_E) && req_from_owner_S2) && (cache_type_S2 == l2_way_state_cache_type_S2))) || ((l2_way_state_mesi_S2 == `L2_MESI_S) && (cache_type_S2 == l2_way_state_cache_type_S2))) ||((l2_way_state_mesi_S2 == `L2_MESI_B) && (cache_type_S2 == l2_way_state_cache_type_S2)))) || (((msg_type_S2 == `MSG_TYPE_STORE_REQ || msg_type_S2 == `MSG_TYPE_LR_REQ)) && ((l2_way_state_mesi_S2 == `L2_MESI_I) || (((l2_way_state_mesi_S2 == `L2_MESI_E) && req_from_owner_S2) && (cache_type_S2 == l2_way_state_cache_type_S2))))))) || (((msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ) || (msg_type_S2 == `MSG_TYPE_L2_DIS_FLUSH_REQ)) && (!(l2_tag_hit_S2 && (l2_way_state_mesi_S2 != `L2_MESI_I))))))
+    if (((((data_size_S2 == `MSG_DATA_SIZE_64B) || (data_size_S2 == `MSG_DATA_SIZE_32B)) && ((l2_tag_hit_S2 && (!l2_ifill_32B_S2)) && (((msg_type_S2 == `MSG_TYPE_LOAD_REQ) && ((((l2_way_state_mesi_S2 == `L2_MESI_I) || (((l2_way_state_mesi_S2 == `L2_MESI_E) && req_from_owner_S2) && (cache_type_S2 == l2_way_state_cache_type_S2))) || ((l2_way_state_mesi_S2 == `L2_MESI_S) && (cache_type_S2 == l2_way_state_cache_type_S2))) ||((l2_way_state_mesi_S2 == `L2_MESI_B) && (cache_type_S2 == l2_way_state_cache_type_S2)))) || ((((msg_type_S2 == `MSG_TYPE_STORE_REQ) || (msg_type_S2 == `MSG_TYPE_LR_REQ))) && ((l2_way_state_mesi_S2 == `L2_MESI_I) || (((l2_way_state_mesi_S2 == `L2_MESI_E) && req_from_owner_S2) && (cache_type_S2 == l2_way_state_cache_type_S2))))))) || (((msg_type_S2 == `MSG_TYPE_L2_LINE_FLUSH_REQ) || (msg_type_S2 == `MSG_TYPE_L2_DIS_FLUSH_REQ)) && (!(l2_tag_hit_S2 && (l2_way_state_mesi_S2 != `L2_MESI_I))))))
     begin
         l2_data_ack_l15line_64_S2 =  (data_size_S2 == `MSG_DATA_SIZE_64B) ? 1'b1 : 1'b0; 
         l2_data_ack_l15line_32_S2 =  (data_size_S2 == `MSG_DATA_SIZE_32B) ? 1'b1 : 1'b0; 
@@ -1057,7 +1057,7 @@ begin
     if (~rst_n) begin
         amo_msg_data_S2_buf <= {`L2_P1_DATA_BUF_IN_WIDTH{1'b0}};
     end
-    else if (valid_S2 && !stall_S2 && msg_data_16B_amo_S2)
+    else if (valid_S2 && (!stall_S2) && msg_data_16B_amo_S2)
     begin
         amo_msg_data_S2_buf <= msg_data_S2;
     end
@@ -1171,8 +1171,8 @@ begin
         end
         data_data_mask_in_S2 = data_data_mask_in_S2 << (`L2_DATA_ECC_TOTAL_WIDTH*addr_S2_f[3]);
     end
-    else if (data_size_S2 == `MSG_DATA_SIZE_1B || data_size_S2 == `MSG_DATA_SIZE_2B
-    ||  data_size_S2 == `MSG_DATA_SIZE_4B || data_size_S2 == `MSG_DATA_SIZE_8B
+    else if ((data_size_S2 == `MSG_DATA_SIZE_1B) || (data_size_S2 == `MSG_DATA_SIZE_2B)
+    ||  (data_size_S2 == `MSG_DATA_SIZE_4B) || (data_size_S2 == `MSG_DATA_SIZE_8B)
     )
     begin
         data_data_mask_in_S2 = {{(`L2_DATA_ARRAY_WIDTH-`L2_DATA_ECC_TOTAL_WIDTH){1'b0}},{`L2_DATA_ECC_TOTAL_WIDTH{1'b1}}};
@@ -1252,11 +1252,11 @@ begin
     begin
         state_subline_S2 = sdid_S2_f[`L2_STATE_SUBLINE];
     end
-    else if (l2_data_ack_l15line_64_S2 && state_subline_op_S2 == `OP_ADD)
+    else if (l2_data_ack_l15line_64_S2 && (state_subline_op_S2 == `OP_ADD))
     begin
         state_subline_S2 = {`L2_SUBLINE_BITS{1'b1}};
     end
-    else if (l2_data_ack_l15line_32_S2 && state_subline_op_S2 == `OP_ADD)
+    else if (l2_data_ack_l15line_32_S2 && (state_subline_op_S2 == `OP_ADD))
     begin
         state_subline_S2 = (addr_S2_f[`L2_INS_SUBLINE]==0) ? (l2_way_state_subline_S2 | 4'h3) : (l2_way_state_subline_S2 | 4'hc);
     end
@@ -1670,13 +1670,13 @@ end
 always @ *
 begin
     `ifndef NO_RTL_CSM
-    if (csm_en && (!msg_from_mshr_S4 || recycled_S4_f) && l2_evict_S4)
+    if (csm_en && ((!msg_from_mshr_S4) || recycled_S4_f) && l2_evict_S4)
     begin
         if (l2_way_state_mesi_S4 == `L2_MESI_E)
         begin
             sdid_S4 = dir_data_S4[`L2_DIR_SDID];
         end
-        else if (l2_way_state_mesi_S4 == `L2_MESI_S || l2_way_state_mesi_S4 == `L2_MESI_B)
+        else if ((l2_way_state_mesi_S4 == `L2_MESI_S) || (l2_way_state_mesi_S4 == `L2_MESI_B))
         begin
             sdid_S4 = {l2_way_state_subline_S4, l2_way_state_owner_S4};
         end
@@ -1881,7 +1881,7 @@ begin
     begin
         data_data_buf_S4_next = 0;
     end
-    else if (stall_S4 && !stall_before_S4)
+    else if (stall_S4 && (!stall_before_S4))
     begin
         data_data_buf_S4_next = data_data_S4;
     end
@@ -1920,7 +1920,7 @@ wire [(`L2_SRAM_CHUNKS*2)-1:0] uncorr_error__S4 ;
 
 genvar k;
 generate    
-for (k = 0; k < `L2_SRAM_CHUNKS*2; k = k+1) begin: ecc
+for (k = 0; k < (`L2_SRAM_CHUNKS*2); k = k+1) begin: ecc
 
     assign data_ecc_in[k] = data_data_trans_S4[72*k +: 72]; 
 
@@ -1980,7 +1980,11 @@ begin
     case (cas_cmp_data_size_S4)
     `MSG_DATA_SIZE_4B:
     begin
-        data_data_shift_S4 = {data_data_ecc_S4[63:0],data_data_ecc_S4[127:64]} << 32*addr_S4_f[3:2];
+    `ifdef PARALLEL_SRAMS
+        data_data_shift_S4 = { data_ecc_out_atomic[63:0], data_ecc_out_atomic[127:64]} << (32*addr_S4_f[3:2]);
+    `else
+        data_data_shift_S4 = {data_data_ecc_S4[63:0],data_data_ecc_S4[127:64]} << (32*addr_S4_f[3:2]);
+    `endif
     end
     `MSG_DATA_SIZE_8B:
     begin
@@ -2037,15 +2041,15 @@ end
 always @ *
 begin
     if (l2_evict_S4
-    && (msg_send_type_S4 == `MSG_TYPE_STORE_MEM
-    ||  msg_send_type_S4 == `MSG_TYPE_INV_FWD
-    ||  msg_send_type_S4 == `MSG_TYPE_STORE_FWD))
+    && ((msg_send_type_S4 == `MSG_TYPE_STORE_MEM)
+    ||  (msg_send_type_S4 == `MSG_TYPE_INV_FWD)
+    ||  (msg_send_type_S4 == `MSG_TYPE_STORE_FWD)))
     begin
         msg_send_addr_S4 = evict_addr_S4_f;
     end
-    else if (msg_send_type_S4 == `MSG_TYPE_STORE_FWD
-         ||  msg_send_type_S4 == `MSG_TYPE_INV_FWD
-         ||  msg_send_type_S4 == `MSG_TYPE_LOAD_FWD)
+    else if ((msg_send_type_S4 == `MSG_TYPE_STORE_FWD)
+         || (msg_send_type_S4 == `MSG_TYPE_INV_FWD)
+         || (msg_send_type_S4 == `MSG_TYPE_LOAD_FWD))
     begin
         msg_send_addr_S4 = {addr_S4_f[`L2_TAG], addr_S4_f[`L2_TAG_INDEX], {`L2_OFFSET_WIDTH{1'b0}}};
     end
@@ -2242,11 +2246,11 @@ begin
             endcase
         end
         `endif
-        else if (addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_CTRL_REG
-              || addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_COREID_REG
-              || addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_ERROR_STATUS_REG
-              || addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_ACCESS_COUNTER
-              || addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_MISS_COUNTER)
+        else if ((addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_CTRL_REG)
+              || (addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_COREID_REG)
+              || (addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_ERROR_STATUS_REG)
+              || (addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_ACCESS_COUNTER)
+              || (addr_S4[`L2_ADDR_TYPE] == `L2_ADDR_TYPE_MISS_COUNTER))
         begin
             msg_send_data_S4 = {2{reg_data_out_S4}};
         end
@@ -2255,12 +2259,12 @@ begin
             msg_send_data_S4 = {2{msg_data_S4_f}};
         end
     end
-    else if ((msg_type_S4 == `MSG_TYPE_L2_LINE_FLUSH_REQ || msg_type_S4 == `MSG_TYPE_L2_DIS_FLUSH_REQ)
+    else if (((msg_type_S4 == `MSG_TYPE_L2_LINE_FLUSH_REQ) || (msg_type_S4 == `MSG_TYPE_L2_DIS_FLUSH_REQ))
          &&  (msg_send_type_S4 == `MSG_TYPE_DATA_ACK))
     begin
         msg_send_data_S4 = {`L2_DATA_DATA_WIDTH{1'b0}};
     end
-    else if (msg_send_type_S4 == `MSG_TYPE_NC_STORE_REQ || (msg_send_type_S4 == `MSG_TYPE_INTERRUPT))
+    else if ((msg_send_type_S4 == `MSG_TYPE_NC_STORE_REQ) || (msg_send_type_S4 == `MSG_TYPE_INTERRUPT))
     begin
         msg_send_data_S4 = {2{msg_data_S4_f}};
     end
@@ -2310,7 +2314,7 @@ end
 always @ *
 begin
     mshr_data_in_S4 = {inv_fwd_pending_S4,
-                       (req_recycle_S4 && (!msg_from_mshr_S4 || recycled_S4_f)),
+                       (req_recycle_S4 && ((!msg_from_mshr_S4) || recycled_S4_f)),
                        smc_miss_S4,
                        smc_rd_addr_in_S4[`L2_SMC_ADDR_LSID],
                        lsid_S4_f, 
@@ -2331,7 +2335,7 @@ end
 always @ *
 begin
     mshr_data_in_S4 = {inv_fwd_pending_S4,
-                       (req_recycle_S4 && (!msg_from_mshr_S4 || recycled_S4_f)),
+                       (req_recycle_S4 && ((!msg_from_mshr_S4) || recycled_S4_f)),
                        1'b0,
                        {`MSG_LSID_WIDTH{1'b0}},
                        lsid_S4_f,

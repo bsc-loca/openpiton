@@ -1,0 +1,13 @@
+piton/verif
+piton/tools
+piton/design/chipset
+piton/design/fpga_tests
+piton/design/chip/jtag
+piton/design/chip/chip_bridge
+piton/design/chip/pll
+piton/design/chip/rtl
+piton/design/chip/tile/ariane
+piton/design/chip/tile/sargantana
+piton/design/chip/tile/lagarto_ox
+piton/design/chip/tile/lagarto_ka
+piton/design/chip/tile/sparc

@@ -114,11 +114,11 @@ begin
       head_ptr_f <= head_ptr_next;
       tail_ptr_f <= tail_ptr_next;
       elements_in_array_f <= elements_in_array_next;
-      if(valid_in)
-      begin
-         storage_data_f[tail_ptr_f] <= data_in;
-      end
    end
+end
+
+always @ (posedge clk) begin
+    if(valid_in) storage_data_f[tail_ptr_f] <= data_in;
 end
 
 endmodule

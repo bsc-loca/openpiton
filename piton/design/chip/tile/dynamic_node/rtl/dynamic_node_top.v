@@ -327,7 +327,6 @@ reg ec_thanks_e_to_n_reg, ec_thanks_e_to_e_reg, ec_thanks_e_to_s_reg, ec_thanks_
 reg ec_thanks_s_to_n_reg, ec_thanks_s_to_e_reg, ec_thanks_s_to_s_reg, ec_thanks_s_to_w_reg, ec_thanks_s_to_p_reg;
 reg ec_thanks_w_to_n_reg, ec_thanks_w_to_e_reg, ec_thanks_w_to_s_reg, ec_thanks_w_to_w_reg, ec_thanks_w_to_p_reg;
 reg ec_thanks_p_to_n_reg, ec_thanks_p_to_e_reg, ec_thanks_p_to_s_reg, ec_thanks_p_to_w_reg, ec_thanks_p_to_p_reg;
-reg ec_wants_to_send_but_cannot_N_reg, ec_wants_to_send_but_cannot_E_reg, ec_wants_to_send_but_cannot_S_reg, ec_wants_to_send_but_cannot_W_reg, ec_wants_to_send_but_cannot_P_reg;
 reg ec_north_input_valid_reg, ec_east_input_valid_reg, ec_south_input_valid_reg, ec_west_input_valid_reg, ec_proc_input_valid_reg;
 
 
@@ -340,11 +339,6 @@ always @(posedge clk)
      ec_thanks_s_to_n_reg <= 1'b0; ec_thanks_s_to_e_reg <= 1'b0; ec_thanks_s_to_s_reg <= 1'b0; ec_thanks_s_to_w_reg <= 1'b0; ec_thanks_s_to_p_reg <= 1'b0;
      ec_thanks_w_to_n_reg <= 1'b0; ec_thanks_w_to_e_reg <= 1'b0; ec_thanks_w_to_s_reg <= 1'b0; ec_thanks_w_to_w_reg <= 1'b0; ec_thanks_w_to_p_reg <= 1'b0;
      ec_thanks_p_to_n_reg <= 1'b0; ec_thanks_p_to_e_reg <= 1'b0; ec_thanks_p_to_s_reg <= 1'b0; ec_thanks_p_to_w_reg <= 1'b0; ec_thanks_p_to_p_reg <= 1'b0;
-     ec_wants_to_send_but_cannot_N_reg <= 1'b0;
-     ec_wants_to_send_but_cannot_E_reg <= 1'b0;
-     ec_wants_to_send_but_cannot_S_reg <= 1'b0;
-     ec_wants_to_send_but_cannot_W_reg <= 1'b0;
-     ec_wants_to_send_but_cannot_P_reg <= 1'b0;
      ec_north_input_valid_reg <= 1'b0 ;
      ec_east_input_valid_reg  <= 1'b0 ;
      ec_south_input_valid_reg <= 1'b0 ;
@@ -356,11 +350,6 @@ always @(posedge clk)
      ec_thanks_s_to_n_reg <= thanks_s_to_n; ec_thanks_s_to_e_reg <= thanks_s_to_e; ec_thanks_s_to_s_reg <= thanks_s_to_s; ec_thanks_s_to_w_reg <= thanks_s_to_w; ec_thanks_s_to_p_reg <= thanks_s_to_p;
      ec_thanks_w_to_n_reg <= thanks_w_to_n; ec_thanks_w_to_e_reg <= thanks_w_to_e; ec_thanks_w_to_s_reg <= thanks_w_to_s; ec_thanks_w_to_w_reg <= thanks_w_to_w; ec_thanks_w_to_p_reg <= thanks_w_to_p;
      ec_thanks_p_to_n_reg <= thanks_p_to_n; ec_thanks_p_to_e_reg <= thanks_p_to_e; ec_thanks_p_to_s_reg <= thanks_p_to_s; ec_thanks_p_to_w_reg <= thanks_p_to_w; ec_thanks_p_to_p_reg <= thanks_p_to_p;
-     ec_wants_to_send_but_cannot_N_reg <= ec_wants_to_send_but_cannot_N;
-     ec_wants_to_send_but_cannot_E_reg <= ec_wants_to_send_but_cannot_E;
-     ec_wants_to_send_but_cannot_S_reg <= ec_wants_to_send_but_cannot_S;
-     ec_wants_to_send_but_cannot_W_reg <= ec_wants_to_send_but_cannot_W;
-     ec_wants_to_send_but_cannot_P_reg <= ec_wants_to_send_but_cannot_P;
      ec_north_input_valid_reg <= north_input_valid;
      ec_east_input_valid_reg  <= east_input_valid;
      ec_south_input_valid_reg <= south_input_valid;

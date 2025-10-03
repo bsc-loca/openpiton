@@ -178,13 +178,13 @@ if(`PITON_NOC2_WIDTH == `NOC_DATA_WIDTH) begin : Def
 end else begin : other
 
     wire is_tail,is_hdr;
-                          
+    
     tail_hdr_detect #(
         .FLIT_WIDTH(`PITON_NOC2_WIDTH )
     ) detect_in (
         .reset      (~rst_n),
         .clk        (clk ),
-        .flit_in    (src_checker_noc2_data),
+        .length_in  (src_checker_noc2_data[ `MSG_LENGTH ]),
         .valid      (src_checker_noc2_val ),
         .ready      (src_checker_noc2_rdy ),
         .is_tail    (is_tail),

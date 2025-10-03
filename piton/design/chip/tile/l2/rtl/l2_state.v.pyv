@@ -116,7 +116,7 @@ always @ *
 begin
     if (bypass_f)
     begin
-        for (i = 0; i < `L2_STATE_ARRAY_WIDTH; i = i + 1) begin
+        for (i = 0; i < (`L2_STATE_ARRAY_WIDTH); i = (i + 1)) begin
             data_out[i] = data_mask_in_buf[i] ? data_in_buf[i] : data_out_real[i];
         end
     end

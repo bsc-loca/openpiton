@@ -1,0 +1,355 @@
+waive -file {  {"*.v"}  }  -rule {  {OneModule-ML} {STARC05-1.1.1.1} {STARC05-2.8.5.1} {UseSVAlways-ML} {FlopEConst} {ParamName} {FileHdr} }  -comment {"Skip this rule for verilog files"}
+waive -file { {"*.tmp.v"} } -rule { {STARC05-1.1.1.1} } -comment {"python auto generated"}
+waive -file { {"*.tmp.sv"} } -rule { {STARC05-1.1.1.1} } -comment {"python auto generated"}
+
+waive -du {  {control_mvp}  }  -ignore -comment {"FPU errors"}
+waive -du {  {fpnew_opgroup_multifmt_slice}  }  -ignore -comment {"FPU errors"}
+
+waive -file { {"swrvr_clib.v"} } -rule { {OneModule-ML} } -comment {" "}
+
+waive -rule {  {ArrayIndex} } -du {  {plic_axi_wrapper} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ArrayIndex} } -du {  {plic} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ArrayIndex} } -du {  {plic_claim_complete_tracker} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ArrayIndex} } -du {  {plic_comparator} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ArrayIndex} } -du {  {plic_find_max} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ArrayIndex} } -du {  {plic_gateway} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ArrayIndex} } -du {  {plic_interface} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ArrayIndex} } -du {  {plic_target_slice} } -ignore -comment {"Our linters prefer other format"}
+
+waive -rule {  {ParamName} } -du {  {plic_axi_wrapper} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ParamName} } -du {  {plic} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ParamName} } -du {  {plic_claim_complete_tracker} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ParamName} } -du {  {plic_comparator} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ParamName} } -du {  {plic_find_max} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ParamName} } -du {  {plic_gateway} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ParamName} } -du {  {plic_interface} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {ParamName} } -du {  {plic_target_slice} } -ignore -comment {"Our linters prefer other format"}
+
+waive -rule {  {DetectUnderAndOverFlows-ML} } -du {  {plic_interface} } -ignore -comment {"undeflow taken into account"}
+waive -rule {  {DetectUnderAndOverFlows-ML} } -du {  {plic} } -ignore -comment {"undeflow taken into account"}
+waive -rule {  {DetectUnderAndOverFlows-ML} } -du {  {plic_axi_wrapper} } -ignore -comment {"undeflow taken into account"}
+
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {plic_interface} } -ignore -comment {"depends on parameter"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {noc_axilite_bridge} } -ignore -comment {"depends on parameter"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {dynamic_input_route_request_calc} } -ignore -comment {"depends on parameter"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {tile} } -ignore -comment {"depends on parameter"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {xilinx_simple_dual_port_1_clock_ram} } -ignore -comment {"depends on parameter"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {tile} } -ignore -comment {"These are due to the parameters"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {noc_axilite_bridge} } -ignore -comment {"These are due to the parameters"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {dynamic_input_route_request_calc} } -ignore -comment {"These are due to the parameters"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {space_avail_top} } -ignore -comment {"These are due to the parameters"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {noc_axi4_bridge_buffer} } -ignore -comment {"These are due to the parameters"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {noc_axi4_bridge_ser} } -ignore -comment {"These are due to the parameters"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {noc_axi4_bridge_deser} } -ignore -comment {"These are due to the parameters"}
+waive -rule { {W430} }                    -du { { noc_axilite_bridge} } -ignore -comment {"Initial statement only used for simulation"}
+
+waive -rule {  {UndrivenNUnloaded-ML} } -du {  {plic_find_max} } -ignore -comment {"AXI wrapper ignore some bits"}
+waive -rule {  {UndrivenNUnloaded-ML} } -du {  {plic_axi_wrapper} } -ignore -comment {"AXI wrapper ignore some bits"}
+waive -rule {  {UnloadedInPort-ML} } -du {  {plic_axi_wrapper} } -ignore -comment {"AXI wrapper ignores some bits"}
+
+
+waive -rule { {UnloadedInPort-ML} } -du {  {tile} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedInPort-ML} } -du {  {dynamic_input_route_request_calc} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedInPort-ML} } -du {  {jtag_ctap} } -ignore -comment {"it is due to the defines"}
+
+waive -rule { {UnloadedNet-ML} } -du {  {dynamic_output_top} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedNet-ML} } -du {  {dynamic_input_top_4} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedNet-ML} } -du {  {valrdy_to_credit} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedNet-ML} } -du {  {noc3buffer} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedNet-ML} } -du {  {dynamic_node_top} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedNet-ML} } -du {  {dynamic_input_top_16} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedNet-ML} } -du {  {dmbr} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedOutTerm-ML} } -du {  {tile} } -ignore -comment {"it is due to the defines"}
+waive -rule { {UnloadedOutTerm-ML} } -du {  {dynamic_input_top_4} } -ignore -comment {"it is due to the defines"}
+
+waive -rule { {W120} } -du {  {plic_find_max} } -ignore -comment {"unused variable because of parametrization"}
+waive -rule { {W120} } -du {  {tile} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W240} } -du {  {tile} } -ignore -comment {"it is due to the defines"}
+
+waive -rule { {W164a_b} } -du {  {clint} } -ignore -comment {"done intentionally"}
+waive -rule { {W164a_b} } -du {  {space_avail_top} } -ignore -comment {"done intentionally"}
+waive -rule { {W164a_b} } -du {  {network_input_blk_multi_out} } -ignore -comment {"done intentionally"}
+waive -rule { {W164a_b} } -du {  {dmbr} } -ignore -comment {"done intentionally"}
+waive -rule { {W164a_b} } -du {  {tile} } -ignore -comment {"done intentionally"}
+waive -rule { {W240} } -du {  {tail_hdr_detect} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W240} } -du {  {jtag_ctap} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W240} } -du {  {dynamic_input_route_request_calc} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W241} } -du {  {tile} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {dynamic_node_top} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {rtap_ucb_transmitter} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {dynamic_input_top_16} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {rtap_ucb_receiver} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {dynamic_node_top_wrap} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {jtag_ucb_transmitter} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {jtag_ucb_receiver} } -ignore -comment {"it is due to the defines"}
+waive -rule { {W287b} } -du {  {chip_cincoranch} } -ignore -comment {"On purpose, don't use some output ports"}
+
+waive -rule {  {DetectUnderAndOverFlows-ML} } -du {  {clint} } -ignore -comment {"undeflow taken into account"}
+waive -rule {  {ParamName} } -du {  {clint} } -ignore -comment {"Our linters prefer other format"}
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {clint} } -ignore -comment {"depends on parameter"}
+
+waive -rule {  {InterfaceWithoutModport-ML} } -du {  {cincoranch_dma_bridge} } -ignore -comment {"Using only slave"}
+waive -rule {  {OneModule-ML} } -du {  {chip_cincoranch} } -ignore -comment {"Auxiliary module"}
+waive -rule {  {OneModule-ML} } -du {  {async_resetFFstyle2} } -ignore -comment {"Auxiliary module"}
+waive -rule {  {RegInput-ML} } -du {  {chip_cincoranch} } -ignore -comment {"synchronizers inside PLIC"}
+
+waive -file {  axi_pkg.sv }  -rule { {W116} {W263} {W416} {SigName} {STARC05-1.1.1.2} {W164a_b} {UndrivenNUnloaded-ML} {W287b}}  -comment {"Legacy code"}
+waive -rule { {W287b} {UndrivenNUnloaded-ML} } -du {  {axi_err_slv} } -ignore -comment {"Legacy code"}
+waive -rule { {W164a_b} } -du {  {delta_counter} } -ignore -comment {"Legacy code"}
+
+waive -rule {  {FlopEConst} } -du {  {network_input_blk_multi_out} } -ignore -comment {"instantiated multiple times, in each some has values"}
+
+waive -rule { {W213} } -du { {xilinx_simple_dual_port_1_clock_ram} } -ignore -comment {"It is never happens"}
+
+waive -rule {  {STARC05-1.4.3.1b} } -du {  {clk_gating_latch} } -ignore -comment {"done intentionaly"}
+
+
+waive -rule {  {RegOutputs} } -du {  {chip_cincoranch} } -ignore -comment {"Will be implemented"}
+
+waive -rule { {RegOutputs} }             -du { {chip_cincoranch} } -ignore -comment {"To be implemented"}
+
+waive -rule {  {STARC05-1.4.3.1a} } -du {  {jtag_ctap_interface} } -ignore -comment {"Driving jtag outputs on negative edge of clock"}
+waive -rule {  {RptNegEdgeFF-MLa} } -du {  {jtag_ctap_interface} } -ignore -comment {"Driving jtag outputs on negative edge of clock"}
+waive -rule {  {RptNegEdgeFF-ML} }  -du {  {jtag_ctap_interface} } -ignore -comment {"Driving jtag outputs on negative edge of clock"}
+waive -rule {  {STARC05-1.4.3.4} }  -du {  {jtag_ctap_interface} } -ignore -comment {"Clock signal jtag_clk used as a non-clock"}
+
+waive -rule { {AlwaysFalseTrueCond-ML} } -du { {comparison_pipeline_selector_flush} } -ignore -comment {"false positive because of parametrization"}
+waive -rule { {W156} } -du { {comparison_pipeline_selector_flush} } -ignore -comment {"false positive because of port with size [0:0]"}
+waive -rule { {W156} } -du { {plic_target_slice} } -ignore -comment {"false positive because of port with size [0:0]"}
+waive -rule { {W156} } -du { {plic} } -ignore -comment {"false positive because of port with size [0:0]"}
+
+waive -rule { {ArrayIndex} } -du { {"debug_ring_*"} } -ignore -comment {"we use different format"}
+waive -rule { {STARC05-1.1.1.3} } -du { {"debug_ring_*"} } -ignore -comment {"false positive, vhdl keywords"}
+waive -rule { {STARC05-2.2.3.3} } -du { {"debug_ring_*"} } -ignore -comment {"tested in simulation, no issues with unintended double assignments"}
+
+waive -file_line {"tile.tmp.sv"} {1123} -rule { {UndrivenInTerm-ML} } -ignore -comment {"not required for now"}
+waive -file_line {"tile.tmp.sv"} {1124} -rule { {UndrivenInTerm-ML} } -ignore -comment {"not required for now"}
+waive -file_line {"tile.tmp.sv"} {1125} -rule { {UndrivenInTerm-ML} } -ignore -comment {"not required for now"}
+waive -file_line {"tile.tmp.sv"} {1126} -rule { {UndrivenInTerm-ML} } -ignore -comment {"not required for now"}
+waive -file_line {"tile.tmp.sv"} {1127} -rule { {UndrivenInTerm-ML} } -ignore -comment {"not required for now"}
+
+waive -rule { {STARC05-1.1.1.3} } -du { {chip_cincoranch} } -ignore -comment {"DO pin of SRAM is ignored, its a verilog keyword"}
+
+waive -rule { {STARC05-2.11.3.1} } -du { {debug_ring_ccm_register} } -ignore -comment {"FSM is implemneted using one variable, warning ignored"}
+waive -rule { {STARC05-2.11.3.1} } -du { {debug_ring_ccm_dispatch} } -ignore -comment {"FSM is implemneted using one variable, warning ignored"}
+waive -rule { {STARC05-2.11.3.1} } -du { {debug_ring_ccm_threshold} } -ignore -comment {"FSM is implemneted using one variable, warning ignored"}
+waive -rule { {STARC05-2.11.3.1} } -du { {debug_ring_ccm_outgoing_data} } -ignore -comment {"FSM is implemneted using one variable, warning ignored"}
+waive -rule { {STARC05-2.11.3.1} } -du { {debug_ring_ccm_pc_controller} } -ignore -comment {"FSM is implemneted using one variable, warning ignored"}
+waive -rule { {STARC05-2.11.3.1} } -du { {debug_ring_scm_pu} } -ignore -comment {"FSM is implemneted using one variable, warning ignored"}
+waive -rule { {W287b} } -du { {debug_ring} } -ignore -comment {"Stall is not connected, warning ignored"}
+waive -rule { {W287b} } -du { {tile} } -ignore -comment {"Some ka debug signals are NC, warning ignored"}
+waive -rule { {NoExprInPort-ML} } -du { {tile} } -ignore -comment {"allowing putting expression in the port, warning ignored"}
+
+waive -rule { {AlwaysFalseTrueCond-ML} } -du {  {noc_requests} }   -ignore -comment {"parameter validation - warning can be ignored"}
+waive -rule { {AlwaysFalseTrueCond-ML} } -du {  {noc_responses} }  -ignore -comment {"parameter validation - warning can be ignored"}
+waive -rule { {AlwaysFalseTrueCond-ML} } -du {  {noc_driver} }     -ignore -comment {"parameter validation - warning can be ignored"}
+waive -rule { {AlwaysFalseTrueCond-ML} } -du {  {write_unroller} } -ignore -comment {"parameter validation - warning can be ignored"}
+waive -rule { {ImproperRangeIndex-ML} }  -du {  {write_unroller} } -ignore -comment {"parameter validation - warning can be ignored"}
+waive -rule { {ImproperRangeIndex-ML} }  -du {  {noc_requests} }   -ignore -comment {"range is known to be correct - warning can be ignored"}
+waive -rule { {ImproperRangeIndex-ML} }  -du {  {axi_slave_wr_pipeline} } -ignore -comment {"range is known to be correct - warning can be ignored"}
+waive -rule { {W164a_b} } -du {  {noc_responses} } -ignore -comment {"truncation is correct - warning can be ignored"}
+waive -rule { {W164a_b} } -du {  {transfer_unroller} } -ignore -comment {"truncation is correct - warning can be ignored"}
+waive -rule { {W164a_b} } -du {  {write_unroller} } -ignore -comment {"truncation is correct - warning can be ignored"}
+waive -rule { {W164a_b} } -du {  {axi_slave_rd} } -ignore -comment {"ignore warning"}
+waive -rule { {W164a_b} } -du {  {axi_slave_wr} } -ignore -comment {"ignore warning"}
+waive -rule { {W175} } -du {  {transfer_unroller} } -ignore -comment {"parameter used in a typedef - warning can be ignored"}
+waive -rule { {W175} } -du {  {write_unroller} } -ignore -comment {"parameter used in a typedef - warning can be ignored"}
+waive -rule { {W287b} } -du { {axi_to_pmesh_bridge} } -ignore -comment {"port not used - warning can be ignored"}
+waive -rule { {W430} } -du { {noc_axilite_bridge} } -ignore -comment {"Initial statement only used for simulation"}
+
+waive -rule { {STARC05-2.11.3.1} } -du {  {axi_slave_rd_pipeline} } -ignore -comment {"It is done intentionally"}
+waive -rule { {STARC05-2.11.3.1} } -du {  {axi_slave_wr_pipeline} } -ignore -comment {"It is done intentionally"}
+waive -rule { {W164a_b} } -du {  {axi_slave_wr_pipeline} } -ignore -comment {"It is ok"}
+waive -rule { {W164a_b} } -du {  {axi_slave_wr_pipeline} } -ignore -comment {"It is ok"}
+waive -rule { {W287b} } -du {  {axi_slave_rd_pipeline} } -ignore -comment {"It is ok"}
+waive -rule { {W240} } -du {  {axi_slave_rd_pipeline} } -ignore -comment {"It is ok"}
+waive -rule { {W240} } -du {  {axi_slave_wr_pipeline} } -ignore -comment {"It is ok"}
+waive -rule { {UnloadedInPort-ML} } -du {  {axi_slave_rd_pipeline} } -ignore -comment {"It is ok"}
+waive -rule { {UnloadedInPort-ML} } -du {  {axi_slave_wr_pipeline} } -ignore -comment {"It is ok"}
+waive -rule { {W164a_b} } -du {  {axi_to_pmesh_bridge} } -ignore -comment {"warning can be ignored"}
+
+waive -file { {"wt_cache_pkg.sv"} } -rule { {ImproperRangeIndex-ML} } -ignore -comment {"functions causing this warning are only used in ariane"}
+
+waive  -ignore -comment { "axilite_to_sri will be removed" }  -du { { axilite_to_sri } } -rule { W287b }
+waive  -ignore -comment {"ignore parallel case"}  -du { { jtag_tap } } -rule { STARC05-2.8.5.1 }
+
+waive  -ignore -comment {"jtag sample on falling edge"}  -du { { jtag_tap } } -rule { STARC05-1.4.3.1a }
+waive  -ignore -comment {"jtag sample on falling edge"}  -du { { dtm } } -rule { STARC05-1.4.3.1a }
+waive  -ignore -comment {"jtag sample on falling edge"}  -du { { dtm } } -rule { STARC05-1.4.3.4 }
+
+waive  -ignore -comment { "modules from pulp platform" }  -du { { axi_lite_demux } } -rule { W287b }
+waive  -ignore -comment { "modules from pulp platform"}  -du { { axi_lite_xbar } } -rule { W287b }
+
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { chip_cincoranch } } -rule { SigName }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { chip_cincoranch } } -rule { STARC05-1.1.1.2 }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { riscv_debug_pkg } } -rule { SigName }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { riscv_debug_pkg } } -rule { STARC05-1.1.1.2 }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { simple_dm } } -rule { SigName }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { simple_dm } } -rule { STARC05-1.1.1.2 }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { simple_dm } } -rule { UndrivenInTerm-ML }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { simple_dm } } -rule { UndrivenNet-ML }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { simple_dm } } -rule { UndrivenNUnloaded-ML }
+waive  -ignore -comment {"padding bitfields, unused"}  -du { { simple_dm } } -rule { W120 }
+waive  -ignore -comment {"parameter dependent"}  -du { { axi_lite_demux } } -rule { AlwaysFalseTrueCond-ML }
+waive  -ignore -comment {"parameter dependent"}  -du { { axi_lite_to_axi } } -rule { DetectUnderAndOverFlows-ML }
+waive  -ignore -comment {"parameter dependent"}  -du { { axilite_to_sri } } -rule { AlwaysFalseTrueCond-ML }
+waive  -ignore -comment {"parameter dependent"}  -du { { cdc_4phase } } -rule { AlwaysFalseTrueCond-ML }
+waive  -ignore -comment {"parameter dependent"}  -du { { cdc_4phase } } -rule { DetectUnderAndOverFlows-ML }
+waive  -ignore -comment {"parameter dependent"}  -du { { cdc_fifo_gray_clearable } } -rule { AlwaysFalseTrueCond-ML }
+waive  -ignore -comment {"parameter dependent"}  -du { { cdc_4phase_src } } -rule { AlwaysFalseTrueCond-ML }
+waive  -ignore -comment {"parameter dependent"}  -du { { cdc_2phase_clearable } } -rule { AlwaysFalseTrueCond-ML }
+waive  -ignore -comment {"parameter dependent, napot not supported"}  -du { { addr_decode } } -rule { AlwaysFalseTrueCond-ML }
+
+waive  -ignore -comment {"ports checked"}  -du { { chip_cincoranch } } -rule { InterfaceWithoutModport-ML }
+waive  -ignore -comment {"pulp has multiple modules in a single file"}  -du { { cdc_2phase_src_clearable } } -rule { OneModule-ML }
+
+waive  -ignore -comment {"pulp-platform"}  -du { { addr_decode } } -rule { DetectUnderAndOverFlows-ML }
+waive  -ignore -comment {"pulp-platform"}  -du { { axi_lite_demux } } -rule { DetectUnderAndOverFlows-ML }
+waive  -ignore -comment {"pulp-platform"}  -du { { axi_lite_xbar } } -rule { DetectUnderAndOverFlows-ML }
+waive  -ignore -comment {"pulp-platform"}  -du { { cdc_fifo_gray_clearable } } -rule { PragmaComments-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_intf.sv"}  } -rule { ArrayIndex }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_intf.sv"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_lite_xbar.sv"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_pkg*"}  } -rule { ProhibitedDataTypes-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_.*"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_.*"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"exp_backoff.sv"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"sync.sv"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"addr_decode.sv"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"spill_register*"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_err_slv.sv"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc.*"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_lite_*"}  } -rule { ConstName }
+
+waive  -ignore -comment {"pulp-platform"}  -file {  {"exp_backoff.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"fifo_v3.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"sync.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"spill_register*"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"addr_decode.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_err_slv.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_err_slv.sv"}  } -rule { UnloadedInPort-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_err_slv.sv"}  } -rule { UnloadedNet-ML }
+
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc.*"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_lite_*"}  } -rule { ParamName }
+
+waive  -ignore -comment {"pulp-platform"}  -file {  {"fifo_v3.sv"}  } -rule { W240 }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"spill_register_flushable.sv"}  } -rule { W240 }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"spill_register_flushable.sv"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"spill_register_flushable.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"spill_register_flushable.sv"}  } -rule { UnloadedInPort-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_lite_*"}  } -rule { W240 }
+
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_4phase.sv"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray_clearable.sv"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray_clearable.sv"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_2phase_clearable.sv"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"addr_decode.sv"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_2phase_clearable.sv"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_reset_ctrlr.sv"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_.*"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_.*"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"chip_cincoranch.tmp.sv"}  } -rule { W123 }
+waive  -ignore -comment {"pulp-platform, parameter dependent"}  -du { { "axi_.*" } } -rule { ArrayIndex }
+
+waive  -ignore -comment {"technically its verilog 2005"}  -du { { jtag_tap } } -rule { UseSVAlways-ML }
+waive  -ignore -comment {"technically its verilog 2005"}  -du { { jtag_tap } } -rule { W154 }
+
+waive  -ignore -comment {"truncate"}  -du { { simple_dm } } -rule { DetectUnderAndOverFlows-ML }
+waive  -ignore -comment {"parameter default as 0"}  -du { { cdc_4phase_src } } -rule { DetectUnderAndOverFlows-ML }
+
+waive  -ignore -comment {"truncate index"}  -du { { axilite_to_sri } } -rule { W164a_a }
+waive  -ignore -comment {"truncate index"}  -du { { simple_dm } } -rule { chip_cincoranch }
+waive  -ignore -comment {"truncate index"}  -du { { simple_dm } } -rule { ImproperRangeIndex-ML }
+waive  -ignore -comment {"truncate index"}  -du { { simple_dm } } -rule { W123 }
+waive  -ignore -comment {"truncate index"}  -du { { simple_dm } } -rule { W263 }
+
+waive  -ignore -comment {"unloaded signals come from unused debug ports"}  -du { { chip_cincoranch } } -rule { UndrivenNUnloaded-ML }
+
+waive  -ignore -comment {"unused params"}  -du { { dm_wrapper } } -rule { W175 }
+waive  -ignore -comment {"unused params"}  -du { { dtm } } -rule { W175 }
+waive  -ignore -comment {"unused ports"}  -du { { dm_wrapper } } -rule { W287b }
+
+waive  -ignore -comment {"variable will not be negative"}  -du { { axilite_to_sri } } -rule { SignedUnsignedExpr-ML }
+
+waive  -ignore -comment {"variable will not be negative"}  -du { { cdc_reset_ctrlr_half } } -rule { W175 }
+waive  -ignore -comment {"variable will not be negative"}  -du { { axilite_to_sri } } -rule { W175 }
+
+waive  -ignore -comment {"common_cells"}  -file {  {"ecc_pkg.sv"}  } -rule { ExprParen }
+waive  -ignore -comment {"common_cells"}  -file {  {"fifo_v3.sv"}  } -rule { ExprParen }
+
+waive -rule { {W123} } -du {  {alexforencich_priority_encoder} } -ignore -comment {"ignore warning"}
+waive -rule { {W164a_a} } -du {  {alexforencich_priority_encoder} } -ignore -comment {"ignore width mismatch warning"}
+
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc_*"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray.*"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray.*"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray.*"}  } -rule { W120 }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray.*"}  } -rule { W164a_b }
+
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc_dst.sv"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc_dst.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc_src.sv"}  } -rule { ConstName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc_src.sv"}  } -rule { ParamName }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_lite_demux.sv"}  } -rule { UnloadedNet-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_lite_to_axi.sv"}  } -rule { UnloadedInPort-ML }
+
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc.sv"}  } -rule { OneModule-ML }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc.sv"}  } -rule { ExprParen }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"axi_cdc.sv"}  } -rule { W175 }
+waive  -ignore -comment {"pulp-platform"}  -file {  {"cdc_fifo_gray.sv"}  } -rule { OneModule-ML }
+waive -rule {  {ParamName} } -du {  {chip_cincoranch} } -ignore -comment {"Our linters prefer other format"}
+waive -rule { {UnloadedNet-ML} } -du {  {chip_cincoranch} } -ignore -comment {"AXI prot[2:0] is not connected"}
+waive -rule { {UnloadedOutTerm-ML} } -du {  {chip_cincoranch} } -ignore -comment {"Several NoCs are not connected"}
+waive -rule { {UnloadedOutTerm-ML} } -du {  {chip_cincoranch} } -ignore -comment {"Several NoCs are not connected"}
+
+waive -rule { {NoExprInPort-ML} } -du { {credit_to_valrdy} } -ignore -comment {"allowing putting expression in the port, warning ignored"}
+waive -rule { {NoExprInPort-ML} } -du { {dynamic_node_top} } -ignore -comment {"allowing putting expression in the port, warning ignored"}
+
+waive  -ignore -comment {"only read chanel is used"}  -file {  {"lottery_unit.sv"}  } -rule { UnloadedInPort-ML }
+waive  -ignore -comment {"only read chanel is used"}  -file {  {"lottery_unit.sv"}  } -rule { W240 }
+
+waive -rule {  {AlwaysFalseTrueCond-ML} } -du {  {fifo_v3} } -ignore -comment {"These are due to the parameters"}
+waive -rule { {W287a} } -du { {zetta_tc2_wrapper} } -ignore -comment {"These wires are part of OCT complex and some of the wires are not used in BSC complex"}
+waive -rule { {W287b} } -du { {zetta_tc2_wrapper} } -ignore -comment {"port not used - warning can be ignored"}
+waive -rule { {UnloadedOutTerm-ML} } -du {  {zetta_tc2_wrapper} } -ignore -comment {"These wires are output of tc2_dual2single_axi module and belongs to OCT complex"}
+waive -rule {  {RegInput-ML} } -du {  {zetta_tc2_wrapper} } -ignore -comment {"Intel will add FIFOs/Registers for every AXI channel"}
+waive -rule {  {RegOutputs} } -du {  {zetta_tc2_wrapper} } -ignore -comment {"Intel will add FIFOs/Registers for every AXI channel"}
+waive -rule {  {UndrivenNUnloaded-ML} } -du {  {zetta_tc2_wrapper} } -ignore -comment {"These signals are not supported and not part of spec"}
+waive -rule {  {UnloadedInPort-ML} } -du {  {zetta_tc2_wrapper} } -ignore -comment {"AXI5 input signals will be tied to specific value by Intel at the Inteface"}
+waive -rule {  {W164a_b} } -du {  {zetta_tc2_wrapper} } -ignore -comment {"pulp-platform"}
+waive -rule {  {W240} } -du {  {zetta_tc2_wrapper} } -ignore -comment {"AXI5 input signals will be tied to specific value by Intel at the Inteface"} //also refer the last few waived ones
+waive -rule { {W240} } -du { {tc2_dual2single_axi} } -ignore -comment {"These signals are part of spec but they are not supported"}
+waive -rule {  {UnloadedInPort-ML} } -du {  {tc2_dual2single_axi} } -ignore -comment {"AXI5 input signals will be tied to specific value by Intel at the Inteface"}
+
+waive -rule { {UnloadedNet-ML} } -du { {bram_sdp_1ck} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedInPort-ML} } -du { {bram_sdp_1ck} } -ignore -comment {"warning can be ignored"}
+waive -rule { {W240} } -du { {bram_sdp_1ck} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {storage_addr_trans} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedInPort-ML} } -du { {tail_hdr_detect} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {noc_axilite_bridge} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedInPort-ML} } -du { {noc_axi4_bridge_buffer} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {noc_axi4_bridge_buffer} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedOutTerm-ML} } -du { {noc_axi4_bridge_buffer} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {noc_axi4_bridge_deser} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedOutTerm-ML} } -du { {noc_axi4_bridge_deser} } -ignore -comment {"warning can be ignored"}
+waive -rule { {W120} } -du { {noc_axi4_bridge_deser} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedInPort-ML} } -du { {noc_axi4_bridge_read} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {noc_axi4_bridge_read} } -ignore -comment {"warning can be ignored"}
+waive -rule { {W240} } -du { {noc_axi4_bridge_read} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedOutTerm-ML} } -du { {noc_axi4_bridge_ser} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedInPort-ML} } -du { {noc_axi4_bridge_write} } -ignore -comment {"warning can be ignored"}
+waive -rule { {W240} } -du { {noc_axi4_bridge_write} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedInPort-ML} } -du { {noc_extractSize} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {noc_extractSize} } -ignore -comment {"warning can be ignored"}
+waive -rule { {W240} } -du { {noc_extractSize} } -ignore -comment {"warning can be ignored"}
+
+waive -rule { {W156} } -du { {chip_cincoranch} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {jtag_tap} } -ignore -comment {"warning can be ignored"}
+waive -rule { {ConstName} } -du { {lagarto_ox_wrapper} } -ignore -comment {"It is due to parameter"}
+waive -rule { {ParamName} } -du { {lagarto_ox_wrapper} } -ignore -comment {"It is due to parameter"}
+waive -rule { {W240} } -du { {plic_axi_wrapper} } -ignore -comment {"warning can be ignored"}
+waive -rule { {UnloadedNet-ML} } -du { {tile} } -ignore -comment {"warning can be ignored"}
+
+waive -file { {"tc2_addrmap.tmp.svh"} } -rule { {W175} } -comment {"Several parameters are automatically declared but not used in this design"}

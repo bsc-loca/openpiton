@@ -28,7 +28,7 @@ end else if(INPUT_WIDTH > OUTPUT_WIDTH) begin : serialer
     ) detect_out (
         .reset      (~rst_n),
         .clk        (clk ),
-        .flit_in    (flit_data_o),
+        .length_in  (flit_data_o[ `MSG_LENGTH ]),
         .valid      (flit_val_o ),
         .ready      (flit_rdy_i ),
         .is_tail    (is_tail_out),
@@ -71,7 +71,7 @@ end else begin : parallelr
     ) detect_in (
         .reset      (~rst_n),
         .clk        (clk ),
-        .flit_in    (flit_data_i),
+        .length_in  (flit_data_i[ `MSG_LENGTH ]),
         .valid      (flit_val_i ),
         .ready      (flit_rdy_o ),
         .is_tail    (is_tail_in),
@@ -124,16 +124,16 @@ module tail_hdr_detect #(
 )(
     reset,
     clk,
-    flit_in,
+    length_in,
     valid,
     ready,
     is_tail,
     is_header
 );
-    input reset,clk;
-    input valid,ready;
-    input [FLIT_WIDTH-1 : 0] flit_in;
-    output is_tail, is_header;
+    input  wire reset,clk;
+    input  wire valid,ready;
+    input  wire [`MSG_LENGTH_WIDTH-1 : 0] length_in;
+    output wire is_tail, is_header;
 
     localparam
         CHANEL_WORLD_NUM = FLIT_WIDTH/64;
@@ -141,8 +141,7 @@ module tail_hdr_detect #(
     localparam  [1:0]
         HEADER = 1,
         BODY   = 2;
-    reg [2:0] flit_type,flit_type_next;
-    wire [`MSG_LENGTH_WIDTH-1       :0] length_in      =  flit_in [ `MSG_LENGTH ];
+    reg [1:0] flit_type,flit_type_next;
     reg  [`MSG_LENGTH_WIDTH-1       :0] remain, remain_next;
 
     always @ (*) begin
@@ -153,7 +152,7 @@ module tail_hdr_detect #(
             HEADER: begin
                 if (length_in >= CHANEL_WORLD_NUM ) begin
                         flit_type_next = BODY;
-                        remain_next = length_in  - CHANEL_WORLD_NUM;                  
+                        remain_next = length_in  - CHANEL_WORLD_NUM;
                 end
             end //HEADER
             BODY: begin
@@ -198,6 +197,7 @@ module piton_pck_monitor #(
 
     localparam  WORLD_NUM = INPUT_WIDTH/64;
     reg [INPUT_WIDTH-1:0]  data [MAX_PCK_SIZ : 0];
+    wire [`MSG_LENGTH_WIDTH-1 : 0] length_in =  flit_in [ `MSG_LENGTH ];
 
     wire tail,header;
     tail_hdr_detect #(
@@ -205,20 +205,16 @@ module piton_pck_monitor #(
     ) detect_in (
         .reset      (reset),
         .clk        (clk ),
-        .flit_in    (flit_in),
+        .length_in  (length_in),
         .valid      (valid ),
         .ready      (ready ),
         .is_tail    (tail),
         .is_header  (header)
     );
 
-
-
- localparam
+    localparam
         CHANEL_WORLD_NUM = INPUT_WIDTH/64;
 
-
-    wire [`MSG_LENGTH_WIDTH-1       :0] length_in      =  flit_in [ `MSG_LENGTH ];
     reg  [`MSG_LENGTH_WIDTH-1       :0] len_reg;
     wire [`MSG_LENGTH_WIDTH-1       :0] pck_size;
     integer flit_cnt, pck_cnt;

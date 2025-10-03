@@ -447,7 +447,7 @@ for i in range(L2_WAYS):
     print("always @ *")
     print("begin")
     print('''    if ((addr_S2_f[`L2_TAG] == tag_data_way_S2[%d]) && 
-(state_way_S2[%d][`L2_STATE_VD] == `L2_VD_CLEAN || state_way_S2[%d][`L2_STATE_VD] == `L2_VD_DIRTY ))''' % (i, i, i))
+((state_way_S2[%d][`L2_STATE_VD] == `L2_VD_CLEAN) || (state_way_S2[%d][`L2_STATE_VD] == `L2_VD_DIRTY) ))''' % (i, i, i))
     print("    begin")
     print("        tag_hit_way_S2[%d] = 1'b1;" % (i))
     print("    end")
@@ -592,7 +592,7 @@ wire [`L2_DATA_ECC_PARITY_WIDTH-1:0] msg_data_parity_S2 [(`L2_SRAM_CHUNKS*2)-1:0
 
 genvar k;
 generate    
-for (k = 0; k < `L2_SRAM_CHUNKS*2; k = k+1) begin: pgen
+for (k = 0; k < (`L2_SRAM_CHUNKS*2); k = k+1) begin: pgen
     l2_data_pgen data_pgen( 
         .din     (msg_data_S2[`L2_DATA_ECC_DATA_WIDTH*k +: `L2_DATA_ECC_DATA_WIDTH]),
         .parity  (msg_data_parity_S2[k])
