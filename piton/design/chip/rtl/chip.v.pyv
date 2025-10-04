@@ -139,6 +139,16 @@ module chip (
    output                                       offchip_processor_noc3_yummy
 `endif // endif PITON_NO_CHIP_BRIDGE
 
+ `ifdef PITON_EXTRA_MEMS
+    ,
+    output [`PITON_EXTRA_MEMS * `PITON_NOC2_WIDTH -1:0] processor_mcx_noc2_data,
+    output [`PITON_EXTRA_MEMS-1:0]                    processor_mcx_noc2_valid,
+    input  [`PITON_EXTRA_MEMS-1:0]                    processor_mcx_noc2_yummy,
+
+    input  [`PITON_EXTRA_MEMS * `PITON_NOC3_WIDTH -1:0] mcx_processor_noc3_data,
+    input  [`PITON_EXTRA_MEMS-1:0]                    mcx_processor_noc3_valid,
+    output [`PITON_EXTRA_MEMS-1:0]                    mcx_processor_noc3_yummy
+  `endif
 `ifdef PITON_RV64_PLATFORM
 `ifdef PITON_RV64_DEBUGUNIT
     // Debug
@@ -1127,6 +1137,11 @@ module chip (
     );
     '''
 
+
+    MC_POS=get_mc_mapping(PITON_X_TILES,PITON_Y_TILES,PITON_MC_INDICES,PITON_EXTRA_MEMS,PITON_NETWORK_CONFIG)
+    edge_idx=len(MC_POS)
+
+
     # generate the tiles
     for i in range(PITON_X_TILES):
         for j in range(PITON_Y_TILES):
@@ -1134,12 +1149,25 @@ module chip (
             flatid = i + (j * PITON_X_TILES);
             # print template
             currenttile = template.replace("tile0", "tile%d" % (flatid));
+            # special case for core 0
+            # place the memory controllers           
+            for k in range(edge_idx):
+                ax = MC_POS[k]['x']
+                ay = MC_POS[k]['y']  
+                ap = MC_POS[k]['p']
+                id = MC_POS[k]['endp']                 
+                if(i==ax and j==ay):                    
+                    currenttile = currenttile.replace("out_%s_noc2_data"  % MC_POS[k]['p'], "processor_mcx_noc2_data [%d * `PITON_NOC2_WIDTH +: `PITON_NOC2_WIDTH]" % k);
+                    currenttile = currenttile.replace("out_%s_noc2_valid" % MC_POS[k]['p'], "processor_mcx_noc2_valid[%d]" % k);
+                    currenttile = currenttile.replace("in_%s_noc2_yummy"  % MC_POS[k]['p'], "processor_mcx_noc2_yummy[%d]" % k);
+                    currenttile = currenttile.replace("in_%s_noc3_data"   % MC_POS[k]['p'], "mcx_processor_noc3_data [%d * `PITON_NOC3_WIDTH +: `PITON_NOC3_WIDTH]" % k);
+                    currenttile = currenttile.replace("in_%s_noc3_valid"  % MC_POS[k]['p'], "mcx_processor_noc3_valid[%d]" % k);
+                    currenttile = currenttile.replace("out_%s_noc3_yummy" % MC_POS[k]['p'], "mcx_processor_noc3_yummy[%d]" % k);
             currenttile = currenttile.replace("COREIDX", "8'd" + repr(i));
             currenttile = currenttile.replace("COREIDY", "8'd" + repr(j));
             currenttile = currenttile.replace("out_", "tile_%d_%d_out_" % (j,i));
             currenttile = currenttile.replace("_FLAT_ID_", repr(flatid));
             currenttype = "`SPARC_TILE"
-
             if (PITON_PICO_HET):
                 if (flatid % 2) == 0:
                     currenttype = "`SPARC_TILE"

@@ -176,6 +176,8 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'hpdc' => 0,
         'sarg' => 0,
         'lox' => 0,
+        'multimc' => 0,
+        'multimc_indices' => "",
         'pico' => 0,
         'pico_het' => 0,
         'post_process_cmd' => [],
@@ -333,6 +335,8 @@ GetOptions (\%opt,
             'hpdc!',
             'sarg!',
             'lox!',
+            'multimc=s',
+            'multimc_indices=s',
             'pico!',
             'pico_het!',
             'sparcv9!',
@@ -350,6 +354,7 @@ GetOptions (\%opt,
             'simslog_name=s',
             'build_id=s',
             'sys=s',
+            'hbm!',
            ) ;
 
 die ("DIE. -ariane and -pico/-pico_het cannot be set simultaneously") if ($opt{ariane} && ($opt{pico} || $opt{pico_het})) ;
@@ -367,7 +372,7 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_LOX")     if ($opt{lox}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
-
+push (@{$opt{config_cpp_args}}, "-DHBM_DEF")        if ($opt{hbm}) ;
 if ($opt{hpdc} || $opt{sarg} || $opt{lox}) {
     push (@{$opt{config_cpp_args}}, "-DENABLE_HPDC");
 }
@@ -2543,7 +2548,106 @@ sub find_diag_path
   print "$prg: Found diag under $full_path[0]\n" ;
   return $full_path[0] ;
 }
+###############################################################################
+#   Multiple MC functions
+###############################################################################
+sub get_mc_mapping {
+    my ($piton_X,$piton_Y,$indices,$mc_num,$net_conf)=@_;
+    my @mc_list = split(",",$indices);   
+    my $edge_idx = 0;
+    my @mc_map;
+    for (my $i=0; $i< $piton_X; $i++){
+        for (my $j=0; $j< $piton_Y; $j++){
+            #currentid = (i, j);
+            my $flatid = $i + ($j * $piton_X);
+            my $exists = grep( /^$flatid$/, @mc_list);
+            my $endp = $piton_X * $piton_Y;            
+            if ($net_conf ne "xbar_config" && $edge_idx < $mc_num && $exists > 0){
+                my $index =-1;
+                my $u=0;
+                foreach my $p ( @mc_list){
+                    $index =$u if ($flatid == $p);
+                    $u++;
+                } 
+                if ($i == 0 && $j != 0){ # Tile 0 west port is occupied by "offchip" connection
+                    $endp = $endp + $piton_X + $piton_X + $j;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'W','endp'=> $endp);
+                    push (@mc_map,\%h);
+                    $edge_idx += 1
 
+                }elsif ($j == 0){
+                    $endp = $endp + $i;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'N','endp'=> $endp);
+                    push (@mc_map,\%h);  
+                    $edge_idx += 1
+                
+                }elsif ($j == $piton_Y-1){ #  and i != 0
+                    $endp = $endp + $piton_X + $i;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'S','endp'=> $endp);
+                    push (@mc_map,\%h);                    
+                    $edge_idx += 1
+
+                }elsif ($i == $piton_X-1){ # and j != PITON_Y_TILES-1
+                    $endp = $endp + $piton_X + $piton_X + $piton_Y + $j;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'E','endp'=> $endp);
+                    push (@mc_map,\%h);  
+                    $edge_idx += 1
+                }else{
+                    die "Fatal: $flatid is not an edge router\n";
+                }
+           } 
+         }
+    } 
+    return @mc_map;
+}
+
+sub uniq {
+  my %seen;
+  return grep { !$seen{$_}++ } @_;
+}
+
+sub get_both_xy_edge_routers_ids{
+    my ($x, $y)=@_;
+    my @edges;
+    my $i;
+    my $j;
+    $j=0;
+    for ($i=0; $i<$x; $i++){my $id= $j*$x+$i;push (@edges,$id);} # first row
+    $i=$x-1;
+    for ($j=1; $j<$y; $j++){my $id= $j*$x+$i;push (@edges,$id);} #last column
+    $j=$y-1;
+    for ($i=$x-2; $i>0; $i--){my $id= $j*$x+$i;push (@edges,$id);} # last row
+    $i=0;
+    for ($j=$y-1; $j>0; $j--){my $id= $j*$x+$i;push (@edges,$id);} #first column
+    #print join(',',@edges), "\n";
+    return uniq(@edges);
+}
+
+sub get_first_y_edge_routers_ids{
+    my ($x, $y)=@_;
+    my @edges;
+    my $i;
+    my $j;
+    $i=0;
+    for ($j=$y-1; $j>=0; $j--){my $id= $j*$x+$i;push (@edges,$id);} #first column
+    return uniq(@edges);
+}
+
+sub distribute_mc_equal_space_on_all_edges {
+    my ($x,$y,$mc)=@_;
+    my @edge_ids =get_both_xy_edge_routers_ids ($x,$y);
+    my $edges = scalar @edge_ids;
+    my $d= ($mc==0)? 0 : ($edges/$mc);
+    my $mc_num=0;
+    my $mmc =  '';
+    for (my $m=0; $m<$mc; $m++){
+        $mc_num= int ($d * $m);
+        my $mc_id = $edge_ids[$mc_num];
+        $mmc.=($m==0)?  "$mc_id" : ",$mc_id";
+    }
+    print "all_edges : @edge_ids  ; mmcs: $mmc \n";
+    return $mmc
+}
 ################################################################################
 # parse all arguments from command line and config file
 ################################################################################
@@ -2855,7 +2959,58 @@ sub parse_args
   $ENV{PITON_LOX}      = $opt{lox};
   $ENV{PITON_RV64_PLATFORM}   = "1" if ($opt{rv64_platform});
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
-
+  
+  my @mc_map;
+  $ENV{PITON_EXTRA_MEMS} =0;
+if ($opt{multimc}>0){
+    my $piton_num_tiles=($opt{x_tiles} * $opt{y_tiles});
+    my $edge_tiles = 2 * ($opt{x_tiles}-1 + $opt{y_tiles}-1);
+    if ($edge_tiles > $piton_num_tiles || $edge_tiles < 1){
+      $edge_tiles = $piton_num_tiles;
+    }
+    if($edge_tiles > $opt{multimc} ){
+      $edge_tiles =$opt{multimc};
+    }
+    if (!$opt{hbm}){
+      die  ("DIE. Could not use -multimc option without -hbm option");
+    }
+    elsif ($edge_tiles > 30){
+      print "Extra $edge_tiles connections to HBM (one per edge tile) are limited to 30.\n";
+      $ENV{PITON_EXTRA_MEMS} =30;
+    }
+    else{
+      print "Extra $edge_tiles connections to HBM will be used.\n";
+      $ENV{PITON_EXTRA_MEMS} = $edge_tiles;
+    } 
+    if($opt{multimc_indices}){
+      $ENV{PITON_MC_INDICES} =$opt{multimc_indices};
+      my $str = $opt{multimc_indices};
+      my @mc_tiles=split(/,/,$str);
+      my $l = scalar (@mc_tiles);
+      if( $l != $edge_tiles ){
+        die  ("DIE. the number of tile in multimc_indices $l is not equal to the number of multimc $edge_tiles.\n");
+      }
+      my %seen;
+      foreach my $p ( @mc_tiles){
+        die  ("DIE. multiple tile number ($p) is given in multimc_indices:$str.\n") if(defined $seen{$p});
+        $seen{$p}=1;
+        die  ("DIE. $p is not a valid integer number in multimc_indices:$str.\n") if ( $p !~ /^[+-]?\d+$/);
+        die  ("DIE. The tile number $p should be smaller that total number of tiles ($piton_num_tiles).\n") if ( $p >= $piton_num_tiles);
+        my $x_p = $p % $opt{x_tiles};
+        my $y_p = ($p - $x_p) / $opt{y_tiles};
+        if($x_p!=0 && $y_p!=0 && $x_p != $opt{x_tiles}-1 && $y_p!= $opt{y_tiles}-1){
+          die  ("DIE. The tile number $p ($x_p,$y_p) in multimc_indices is not an edge router.\n");
+        }
+      }
+    }else{
+      my $mc_tiles=distribute_mc_equal_space_on_all_edges($opt{x_tiles},$opt{y_tiles},$ENV{PITON_EXTRA_MEMS});
+      print "**Info: No memory controller (MC) indices are given as input. Distribute MCs with equal space on all edges:$mc_tiles\n";
+      $ENV{PITON_MC_INDICES} =$mc_tiles;
+    }
+    @mc_map = get_mc_mapping ($opt{x_tiles},$opt{y_tiles},$opt{multimc_indices},$ENV{PITON_EXTRA_MEMS},$ENV{PITON_NETWORK_CONFIG});
+  }
+  my $mmc_num= $ENV{PITON_EXTRA_MEMS};
+  my $mmc_num_tmp = ($mmc_num==0)? 1 : $mmc_num;
   my $pton_x_tiles="";
   my $pton_y_tiles="";
   my $pton_num_tiles="";
@@ -3033,6 +3188,7 @@ OPENPITON ARGUMENTS
             in the x dimension and Y tiles in the y dimension. If
             -x_tiles and -y_tiles is not specified, the default is
             X=1 and Y=1. The maximum value for both X and Y is 1024.
+    -hbm enables HBM related definitions.
 
     -ed_enable
             enable Execution Drafting in each core.
@@ -3187,6 +3343,21 @@ VERILOG COMPILATION RELATED
 
 VERILOG RUNTIME RELATED
 
+    -multimc=n
+           Specifies that OpenPiton is configured with 'n' memory controllers
+           connected to edge routers. Each edge router can host at most one
+           memory controller. The tiles connected to these memory controllers
+           can be specified explicitly via -multimc_indices. If not provided,
+           memory controllers are automatically mapped to edge routers with
+           the maximum Manhattan distance from each other.
+
+    -multimc_indices=t1,t2,...
+           Specifies the tile IDs of the edge routers that should be connected
+           to memory controllers. Example:
+             sims -msm_build -ariane -x_tiles=2 -y_tiles=2 \
+                  -multimc=2 -multimc_indices=0,3 -hbm
+           This configuration connects two memory controllers to tile 0 (0,0)
+           and tile 3 (1,1).    
     -vcs_run/-novcs_run
            runs the vcs simulation (simv). defaults to off.
 

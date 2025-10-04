@@ -305,11 +305,15 @@ system system(
 `endif // endif PITON_CHIPSET_DIFF_CLK
 `else // ifndef PITON_CHIPSET_CLKS_GEN
 `ifndef VERILATOR
+`ifdef PITON_EXTRA_MEMS
+    .chipset_clk(core_ref_clk),
+`else
 `ifndef PITON_NO_CHIP_BRIDGE
     .chipset_clk(chipset_clk),
 `else
     .chipset_clk(core_ref_clk),
 `endif // endif PITON_NO_CHIP_BRIDGE
+        `endif // endif PITON_EXTRA_MEMS
 `else
     .chipset_clk(core_ref_clk),
 `endif // endif VERILATOR

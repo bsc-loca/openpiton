@@ -31,7 +31,7 @@
     #MAX_THREAD = 128;
     MAX_TILE = 64;
 
-    PITON_NUM_TILES = int(os.environ.get('PTON_NUM_TILES', '-1'))
+    PITON_NUM_TILES = int(os.environ.get('PITON_NUM_TILES', '-1'))
     #print "//num_tiles:", num_tiles
 
     if PITON_NUM_TILES == -1:

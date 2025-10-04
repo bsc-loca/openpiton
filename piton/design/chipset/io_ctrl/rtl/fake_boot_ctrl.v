@@ -194,6 +194,11 @@ wire    bram_rdwen;
 
 
 l2_decoder decoder(
+`ifdef PITON_EXTRA_MEMS
+    .chipid                 ({`NOC_CHIPID_WIDTH{1'b0}}),
+    .coreid_x               ({`NOC_X_WIDTH{1'b0}}),
+    .coreid_y               ({`NOC_Y_WIDTH{1'b0}}),
+`endif
     .msg_header         (mem_header_in),
     .msg_type           (msg_type),
     .msg_length         (),

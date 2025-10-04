@@ -24,6 +24,7 @@ stages:
   - sim_benchmarks
   - sim_multicore
   - linting
+  - sim_mmc
 
 variables:
   GIT_STRATEGY: clone
@@ -333,6 +334,8 @@ ariane_build:
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -ariane -build_id=ariane_msm_1_2
     - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2
+    - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2_mmc  -multimc=2 -multimc_indices=0,3 -hbm
+    - sims -vlt_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2_mmc  -multimc=2 -multimc_indices=0,3 -hbm
   artifacts:
     expire_in: 1 day
     when: always
@@ -415,6 +418,31 @@ ariane_multicore:
     paths:
       - ./build
 
+ariane_mmc:
+  extends: .ariane_regression_base
+  stage: sim_mmc
+  rules:
+    !reference [.rule_only_merge]
+  needs: [ariane_build, ariane_multicore]
+  parallel:
+    matrix:
+      - X_TILES: [2]
+        Y_TILES: [2]
+        SIM_TYPE: vlt
+        CI_TAGS: non_resources
+      - X_TILES: [2]
+        Y_TILES: [2]
+        SIM_TYPE: msm
+  script:
+    - cd build
+    - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=ariane_${SIM_TYPE}_${X_TILES}_${Y_TILES}_mmc
+      -group ariane_tile$(($X_TILES * $Y_TILES))_simple
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
 
 ################################################################################
 # ARIANE (w/ HPDC)

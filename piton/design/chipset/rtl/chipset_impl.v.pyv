@@ -121,6 +121,16 @@ module chipset_impl(
     output                                      intf_chipset_rdy_noc2,
     output                                      intf_chipset_rdy_noc3
 
+  `ifdef PITON_EXTRA_MEMS  
+  , 
+    input  [`PITON_EXTRA_MEMS * `PITON_NOC2_WIDTH -1:0] intf_mcx_data_noc2,
+    input  [`PITON_EXTRA_MEMS-1:0]                    intf_mcx_val_noc2,
+    output [`PITON_EXTRA_MEMS-1:0]                    intf_mcx_rdy_noc2,
+
+    output [`PITON_EXTRA_MEMS * `PITON_NOC3_WIDTH -1:0] mcx_intf_data_noc3,
+    output [`PITON_EXTRA_MEMS-1:0]                    mcx_intf_val_noc3,
+    input  [`PITON_EXTRA_MEMS-1:0]                    mcx_intf_rdy_noc3
+  `endif
     // DRAM and I/O interfaces
 `ifndef PITONSYS_NO_MC
 `ifdef PITON_FPGA_MC_DDR3
@@ -792,6 +802,15 @@ credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) noc3_xbar_to_%s(
             .mc_flit_out_val(mem_buf_noc3_valid),
             .mc_flit_out_data(mem_buf_noc3_data),
             .mc_flit_out_rdy(buf_mem_noc3_ready),
+          `ifdef PITON_EXTRA_MEMS
+            .mcx_flit_in_val (intf_mcx_val_noc2 ),
+            .mcx_flit_in_data(intf_mcx_data_noc2),
+            .mcx_flit_in_rdy (intf_mcx_rdy_noc2 ),
+
+            .mcx_flit_out_val (mcx_intf_val_noc3 ),
+            .mcx_flit_out_data(mcx_intf_data_noc3),
+            .mcx_flit_out_rdy (mcx_intf_rdy_noc3 ),
+           `endif
 
             .uart_boot_en(uart_boot_en),
             .init_calib_complete_out(init_calib_complete),
@@ -845,6 +864,23 @@ fake_mem_ctrl fake_mem_ctrl(
     .noc_ready_out      ( buf_mem_noc3_ready )
 );
 
+`ifdef PITON_EXTRA_MEMS
+genvar i;
+generate
+for(i=0;i<`PITON_EXTRA_MEMS;i=i+1) begin: MC_
+    fake_mem_ctrl fake_mc ( 
+        .clk                ( chipset_clk        ), 
+        .rst_n              ( chipset_rst_n      ), 
+        .noc_valid_in       ( intf_mcx_val_noc2 [i] ), 
+        .noc_data_in        ( intf_mcx_data_noc2[i * `PITON_NOC2_WIDTH +: `PITON_NOC2_WIDTH]  ), 
+        .noc_ready_in       ( intf_mcx_rdy_noc2 [i] ), 
+        .noc_valid_out      ( mcx_intf_val_noc3 [i] ), 
+        .noc_data_out       ( mcx_intf_data_noc3[i * `PITON_NOC3_WIDTH +: `PITON_NOC3_WIDTH]  ), 
+        .noc_ready_out      ( mcx_intf_rdy_noc3 [i] ) 
+	); 
+end
+endgenerate
+`endif
 `endif // endif PITON_FPGA_MC_DDR3
 
 `else

@@ -217,6 +217,15 @@ module chipset(
     output [2:0]                                chip_intf_credit_back,
 `endif // endif PITON_NO_CHIP_BRIDGE PITONSYS_INC_PASSTHRU
 
+  `ifdef PITON_EXTRA_MEMS
+    input   [`PITON_EXTRA_MEMS * `PITON_NOC2_WIDTH -1:0] processor_mcx_noc2_data,
+    input   [`PITON_EXTRA_MEMS-1:0]                    processor_mcx_noc2_valid,
+    output  [`PITON_EXTRA_MEMS-1:0]                    processor_mcx_noc2_yummy,
+
+    output  [`PITON_EXTRA_MEMS * `PITON_NOC3_WIDTH -1:0] mcx_processor_noc3_data,
+    output  [`PITON_EXTRA_MEMS-1:0]                    mcx_processor_noc3_valid,
+    input   [`PITON_EXTRA_MEMS-1:0]                    mcx_processor_noc3_yummy,
+  `endif
     // DRAM and I/O interfaces
 `ifndef PITONSYS_NO_MC
 `ifdef PITON_FPGA_MC_DDR3
@@ -1236,6 +1245,50 @@ credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC3_WIDTH)) processor_offchip_noc3_c2v(
     .ready_out(intf_chipset_rdy_noc3)
 );
 
+`ifdef PITON_EXTRA_MEMS
+  wire  [`PITON_EXTRA_MEMS * `PITON_NOC3_WIDTH -1:0] mcx_intf_data_noc3;
+  wire  [`PITON_EXTRA_MEMS-1:0]                    mcx_intf_val_noc3;
+  wire  [`PITON_EXTRA_MEMS-1:0]                    mcx_intf_rdy_noc3;
+
+  wire  [`PITON_EXTRA_MEMS * `PITON_NOC2_WIDTH -1:0] intf_mcx_data_noc2;
+  wire  [`PITON_EXTRA_MEMS-1:0]                    intf_mcx_val_noc2;
+  wire  [`PITON_EXTRA_MEMS-1:0]                    intf_mcx_rdy_noc2;
+
+  genvar idx;
+  generate
+  for(idx=0; idx<`PITON_EXTRA_MEMS; idx=idx+1) begin: ifconv
+    valrdy_to_credit #(
+        .BUFFER_SIZE(4),
+        .BUFFER_BITS(3),
+        .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+    ) mcx_processor_noc3_v2c( 
+      .clk(chipset_clk),
+      .reset(~chipset_rst_n_ff),
+
+      .data_in (mcx_intf_data_noc3[idx * `PITON_NOC3_WIDTH +: `PITON_NOC3_WIDTH]),
+      .valid_in(mcx_intf_val_noc3 [idx]), 
+      .ready_in(mcx_intf_rdy_noc3 [idx]),
+
+      .data_out (mcx_processor_noc3_data [idx * `PITON_NOC3_WIDTH +: `PITON_NOC3_WIDTH]),
+      .valid_out(mcx_processor_noc3_valid[idx]),
+      .yummy_out(mcx_processor_noc3_yummy[idx])
+    );
+
+    credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH))  processor_mcx_noc2_c2v(
+      .clk(chipset_clk),
+      .reset(~chipset_rst_n_ff),
+
+      .data_in (processor_mcx_noc2_data [idx * `PITON_NOC2_WIDTH +: `PITON_NOC2_WIDTH]),
+      .valid_in(processor_mcx_noc2_valid[idx]),
+      .yummy_in(processor_mcx_noc2_yummy[idx]),
+
+      .data_out (intf_mcx_data_noc2[idx * `PITON_NOC2_WIDTH +: `PITON_NOC2_WIDTH]),
+      .valid_out(intf_mcx_val_noc2 [idx]),
+      .ready_out(intf_mcx_rdy_noc2 [idx])
+    );
+  end
+  endgenerate
+`endif
 `ifdef PITON_BOARD
     // Bootup reset sequence
     chip_rst_seq rst_seq(
@@ -1304,6 +1357,16 @@ chipset_impl_noc_power_test  chipset_impl (
     .intf_chipset_rdy_noc1(intf_chipset_rdy_noc1),
     .intf_chipset_rdy_noc2(intf_chipset_rdy_noc2),
     .intf_chipset_rdy_noc3(intf_chipset_rdy_noc3)
+  `ifdef PITON_EXTRA_MEMS    
+   ,
+    .mcx_intf_data_noc3(mcx_intf_data_noc3),
+    .mcx_intf_val_noc3 (mcx_intf_val_noc3),
+    .mcx_intf_rdy_noc3 (mcx_intf_rdy_noc3 ),
+
+    .intf_mcx_data_noc2(intf_mcx_data_noc2),
+    .intf_mcx_val_noc2 (intf_mcx_val_noc2),
+    .intf_mcx_rdy_noc2 (intf_mcx_rdy_noc2)
+  `endif
 
     // DRAM and I/O interfaces
     `ifndef PITONSYS_NO_MC

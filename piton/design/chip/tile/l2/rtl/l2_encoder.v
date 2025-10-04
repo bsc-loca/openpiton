@@ -66,9 +66,60 @@ module l2_encoder(
     input wire [`MSG_SDID_WIDTH-1:0] msg_sdid,
     input wire [`MSG_LSID_WIDTH-1:0] msg_lsid,
 
+`ifdef PITON_EXTRA_MEMS
+    input wire [`NOC_CHIPID_WIDTH-1:0] chipid,
+    input wire [`NOC_X_WIDTH-1:0] coreid_x,
+    input wire [`NOC_Y_WIDTH-1:0] coreid_y,
+`endif
 
     output reg [`MSG_HEADER_WIDTH-1:0] msg_header
 );
+`ifdef PITON_EXTRA_MEMS
+   
+    localparam EXTRA_MEMS = `PITON_EXTRA_MEMS;
+    
+    wire [`MSG_SRC_X_WIDTH-1:0] mc_dst_x;
+	wire [`MSG_SRC_Y_WIDTH-1:0] mc_dst_y;
+	wire [`MSG_SRC_FBITS_WIDTH-1:0] mc_dst_fbits;
+	
+	wire [`MSG_SRC_CHIPID_WIDTH-1:0] msg_dst_chipid_mmc;
+	reg [`MSG_SRC_X_WIDTH-1:0] msg_dst_x_mmc;
+	reg [`MSG_SRC_Y_WIDTH-1:0] msg_dst_y_mmc;
+	reg [`MSG_SRC_FBITS_WIDTH-1:0] msg_dst_fbits_mmc;
+    
+    l2_to_mc mc_map(
+        .msg_addr(msg_addr),
+		.coreid_x(coreid_x),
+     	.coreid_y(coreid_y),
+    	.mc_dst_x(mc_dst_x),
+		.mc_dst_y(mc_dst_y),	
+		.mc_dst_fbits(mc_dst_fbits)
+	);
+    
+   reg off_chip; 
+    
+   always @ (*) begin 
+	   if(!msg_dst_chipid [`CHIP_ID_WIDTH-1]) begin  // it is not goinig to offchip 
+           msg_dst_x_mmc = msg_dst_x;
+           msg_dst_y_mmc = msg_dst_y;
+           msg_dst_fbits_mmc=msg_dst_fbits;  
+           off_chip=1'b0;
+	   end else if (msg_addr[`PHY_ADDR_WIDTH-1]) begin // it is IO. not goinig to mmc
+           msg_dst_fbits_mmc=msg_dst_fbits;// abs_mmc = `W_EDGE;
+           msg_dst_x_mmc = `OFF_CHIP_NODE_X;
+           msg_dst_y_mmc = `OFF_CHIP_NODE_Y;
+           off_chip=1'b1;
+	   end else begin // It is a message to MC
+           msg_dst_fbits_mmc=mc_dst_fbits;
+           msg_dst_x_mmc = mc_dst_x;
+           msg_dst_y_mmc = mc_dst_y;
+           off_chip=1'b0; //TODO should be asserted it if the mc is in another chip
+	   end  
+   end   
+                     
+    assign msg_dst_chipid_mmc = {off_chip,msg_dst_chipid[`CHIP_ID_WIDTH-2:0]}; 
+
+`endif
 
 always @ *
 begin
@@ -87,10 +138,17 @@ begin
                   msg_data_size,
                   8'd0,
 
+`ifdef PITON_EXTRA_MEMS
+                  msg_dst_chipid_mmc,
+                  msg_dst_x_mmc,
+                  msg_dst_y_mmc,
+                  msg_dst_fbits_mmc,
+`else
                   msg_dst_chipid,
                   msg_dst_x,
                   msg_dst_y,
                   msg_dst_fbits,
+`endif
                   msg_length,
                   msg_type,
                   msg_mshrid,

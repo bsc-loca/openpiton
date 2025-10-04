@@ -185,6 +185,11 @@ module l2_pipe1(
     output wire [`L2_DATA_INDEX_WIDTH-1:0] data_ecc_addr,
     output wire [`PHY_ADDR_WIDTH-1:0] error_addr,
 
+`ifdef PITON_EXTRA_MEMS
+    input wire [`NOC_CHIPID_WIDTH-1:0] chipid,
+    input wire [`NOC_X_WIDTH-1:0] coreid_x,
+    input wire [`NOC_Y_WIDTH-1:0] coreid_y,
+`endif
     output wire reg_rd_en,
     output wire reg_wr_en,
     output wire [`L2_ADDR_TYPE_WIDTH-1:0] reg_rd_addr_type,
@@ -996,6 +1001,11 @@ l2_pipe1_dpath dpath(
 );
 
 l2_encoder encoder(
+`ifdef PITON_EXTRA_MEMS
+    .chipid                 (chipid),
+    .coreid_x               (coreid_x),
+    .coreid_y               (coreid_y),
+`endif
     .msg_dst_chipid             (msg_send_dst_chipid),
     .msg_dst_x                  (msg_send_dst_x),
     .msg_dst_y                  (msg_send_dst_y),

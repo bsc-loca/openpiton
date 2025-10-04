@@ -43,8 +43,7 @@
 
 `define MEM_ADDR_WIDTH      64
 
-module fake_mem_ctrl(
-
+module fake_mem_ctrl (
     input wire clk,
     input wire rst_n,
 
@@ -52,12 +51,11 @@ module fake_mem_ctrl(
     input wire [`PITON_NOC2_WIDTH-1:0] noc_data_in,
     output reg noc_ready_in,
 
-
     output reg noc_valid_out,
     output  [`PITON_NOC3_WIDTH-1:0] noc_data_out,
     input wire noc_ready_out
-
 );
+
 localparam 
     //each word is 64 bit 
     NOC2_WORD_NUM = `PITON_NOC2_WIDTH/`NOC_DATA_WIDTH,
@@ -571,6 +569,11 @@ begin
 end
 
 l2_encoder encoder(
+`ifdef PITON_EXTRA_MEMS
+    .chipid                 ({`NOC_CHIPID_WIDTH{1'b0}}),
+    .coreid_x               ({`NOC_X_WIDTH{1'b0}}),
+    .coreid_y               ({`NOC_Y_WIDTH{1'b0}}),
+`endif
     .msg_dst_chipid             (msg_src_chipid),
     .msg_dst_x                  (msg_src_x),
     .msg_dst_y                  (msg_src_y),
@@ -737,11 +740,6 @@ begin
     end
 end
 
-
-always @ *
-begin
-    noc_valid_out = (buf_out_counter_f != 0);
-end
 
 /*
 always @ *
