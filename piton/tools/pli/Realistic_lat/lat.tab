@@ -1,0 +1,4 @@
+$delay_init		      call=delay_init_call
+$got_a_write_req_call call=got_a_write_req
+$got_a_read_req_call  call=got_a_read_req
+$get_Bandwidth_call   call=get_Bandwidth

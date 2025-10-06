@@ -58,6 +58,10 @@ extern int slam_random_call();
 
 extern int bw_tlb_reset_vld_call();
 
+extern int delay_init_call();
+extern int got_a_write_req_call();
+extern int got_a_read_req_call();
+extern int get_Bandwidth_call();
 int Size_32() { return (32); }
 int Size_64() { return (64); }
 
@@ -76,6 +80,10 @@ s_tfcell veriusertfs[] =
     {usertask, 0, 0, 0, write_64b_call, 0, "$write_64b"},
 
     {usertask, 0, 0, 0, bw_tlb_reset_vld_call, 0, "$bw_force_by_name"},
+    {usertask, 0, 0, 0, delay_init_call, 0, "$delay_init"},
+    {usertask, 0, 0, 0, got_a_write_req_call, 0, "$got_a_write_req"},
+    {usertask, 0, 0, 0, got_a_read_req_call, 0, "$got_a_read_req"},
+    {usertask, 0, 0, 0, get_Bandwidth_call, 0, "$get_Bandwidth"},
 
     {0}
 };
@@ -133,6 +141,34 @@ static void veriusertfs_register(void)
     task_data_p->type = vpiSysTask;
     task_data_p->tfname = "$bw_force_by_name";
     task_data_p->calltf = bw_tlb_reset_vld_call;
+    task_data_p->compiletf = 0;
+    vpi_register_systf(task_data_p);
+   // {usertask, 0, 0, 0, delay_init_call, 0, "$delay_init"},
+    task_data_p->type = vpiSysTask;
+    task_data_p->tfname = "$delay_init";
+    task_data_p->calltf = delay_init_call;
+    task_data_p->compiletf = 0;
+    vpi_register_systf(task_data_p);
+    
+     // {usertask, 0, 0, 0, got_a_write_req_call, 0, "$got_a_write_req"},
+    task_data_p->type = vpiSysTask;
+    task_data_p->tfname = "$got_a_write_req";
+    task_data_p->calltf = got_a_write_req_call;
+    task_data_p->compiletf = 0;
+    vpi_register_systf(task_data_p);
+    
+    
+    // {usertask, 0, 0, 0, got_a_read_req_call, 0, "$got_a_read_req"},
+    task_data_p->type = vpiSysTask;
+    task_data_p->tfname = "$got_a_read_req";
+    task_data_p->calltf = got_a_read_req_call;
+    task_data_p->compiletf = 0;
+    vpi_register_systf(task_data_p);
+
+    // {usertask, 0, 0, 0, get_Bandwidth_call, 0, "$get_Bandwidth"},
+    task_data_p->type = vpiSysTask;
+    task_data_p->tfname = "$get_Bandwidth";
+    task_data_p->calltf = get_Bandwidth_call;
     task_data_p->compiletf = 0;
     vpi_register_systf(task_data_p);
 }

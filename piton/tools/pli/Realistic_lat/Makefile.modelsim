@@ -1,0 +1,24 @@
+# Derived from piton/tools/pli/iop/Makefile
+
+include ${DV_ROOT}/tools/env/Makefile.system
+
+CPPFLAGS = -std=c++11
+CFLAGS += -I../ -fpic -DLINUX -DUSE_ACC -I${MODELSIM_HOME}/include
+
+LIB = liblat_pli_modelsim.a
+
+
+CSRCC =  bw_lat_mem_ctrl.cc lat.cc
+LIB_OBJC = ${CSRCC:%.cc=%.o}
+
+all: $(LIB)
+	rm -rf *.o
+
+$(LIB_OBJC):
+	$(CCC) $(CPPFLAGS) -c  $(CFLAGS)  -o $*.o $*.cc
+
+$(LIB): $(LIB_OBJC)
+	ar rv $(LIB) $(LIB_OBJC)
+
+clean:
+	rm -rf *.o ${LIB}

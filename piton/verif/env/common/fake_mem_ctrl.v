@@ -51,7 +51,7 @@ module fake_mem_ctrl (
     input wire [`PITON_NOC2_WIDTH-1:0] noc_data_in,
     output reg noc_ready_in,
 
-    output reg noc_valid_out,
+    output noc_valid_out,
     output  [`PITON_NOC3_WIDTH-1:0] noc_data_out,
     input wire noc_ready_out
 );
@@ -173,7 +173,7 @@ end
 
 always @ *
 begin
-     mem_header_in = (mem_valid_in)? {buf_in_mem_f[2], buf_in_mem_f[1], buf_in_mem_f[0]} : {`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0} ;
+    mem_header_in = (mem_valid_in)? {buf_in_mem_f[2], buf_in_mem_f[1], buf_in_mem_f[0]} : {`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0} ;
 end
 
 //Memory read/write
@@ -609,15 +609,25 @@ reg [`MSG_LENGTH_WIDTH-1:0] buf_out_counter_next;
 reg [3:0] buf_out_rd_ptr_f;
 reg [3:0] buf_out_rd_ptr_next;
 
+`ifdef PITON_LAT_MODULE
+wire noc_valid_out_tmp;
+wire [`PITON_NOC3_WIDTH-1:0] noc_data_out_tmp;
+wire noc_ready_out_tmp;
+`endif
 generate
 for (i=0;i<NOC3_WORD_NUM;i=i+1) begin : N3_
-    assign noc_data_out [(i+1)*`NOC_DATA_WIDTH-1: i*`NOC_DATA_WIDTH] =(buf_out_rd_ptr_f+i<9)? buf_out_mem_f[buf_out_rd_ptr_f+i] :`NOC_DATA_WIDTH'd0 ;
+`ifdef PITON_LAT_MODULE
+    assign noc_data_out_tmp [(i+1)*`NOC_DATA_WIDTH-1: i*`NOC_DATA_WIDTH] =(buf_out_rd_ptr_f+i<9)? buf_out_mem_f[buf_out_rd_ptr_f+i] :`NOC_DATA_WIDTH'd0 ;
+`else 
+assign noc_data_out [(i+1)*`NOC_DATA_WIDTH-1: i*`NOC_DATA_WIDTH] =(buf_out_rd_ptr_f+i<9)? buf_out_mem_f[buf_out_rd_ptr_f+i] :`NOC_DATA_WIDTH'd0 ;
+`endif
 end
 endgenerate
-always @ *
-begin
-    noc_valid_out = (buf_out_counter_f != 0);
-end
+`ifdef PITON_LAT_MODULE
+assign noc_valid_out_tmp = (buf_out_counter_f != 0);
+`else
+assign noc_valid_out = (buf_out_counter_f != 0);
+`endif
 
 always @ *
 begin
@@ -627,7 +637,11 @@ end
 
 always @ *
 begin
+    `ifdef PITON_LAT_MODULE
+    if (noc_valid_out_tmp && noc_ready_out_tmp)
+    `else
     if (noc_valid_out && noc_ready_out)
+    `endif
     begin
         buf_out_counter_next = (buf_out_counter_f > NOC3_WORD_NUM) ? buf_out_counter_f - NOC3_WORD_NUM : 0;
     end
@@ -660,7 +674,11 @@ begin
     begin
         buf_out_rd_ptr_next = 0;
     end
+    `ifdef PITON_LAT_MODULE
+    else if (noc_valid_out_tmp && noc_ready_out_tmp)
+    `else
     else if (noc_valid_out && noc_ready_out)
+    `endif
     begin
         buf_out_rd_ptr_next = buf_out_rd_ptr_f + NOC3_WORD_NUM;
     end
@@ -759,6 +777,7 @@ always @(posedge clk) begin
         $display("FakeMem: input: %h", noc_data_in, $time);
 `endif
     end
+`ifndef PITON_LAT_MODULE
     if (noc_valid_out & noc_ready_out) begin
 `ifdef VERILATOR
         $display("FakeMem: output %h", noc_data_out);
@@ -766,8 +785,172 @@ always @(posedge clk) begin
         $display("FakeMem: output %h", noc_data_out, $time);
 `endif
     end
+`else //PITON_LAT_MODULE
+    if (noc_valid_out_tmp & noc_ready_out_tmp) begin
+`ifdef VERILATOR
+        $display("FakeMem: output %h", noc_data_out_tmp);
+`else
+        $display("FakeMem: output %h", noc_data_out_tmp, $time);
+`endif
+    end
+`endif //PITON_LAT_MODULE
 end
 `endif // endif MINIMAL_MONITORING
 
+//apply RD delay estimations
+`ifdef PITON_LAT_MODULE
+
+`ifdef PITON_HBM_LAT
+    localparam MAX_RD_DELAY = `PITON_HBM_LAT;  // maximum RD pipeline stage delay    
+    localparam DELAYw = (MAX_RD_DELAY>1) ? $clog2(MAX_RD_DELAY+1) : 1;   
+    wire [DELAYw-1 : 0] rd_lat_in = `PITON_HBM_LAT;
+`endif //PITON_HBM_LAT
+
+`ifdef PITON_LAT_FILE
+//!metro_chipset && !PITON_EXTRA_MEMS
+`ifndef METRO_CHIPSET
+    `define RD_LAT_EN
+`else //METRO_CHIPSET
+`ifndef PITON_EXTRA_MEMS
+    `define RD_LAT_EN
+`endif //PITON_EXTRA_MEMS
+`endif //METRO_CHIPSET
+
+`ifdef RD_LAT_EN
+    `ifdef PITON_DPI
+    import "DPI-C" function void delay_init_call(string str, int frq);
+    import "DPI-C" function longint got_a_write_req_call (longint clk_);
+    import "DPI-C" function longint got_a_read_req_call (longint clk_);
+    import "DPI-C" function real get_Bandwidth_call ();
+    `endif //PITON_DPI
+    
+    wire [31 : 0] rd_lat_in;
+    initial begin 
+    `ifdef PITON_DPI
+        delay_init_call(`PITON_LAT_FILE,`PITON_LAT_FREQ);
+    `else 
+        $delay_init(`PITON_LAT_FILE,`PITON_LAT_FREQ);
+    `endif //PITON_DPI
+    end
+    
+    reg [63: 0] clk_counter,rd_lat;
+    
+    always @(posedge clk) begin 
+        if(~rst_n)begin 
+            clk_counter<=64'd0;
+        end else begin 
+            clk_counter<=clk_counter +1'b1;
+        end
+    end
+    
+    always @(posedge clk) begin 
+        if(rst_n & mem_valid_in & mem_ready_in) begin
+            case (msg_type)
+            `MSG_TYPE_LOAD_MEM,`MSG_TYPE_NC_LOAD_REQ: begin 
+            `ifdef PITON_DPI
+                rd_lat = got_a_read_req_call(clk_counter);
+            `else 
+                $got_a_read_req(clk_counter,rd_lat);
+            `endif //PITON_DPI
+            end
+            `MSG_TYPE_STORE_MEM,`MSG_TYPE_NC_STORE_REQ: begin 
+            `ifdef PITON_DPI
+                rd_lat = got_a_write_req_call(clk_counter);
+            `else 
+                $got_a_write_req(clk_counter,rd_lat);
+            `endif 
+            end 
+            endcase
+           // $display ("clk is %d , latency is %d",clk_counter , rd_lat_in);
+        end//mem_valid_in
+    end//always
+    
+    assign rd_lat_in = rd_lat [31 : 0];
+`endif //RD_LAT_EN 
+`endif //PITON_LAT_FILE
+
+`ifdef  PITON_LAT_FILE
+`ifdef  METRO_CHIPSET
+`ifdef  PITON_EXTRA_MEMS
+    //specific case. Each mem ctrl is mapped to a different physical processor. 
+    //and delay model is mapped to the chipset.
+    //we need to send rd,wr to chipset using mpi
+    //read by crossref via metro_chipset.sv
+    reg  got_rd,got_wr;
+    
+    always @(*) begin 
+        got_rd=1'b0;
+        got_wr=1'b0;
+        if(mem_valid_in & rst_n & mem_ready_in ) begin
+            case (msg_type)
+            `MSG_TYPE_LOAD_MEM,`MSG_TYPE_NC_LOAD_REQ: begin 
+                got_rd=1'b1;
+            end
+            `MSG_TYPE_STORE_MEM,`MSG_TYPE_NC_STORE_REQ: begin 
+                got_wr=1'b1;
+            end 
+            endcase
+        end //mem_valid_in
+    end
+`endif //PITON_EXTRA_MEMS
+`endif //METRO_CHIPSET
+`endif //PITON_LAT_FILE
+
+    hbm_delay #(
+        .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+    ) the_hbm_delay (
+    .rd_lat_in      (rd_lat_in),
+    .clk            (clk           ), 
+    .rst_n          (rst_n         ), 
+    .noc_valid_in   (noc_valid_out_tmp  ), 
+    .noc_data_in    (noc_data_out_tmp   ), 
+    .noc_ready_in   (noc_ready_out_tmp ), 
+    .noc_valid_out  (noc_valid_out ), 
+    .noc_data_out   (noc_data_out  ), 
+    .noc_ready_out  (noc_ready_out ));
+    
+    `ifndef MINIMAL_MONITORING
+    always @(posedge clk) begin
+        if (noc_valid_out & noc_ready_out) begin
+            $display("Delay: output %h", noc_data_out, $time);
+        end
+    end
+    `endif //MINIMAL_MONITORING
+    
+/*
+    integer tmp1,tmp2;
+    initial begin 
+        tmp1=$fopen("delay.txt","w");
+        tmp2=$fopen("fake.txt","w");
+    end
+    always @(posedge clk) begin
+        if (noc_valid_out & noc_ready_out) begin
+            $fdisplay(tmp1,"%h", noc_data_out);
+            $fflush(tmp1);
+        end
+    
+        if (noc_valid_out_tmp & noc_ready_out_tmp) begin
+            $fdisplay(tmp2,"%h", noc_data_out_tmp);
+            $fflush(tmp2);
+        end
+end
+*/
+
+`endif //PITON_LAT_MODULE
+
+`ifdef PITON_METRO_MPI
+`ifdef VERILATOR
+    reg  [63:0] flit_o_cnts,flit_i_cnts;
+    always @ (posedge clk) begin
+        if (!rst_n) begin
+            flit_o_cnts<=0;
+            flit_i_cnts<=0;
+        end else begin
+            if (noc_valid_in & noc_ready_in) flit_i_cnts <= flit_i_cnts + 1'b1; 
+            if (noc_valid_out & noc_ready_out) flit_o_cnts <= flit_o_cnts + 1'b1;
+        end
+    end
+`endif
+`endif
 endmodule
 

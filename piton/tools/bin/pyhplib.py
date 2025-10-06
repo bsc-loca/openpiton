@@ -49,6 +49,8 @@ PITON_NUM_TILES = int(os.environ.get('PITON_NUM_TILES', '-1'))
 PITON_EXTRA_MEMS = int(os.environ.get('PITON_EXTRA_MEMS', '-1'))
 PITON_MC_INDICES = (os.environ.get('PITON_MC_INDICES', '0'))
 
+PITON_HBM_LAT = int(os.environ.get('PITON_HBM_LAT', '-1'))
+PITON_LAT_FILE = (os.environ.get('PITON_LAT_FILE', '-1'))
 PITON_NETWORK_CONFIG = (os.environ.get("PITON_NETWORK_CONFIG", "2dmesh_config"))
 
 if PITON_X_TILES == -1:

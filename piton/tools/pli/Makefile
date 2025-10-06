@@ -60,7 +60,8 @@ LIB_A_ICARUS=	$(TOOL_PLI_DIR)/mem/libmem_pli_icarus.a \
 
 LIB_A_MODELSIM=	$(TOOL_PLI_DIR)/mem/libmem_pli_modelsim.a \
 		$(TOOL_PLI_DIR)/socket/libsocket_pli_modelsim.a \
-		$(TOOL_PLI_DIR)/iop/libiob_modelsim.a
+		$(TOOL_PLI_DIR)/iop/libiob_modelsim.a \
+		$(TOOL_PLI_DIR)/Realistic_lat/liblat_pli_modelsim.a
 		
 # riviera .a libraries
 
@@ -160,6 +161,10 @@ $(TOOL_PLI_DIR)/iop/libiob_modelsim.a:
 	(rm -f $(LIB_PATH)/libiob_modelsim.a)
 	cp $@ $(LIB_PATH)
 	
+$(TOOL_PLI_DIR)/Realistic_lat/liblat_pli_modelsim.a:
+	(cd $(TOOL_PLI_DIR)/Realistic_lat; make -f Makefile.modelsim)
+	(rm -f $(LIB_PATH)/liblat_pli_modelsim.a)
+	cp $@ $(LIB_PATH)
 # Riviera .a libraries
 
 $(TOOL_PLI_DIR)/mem/libmem_pli_riviera.a:
@@ -284,6 +289,7 @@ libmodelsimpli.so: $(LIB_A_MODELSIM) veriuser_modelsim.o
 	$(CXX) -shared -o $@ veriuser_modelsim.o \
 	-L$(LIB_PATH) -lsocket_pli_modelsim \
 	-lmem_pli_modelsim \
+	-llat_pli_modelsim \
 	-liob_modelsim \
         $(ADDITIONAL_ARGS)
 	(rm -f $(LIB_PATH)/$@)

@@ -176,6 +176,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'hpdc' => 0,
         'sarg' => 0,
         'lox' => 0,
+        'hbm_lat' => 0,
         'multimc' => 0,
         'multimc_indices' => "",
         'pico' => 0,
@@ -335,6 +336,7 @@ GetOptions (\%opt,
             'hpdc!',
             'sarg!',
             'lox!',
+            'hbm_lat=s',
             'multimc=s',
             'multimc_indices=s',
             'pico!',
@@ -1563,6 +1565,8 @@ sub generic_sim_build
       $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
       $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
       $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+      $build_cmd .= "$dv_root/tools/pli/Realistic_lat/bw_lat_mem_ctrl.cc " if(defined $ENV{PITON_LAT_FILE});
+      $build_cmd .= "$dv_root/tools/pli/Realistic_lat/lat.cc " if(defined $ENV{PITON_LAT_FILE});
       $build_cmd .= "--top-module cmp_top " ;
       $build_cmd .= "-Wno-fatal " ;
       $build_cmd .= "-Wno-BLKANDNBLK " ;
@@ -1573,6 +1577,7 @@ sub generic_sim_build
       $build_cmd .= "-CFLAGS -DPITON_DPI " ;
       #$build_cmd .= "-CFLAGS -lstdc++ " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+      $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/Realistic_lat " if(defined $ENV{PITON_LAT_FILE});
       $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
 
       if ($opt{log_all}) {
@@ -3011,6 +3016,27 @@ if ($opt{multimc}>0){
   }
   my $mmc_num= $ENV{PITON_EXTRA_MEMS};
   my $mmc_num_tmp = ($mmc_num==0)? 1 : $mmc_num;
+  
+  # fake-mem RD delay configuration
+  my $zip_file = 
+    (-f "$opt{hbm_lat}" && $opt{hbm_lat} =~ /\.zip$/) ? $opt{hbm_lat} :
+    (-f "$ENV{DV_ROOT}/$opt{hbm_lat}" && $opt{hbm_lat} =~ /\.zip$/) ? "$ENV{DV_ROOT}/$opt{hbm_lat}" :
+    undef;
+  if (!defined $opt{hbm_lat}) {
+    $ENV{PITON_HBM_LAT} = 0;
+  } elsif ($opt{hbm_lat} =~ /^[+-]?\d+$/) { # it is integer
+    $ENV{PITON_HBM_LAT} = $opt{hbm_lat};
+  } elsif (defined $zip_file) { # zip file
+    my $zip_name = basename($zip_file, '.zip');
+    my $dest_dir = "$ENV{DV_ROOT}/../build/$zip_name";
+    `unzip -o -j $zip_file -d $dest_dir`;
+    die ("DIE. Failed to read zip file: $zip_file") if ($?);
+    $ENV{PITON_LAT_FILE} = $dest_dir;
+  } else {
+    die("Error: $opt{hbm_lat} * $zip_file * is invalid. It should be an integer or a path to a zip file.\n");
+  }
+  print "$prg: using realstic delay carve $ENV{PITON_LAT_FILE}\n" if(defined $ENV{PITON_LAT_FILE});  
+
   my $pton_x_tiles="";
   my $pton_y_tiles="";
   my $pton_num_tiles="";
@@ -3357,7 +3383,20 @@ VERILOG RUNTIME RELATED
              sims -msm_build -ariane -x_tiles=2 -y_tiles=2 \
                   -multimc=2 -multimc_indices=0,3 -hbm
            This configuration connects two memory controllers to tile 0 (0,0)
-           and tile 3 (1,1).    
+           and tile 3 (1,1).
+
+    -hbm_lat=ZIP_FILE | FIX_LATENCY
+           Specifies the memory controller latency model. If an integer is
+           provided, it sets a fixed latency value (in cycles). If a ZIP file
+           is provided, the memory controller uses a realistic delay model
+           based on the latency curves contained in the archive.
+           Example model:
+             piton/tools/pli/Realistic_lat/curves_src/cxl.zip
+           For more details, see:
+           For more details, see:
+             P. Esmaili-Dokht, F. Sgherzi, V. S. Girelli, I. Boixaderas, M. Carmin, A. Monemi, et al.,
+             A Mess of Memory System Benchmarking, Simulation, and Application Profiling,
+             Proceedings of the 57th IEEE/ACM International Symposium on Microarchitecture (MICRO), 2024, pp. 136-152.
     -vcs_run/-novcs_run
            runs the vcs simulation (simv). defaults to off.
 

@@ -41,7 +41,7 @@
 `define DEFINE_VH
 
 // Uncomment to define USE_GENERIC_SRAM_IMPLEMENTATION to use the old unsynthesizable BRAM
- `define USE_GENERIC_SRAM_IMPLEMENTATION
+`define USE_GENERIC_SRAM_IMPLEMENTATION
 `ifndef USE_GENERIC_SRAM_IMPLEMENTATION
 `define SYNTHESIZABLE_BRAM
 `endif
@@ -63,6 +63,13 @@ print("`define PITON_NOC2_WIDTH %d" % NOC2_WIDTH)
 print("`define PITON_NOC3_WIDTH %d" % NOC3_WIDTH)
 if PITON_EXTRA_MEMS > 0:
   print("`define PITON_EXTRA_MEMS %d" % PITON_EXTRA_MEMS)
+if PITON_HBM_LAT > 0:
+  print("`define PITON_HBM_LAT %d" % PITON_HBM_LAT)  
+  print("`define PITON_LAT_MODULE ")  
+if PITON_LAT_FILE != "-1":
+  print("`define PITON_LAT_FILE \"%s\"" % PITON_LAT_FILE)
+  print("`define PITON_LAT_MODULE ")  
+  print("`define PITON_LAT_FREQ  1500") 
 %>
 
 // NoC interface
