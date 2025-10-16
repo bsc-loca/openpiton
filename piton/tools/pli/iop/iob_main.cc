@@ -53,6 +53,7 @@ extern "C" void write_64b_call();
 extern "C" void init_oram_call();
 #else // ifndef PITON_DPI
 extern "C" void init_jbus_model_call(char *str, int oram);
+extern "C" void metro_mpi_init_jbus_model_call(char *str, int oram);
 extern "C" unsigned long long read_64b_call(unsigned long long key_var);
 extern "C" void write_64b_call(unsigned long long key_var, unsigned long long val);
 extern "C" int drive_iob();
@@ -94,6 +95,14 @@ void init_jbus_model_call(){
   oram      = 0;
 #endif // ifndef PITON_DPI
 
+  iob_inst.manual_init((char *)"diag.ev");
+  sysMem              = b_create();//create
+  if (!oram)
+          read_mem(str, &sysMem);//read memory
+  for(idx = 0; idx < 32; idx++)pli_var.last_addr[idx] = oram ? -1 : 0;
+}
+void metro_mpi_init_jbus_model_call(char *str, int oram) {
+  int   idx;
   iob_inst.manual_init((char *)"diag.ev");
   sysMem              = b_create();//create
   if (!oram)

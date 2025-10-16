@@ -27,26 +27,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Vcmp_top.h"
 #include "verilated.h"
 #include <iostream>
-#include <csignal>
-//#define VERILATOR_VCD
-#if defined(VERILATOR_VCD)
+#ifdef VERILATOR_VCD
 #include "verilated_vcd_c.h"
-#elif defined(VERILATOR_FST)
-#include "verilated_fst_c.h"
 #endif
-
-extern "C" void init_jbus_model_call(const char *str, int oram);
+#include <iomanip>
 
 uint64_t main_time = 0; // Current simulation time
 uint64_t clk = 0;
 Vcmp_top* top;
-#if defined(VERILATOR_VCD)
+#ifdef VERILATOR_VCD
 VerilatedVcdC* tfp;
-#elif defined(VERILATOR_FST)
-VerilatedFstC* tfp;
 #endif
-
-extern "C" void metro_mpi_init_jbus_model_call(const char *str, int oram);
 // This is a 64-bit integer to reduce wrap over issues and
 // // allow modulus. You can also use a double, if you wish.
 double sc_time_stamp () { // Called by $time in Verilog
@@ -58,13 +49,13 @@ void tick() {
     top->core_ref_clk = !top->core_ref_clk;
     main_time += 250;
     top->eval();
-#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
+#ifdef VERILATOR_VCD
     tfp->dump(main_time);
 #endif
     top->core_ref_clk = !top->core_ref_clk;
     main_time += 250;
     top->eval();
-#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
+#ifdef VERILATOR_VCD
     tfp->dump(main_time);
 #endif
 }
@@ -115,9 +106,9 @@ void reset_and_init() {
     std::cout << "Before second ticks" << std::endl << std::flush;
 //    // Wait for PLL lock
 //    wait( pll_lock == 1'b1 );
-    while (!top->pll_lock) {
+    /*while (!top->pll_lock) {
         tick();
-    }
+    }*/
 
     std::cout << "Before third ticks" << std::endl << std::flush;
 //    // After 10 cycles turn on chip-level clock enable
@@ -150,50 +141,35 @@ void reset_and_init() {
     std::cout << "Reset complete" << std::endl << std::flush;
 }
 
-void exit_handler(int _signal) {
-    std::cout << "Interrupted!" << std::endl;
-    
-    #if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
-    std::cout << "Trace done" << std::endl;
-    tfp->close();
-    #endif
-    
-    exit(1);
-}
-
 int main(int argc, char **argv, char **env) {
 std::cout << "Started" << std::endl << std::flush;
 Verilated::commandArgs(argc, argv);
 top = new Vcmp_top;
 std::cout << "Vcmp_top created" << std::endl << std::flush;
 
-#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
+#ifdef VERILATOR_VCD
 Verilated::traceEverOn(true);
-#if defined(VERILATOR_VCD)
 tfp = new VerilatedVcdC;
-#elif defined(VERILATOR_FST)
-tfp = new VerilatedFstC;
-#endif
 top->trace (tfp, 99);
 tfp->open ("my_top.vcd");
 
 Verilated::debug(1);
 #endif
 
-std::signal(SIGINT, exit_handler);
-std::signal(SIGTERM, exit_handler);
-std::signal(SIGSEGV, exit_handler);
-std::signal(SIGABRT, exit_handler);
-std::signal(SIGILL, exit_handler);
-
 reset_and_init();
+
+//top->test_ena = 1;
 
 while (!Verilated::gotFinish()) { tick(); }
 
-#if defined(VERILATOR_VCD) || defined(VERILATOR_FST)
+std::cout << std::setprecision(10) << sc_time_stamp() << std::endl;
+
+#ifdef VERILATOR_VCD
 std::cout << "Trace done" << std::endl;
 tfp->close();
 #endif
+
+top->final();
 
 delete top;
 exit(0);

@@ -23,8 +23,8 @@ stages:
   - sim_isa_tests
   - sim_benchmarks
   - sim_multicore
+  - sim_mpi_mmc
   - linting
-  - sim_mmc
 
 variables:
   GIT_STRATEGY: clone
@@ -64,14 +64,16 @@ default:
 
     ## Setup Environment
     - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
+    - export OMPI_ALLOW_RUN_AS_ROOT=1
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
 .rule_only_merge:
   - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
 
 .regression_report:
   script:
-    - regreport $(ls -td -- */ | head -n 1) | grep -E "^Diag" && echo " " && regreport $(ls -td -- */ | head -n 1) -summary && echo " "
-    - regreport $(ls -td -- */ | head -n 1) -summary | grep "REGRESSION PASSED" && echo "Simulation PASSED" || (echo "Simulation AILED" && exit 1)
+    - regreport $(ls -td -- */ | grep -E '^([0-9_]+)/$' | head -n 1) | grep -E "^Diag" && echo " " && regreport $(ls -td -- */ | grep -E '^([0-9_]+)/$' | head -n 1) -summary && echo " "
+    - regreport $(ls -td -- */ | grep -E '^([0-9_]+)/$' | head -n 1) -summary | grep "REGRESSION PASSED" && echo "Simulation PASSED" || (echo "Simulation AILED" && exit 1)
 
 .sargantana_regression_base:
   dependencies:
@@ -88,7 +90,6 @@ default:
     - !reference [default, before_script]
     - source piton/lox_setup.sh
   timeout: 10h
-
 .ariane_regression_base:
   dependencies:
     - ariane_build
@@ -131,6 +132,7 @@ sargantana_build:
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=1 -y_tiles=2 -sarg -build_id=sargantana_msm_1_2
     - sims -vlt_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_vlt_2_2
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_msm_2_2
+    - sims -metro_mpi_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -sarg -build_id=sargantana_mpi_2_2
   artifacts:
     expire_in: 1 day
     when: always
@@ -208,6 +210,25 @@ sargantana_multicore:
     - sims -sim_type=$SIM_TYPE $SIMS_FLAGS -build_id=sargantana_${SIM_TYPE}_${X_TILES}_${Y_TILES}
       -group sarg_tile$(($X_TILES * $Y_TILES))_simple
       -group sarg_tile$(($X_TILES * $Y_TILES))_mt_benchmarks
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+sargantana_mpi:
+  extends: .sargantana_regression_base
+  stage: sim_mpi_mmc
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/
+    - if: $CI_COMMIT_BRANCH   # run also for normal commits
+  needs: [sargantana_build]
+  script:
+    - cd build
+    - sims -sim_type=metro_mpi $SIMS_FLAGS -build_id=sargantana_mpi_2_2
+      -group sarg_tile4_simple
+      -group sarg_tile4_mt_benchmarks
     - !reference [.regression_report, script]
   artifacts:
     expire_in: 1 day
@@ -337,7 +358,8 @@ ariane_build:
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2_mmc_real -multimc=2 -multimc_indices=0,3 -hbm -hbm_lat=tools/pli/Realistic_lat/curves_src/cxl.zip
     - sims -vlt_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2_mmc_real -multimc=2 -multimc_indices=0,3 -hbm -hbm_lat=tools/pli/Realistic_lat/curves_src/cxl.zip
     - sims -msm_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_msm_2_2_mmc_fix  -multimc=2 -multimc_indices=1,2 -hbm -hbm_lat=100 -pronoc
-    - sims -vlt_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2_mmc_fix  -multimc=2 -multimc_indices=1,2 -hbm -hbm_lat=100 -pronoc
+    - sims -vlt_build $MSM_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_vlt_2_2_mmc_fix  -multimc=2 -multimc_indices=1,2 -hbm -hbm_lat=100 -pronoc   
+    - sims -metro_mpi_build $VLT_BUILD_FLAGS -x_tiles=2 -y_tiles=2 -ariane -build_id=ariane_mpi_2_2_mmc  -multimc=2 -multimc_indices=1,2 -hbm 
   artifacts:
     expire_in: 1 day
     when: always
@@ -422,7 +444,7 @@ ariane_multicore:
 
 ariane_mmc:
   extends: .ariane_regression_base
-  stage: sim_mmc
+  stage: sim_mpi_mmc
   rules:
     !reference [.rule_only_merge]
   needs: [ariane_build, ariane_multicore]
@@ -448,6 +470,24 @@ ariane_mmc:
     paths:
       - ./build
 
+
+ariane_mpi:
+  extends: .ariane_regression_base
+  stage: sim_mpi_mmc
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/
+    - if: $CI_COMMIT_BRANCH   # run also for normal commits
+  needs: [ariane_build]  
+  script:
+    - cd build
+    - sims -sim_type=metro_mpi $SIMS_FLAGS -build_id=ariane_mpi_2_2_mmc
+      -group ariane_tile4_mmc_simple
+    - !reference [.regression_report, script]
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
 ################################################################################
 # ARIANE (w/ HPDC)
 ################################################################################

@@ -101,6 +101,13 @@ ucli.key
 *.h.tmp
 *.tmp.v
 *.tmp.h
+*.tmp.sv
+
+# Ignore metro_mpi config file as they are authogenrated from [sys].conf
+piton/tools/src/sims/metro_tile.config
+piton/tools/src/sims/metro_fake_mem.config
+piton/tools/src/sims/metro_chipset.config
+
 
 # Ignore generated .pyc files (specifically for pyhplib)
 *.pyc

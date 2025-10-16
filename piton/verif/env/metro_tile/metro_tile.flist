@@ -1,0 +1,8 @@
++incdir+../../../design/include
++incdir+../../../design/chipset/include
++incdir+../manycore
++incdir+.
+metro_mpi_pkg.sv
+metro_tile.sv
+metro_hpm.sv
+

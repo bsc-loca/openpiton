@@ -1,0 +1,401 @@
+// Modified by Princeton University on June 9th, 2015
+// ========== Copyright Header Begin ==========================================
+//
+// OpenSPARC T1 Processor File: cmp_top.v
+// Copyright (c) 2006 Sun Microsystems, Inc.  All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES.
+//
+// The above named program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public
+// License version 2 as published by the Free Software Foundation.
+//
+// The above named program is distributed in the hope that it will be
+// useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+//
+// You should have received a copy of the GNU General Public
+// License along with this work; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+// ========== Copyright Header End ============================================
+////////////////////////////////////////////////////////
+
+`ifndef USE_TEST_TOP // don't compile if user wants to use deprecated TOPs
+`include "sys.h"
+`include "iop.h"
+`include "cross_module.tmp.h"
+`include "ifu.tmp.h"
+`include "define.tmp.h"
+`include "piton_system.vh"
+`include "jtag.vh"
+`include "l2.tmp.h"
+`include "l15.tmp.h"
+
+<%
+    from pyhplib import *
+%>
+
+<%
+DMBR_BIN_NUM = 10
+import pyhplib
+from riscvlib import *
+import os
+from pyhplib import *
+import riscvlib
+import time
+
+if PITON_ARIANE:
+  devices = pyhplib.ReadDevicesXMLFile()
+  core = "Ariane"
+
+  # just use a default frequency for device tree generation if not defined
+  sysFreq = 50000000
+  if 'CONFIG_SYS_FREQ' in os.environ:
+    sysFreq = int(os.environ['CONFIG_SYS_FREQ'])
+
+  timeStamp = time.strftime("%b %d %Y %H:%M:%S", time.localtime())
+  gen_riscv_dts(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp) 
+  get_bootrom_info(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
+  
+ 
+
+if PITON_SARG:
+  devices = pyhplib.ReadDevicesXMLFile()
+  core = "Sargantana"
+   
+  # just use a default frequency for device tree generation if not defined
+  sysFreq = 50000000
+  if 'CONFIG_SYS_FREQ' in os.environ:
+    sysFreq = int(os.environ['CONFIG_SYS_FREQ'])
+
+  timeStamp = time.strftime("%b %d %Y %H:%M:%S", time.localtime())
+  
+  gen_riscv_dts(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp) 
+ 
+  
+  get_bootrom_info(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
+  
+%>
+
+`timescale 1ps/1ps
+module metro_chipset (
+    core_ref_clk,
+    sys_rst_n,
+    pll_rst_n,
+    clk_en,
+
+    pll_bypass,
+    pll_rangea,
+    pll_lock,
+    clk_mux_sel,
+    async_mux,
+    diag_done,
+    ok_iob,
+
+    noc_chanel_in    ,
+    noc_chanel_out    ,
+    smart_max,
+    flit_o_cnts,
+    flit_i_cnts
+);
+
+import metro_mpi_pkg::*;
+
+`ifdef PITON_PRONOC
+    import pronoc_pkg_N1::*;
+    import pronoc_pkg_N2::*;
+    import pronoc_pkg_N3::*;
+`endif
+
+localparam NOC_CHANEL_w = $bits(noc_chanel_t);     
+
+input reg                             core_ref_clk;
+input reg                             sys_rst_n;
+input reg                             pll_rst_n;
+input reg                             clk_en;
+input reg                             pll_bypass;
+input reg [4:0]                       pll_rangea;
+output wire                           pll_lock;
+input reg [1:0]                       clk_mux_sel;
+input reg                             async_mux;
+input                                 diag_done;
+input                                 ok_iob;
+
+input  noc_chanel_t noc_chanel_in;
+output noc_chanel_t noc_chanel_out;
+output [31 : 0] smart_max;
+output [63 : 0]   flit_o_cnts,flit_i_cnts;
+
+
+wire                            processor_offchip_noc1_valid;
+wire [`PITON_NOC1_WIDTH-1:0]    processor_offchip_noc1_data;
+wire                            processor_offchip_noc1_yummy;
+wire                            processor_offchip_noc2_valid;
+wire [`PITON_NOC2_WIDTH-1:0]    processor_offchip_noc2_data;
+wire                            processor_offchip_noc2_yummy;
+wire                            processor_offchip_noc3_valid;
+wire [`PITON_NOC3_WIDTH-1:0]    processor_offchip_noc3_data;
+wire                            processor_offchip_noc3_yummy;
+
+wire                            offchip_processor_noc1_valid;
+wire [`PITON_NOC1_WIDTH-1:0]    offchip_processor_noc1_data;
+wire                            offchip_processor_noc1_yummy;
+wire                            offchip_processor_noc2_valid;
+wire [`PITON_NOC2_WIDTH-1:0]    offchip_processor_noc2_data;
+wire                            offchip_processor_noc2_yummy;
+wire                            offchip_processor_noc3_valid;
+wire [`PITON_NOC3_WIDTH-1:0]    offchip_processor_noc3_data;
+wire                            offchip_processor_noc3_yummy;
+
+initial begin 
+ $display("Cache Configuration:");
+ $display("\tL2   size:%d,\t associativity:%d",`L2_SIZE,`L2_WAYS);
+ $display("\tL1.5 size:%d,\t associativity:%d",`CONFIG_L15_SIZE,`CONFIG_L15_ASSOCIATIVITY);
+ $display("\tL1D  size:%d,\t associativity:%d",`CONFIG_L1D_SIZE,`CONFIG_L1D_ASSOCIATIVITY);
+ $display("\tL1I  size:%d,\t associativity:%d",`CONFIG_L1I_SIZE,`CONFIG_L1I_ASSOCIATIVITY);
+ 
+ `ifdef PITON_PRONOC
+ $display("NoC Configuration: ProNoC");
+ `else 
+  $display("NoC Configuration: Default");
+ `endif
+ $display("\tNOC1 Width:%d",`PITON_NOC1_WIDTH);
+ $display("\tNOC2 Width:%d",`PITON_NOC2_WIDTH);
+ $display("\tNOC3 Width:%d",`PITON_NOC3_WIDTH);
+`ifdef PITON_NO_CHIP_BRIDGE
+    $display("**Warning: Chip Bridge Disable"); 
+    $display("\t     Only one clock is used in the system"); 
+    $display("Clock frequency = 1000 MHz"); 
+`endif // PITON_NO_CHIP_BRIDGE
+end
+
+
+////////////////////////////////////////////////////////
+// SYNTHESIZABLE CHIPSET
+///////////////////////////////////////////////////////
+
+/*
+integer j;
+always @( posedge core_ref_clk )begin
+        for(j=0;j<3;j++) begin 
+            if(noc_chanel_in.valid[j] )  $display("noc%d_dat_in=%h",j,noc_chanel_in .data[j]); 
+            if(noc_chanel_out.valid[j] )  $display("noc%d_dat_out=%h",j,noc_chanel_out .data[j]); 
+        end
+end
+*/
+
+/*
+always @(posedge core_ref_clk)begin 
+    if(processor_offchip_noc1_valid) $display("noc1_dat_in=%h",processor_offchip_noc1_data); 
+    if(processor_offchip_noc2_valid) $display("noc2_dat_in=%h",processor_offchip_noc2_data); 
+    if(processor_offchip_noc3_valid) $display("noc3_dat_in=%h",processor_offchip_noc3_data); 
+    
+end
+*/
+
+`ifdef PITON_PRONOC
+
+assign smart_max = SMART_MAX_N1;
+wire pronoc_reset = ~sys_rst_n;
+
+//off chip connection 
+<%
+    t='''
+    //NOC$
+
+    wire [RAw_N$-1 : 0] tile_0_0_current_r_addr$;
+    piton_to_pronoc_wrapper_N$ #(.FLATID_WIDTH(`JTAG_FLATID_WIDTH),.CHIP_SET_PORT(CHIP_SET_PORT)) pi2pr_wrapper$
+    (
+    .default_chipid({`NOC_CHIPID_WIDTH{1'b0}}), .default_coreid_x({`NOC_X_WIDTH{1'b0}}), .default_coreid_y({`NOC_Y_WIDTH{1'b0}}), .flat_tileid({`JTAG_FLATID_WIDTH{1'b0}}),    
+    .reset(pronoc_reset),
+    .clk (core_ref_clk),
+    .dataIn(offchip_processor_noc$_data),
+    .validIn(offchip_processor_noc$_valid),
+    .yummyIn(processor_offchip_noc$_yummy),
+    .chan_out(noc_chanel_out.smartflit_chanel_N$),
+    .current_r_addr_i(tile_0_0_current_r_addr$)
+    );
+
+    pronoc_to_piton_wrapper_N$ #(.FLATID_WIDTH(`JTAG_FLATID_WIDTH),.PORT_NUM(CHIP_SET_PORT)) pr2pi_wrapper$
+    (
+    .default_chipid({`NOC_CHIPID_WIDTH{1'b0}}), .default_coreid_x({`NOC_X_WIDTH{1'b0}}), .default_coreid_y({`NOC_Y_WIDTH{1'b0}}), .flat_tileid({`JTAG_FLATID_WIDTH{1'b0}}),    
+    .reset(pronoc_reset),
+    .clk (core_ref_clk),
+    .dataOut(processor_offchip_noc$_data),
+    .validOut(processor_offchip_noc$_valid),
+    .yummyOut(offchip_processor_noc$_yummy),
+    .chan_in(noc_chanel_in.smartflit_chanel_N$),
+    .current_r_addr_o(tile_0_0_current_r_addr$)
+    );
+    '''
+    for k in [1,2,3]:
+        tt = t        
+        tt = tt.replace("$", repr(k));
+        print(tt)
+
+%>
+
+`else  //ProNoC
+
+    assign smart_max = 0;
+
+    assign processor_offchip_noc1_valid  =noc_chanel_in.valid [0]      ;
+    assign processor_offchip_noc1_data   =noc_chanel_in.data1      ;
+    assign noc_chanel_out.yummy[0]       =processor_offchip_noc1_yummy ;
+
+    assign processor_offchip_noc2_valid  =noc_chanel_in.valid [1]      ;
+    assign processor_offchip_noc2_data   =noc_chanel_in.data2      ;
+    assign noc_chanel_out.yummy[1]       =processor_offchip_noc2_yummy ;
+
+    assign processor_offchip_noc3_valid  =noc_chanel_in.valid [2]      ;
+    assign processor_offchip_noc3_data   =noc_chanel_in.data3      ;
+    assign noc_chanel_out.yummy[2]       =processor_offchip_noc3_yummy ;
+
+    assign noc_chanel_out.valid[0]       =offchip_processor_noc1_valid ;
+    assign noc_chanel_out.data1       =offchip_processor_noc1_data  ;
+    assign offchip_processor_noc1_yummy  =noc_chanel_in.yummy [0]      ;
+
+    assign noc_chanel_out.valid[1]       =offchip_processor_noc2_valid ;
+    assign noc_chanel_out.data2       =offchip_processor_noc2_data  ;
+    assign offchip_processor_noc2_yummy  =noc_chanel_in.yummy [1]      ;
+
+    assign noc_chanel_out.valid[2]       =offchip_processor_noc3_valid ;
+    assign noc_chanel_out.data3     =offchip_processor_noc3_data  ;
+    assign offchip_processor_noc3_yummy  =noc_chanel_in.yummy [2]      ;
+
+`endif // `else
+
+
+chipset chipset(
+    .chipset_clk(core_ref_clk),
+
+    .rst_n(sys_rst_n),
+
+    .piton_prsnt_n(1'b0),
+    .piton_ready_n(1'b0),
+
+`ifndef PITON_BOARD
+    .chipset_prsnt_n (),
+`endif  // PITON_BOARD
+
+    // Synchronous with core_ref_clk (same as io_clk in this case) and no virtual channels
+    .processor_offchip_noc1_valid   (processor_offchip_noc1_valid),
+    .processor_offchip_noc1_data    (processor_offchip_noc1_data),
+    .processor_offchip_noc1_yummy   (processor_offchip_noc1_yummy),
+    .processor_offchip_noc2_valid   (processor_offchip_noc2_valid),
+    .processor_offchip_noc2_data    (processor_offchip_noc2_data),
+    .processor_offchip_noc2_yummy   (processor_offchip_noc2_yummy),
+    .processor_offchip_noc3_valid   (processor_offchip_noc3_valid),
+    .processor_offchip_noc3_data    (processor_offchip_noc3_data),
+    .processor_offchip_noc3_yummy   (processor_offchip_noc3_yummy),
+
+    .offchip_processor_noc1_valid   (offchip_processor_noc1_valid),
+    .offchip_processor_noc1_data    (offchip_processor_noc1_data),
+    .offchip_processor_noc1_yummy   (offchip_processor_noc1_yummy),
+    .offchip_processor_noc2_valid   (offchip_processor_noc2_valid),
+    .offchip_processor_noc2_data    (offchip_processor_noc2_data),
+    .offchip_processor_noc2_yummy   (offchip_processor_noc2_yummy),
+    .offchip_processor_noc3_valid   (offchip_processor_noc3_valid),
+    .offchip_processor_noc3_data    (offchip_processor_noc3_data),
+    .offchip_processor_noc3_yummy   (offchip_processor_noc3_yummy),
+    
+`ifdef PITON_EXTRA_MEMS //extra mems are connected using metro_fake_mem.  
+    .processor_mcx_noc2_data ( ),
+    .processor_mcx_noc2_valid( ),
+    .processor_mcx_noc2_yummy( ),
+
+    .mcx_processor_noc3_data ( ),
+    .mcx_processor_noc3_valid( ),
+    .mcx_processor_noc3_yummy( ),
+`endif
+    
+
+    // DRAM and I/O interfaces
+`ifndef PITONSYS_NO_MC
+`ifdef PITON_FPGA_MC_DDR3
+    // FPGA DDR MC interface, currently not supported in simulation
+    .init_calib_complete(),
+    .ddr_addr(),
+    .ddr_ba(),
+    .ddr_cas_n(),
+    .ddr_ck_n(),
+    .ddr_ck_p(),
+    .ddr_cke(),
+    .ddr_ras_n(),
+    .ddr_reset_n(),
+    .ddr_we_n(),
+    .ddr_dq(),
+    .ddr_dqs_n(),
+    .ddr_dqs_p(),
+    .ddr_cs_n(),
+    .ddr_dm(),
+    .ddr_odt(),
+`endif // endif PITON_FPGA_MC_DDR3
+`endif // endif PITONSYS_NO_MC
+
+`ifdef PITONSYS_IOCTRL
+`ifdef PITONSYS_UART
+    // UART interface for bootloading and
+    // serial port interface.  Currently
+    // not supported in simulation
+    .uart_tx(),
+    .uart_rx(),
+`endif // endif PITONSYS_UART
+
+`ifdef PITONSYS_SPI
+    // SPI interface for boot device and disk.
+    // Currently not supported in simulation
+    .spi_data_in(),
+    .spi_data_out(),
+    .spi_clk_out(),
+    .spi_cs_n(),
+`endif // endif PITONSYS_SPI
+`endif // endif PITONSYS_IOCTRL
+
+    // Switches
+`ifdef PITON_NOC_POWER_CHIPSET_TEST
+    .sw({4'bz, 4'd`PITON_NOC_POWER_CHIPSET_TEST_HOP_COUNT}),
+`else // ifndef PITON_NOC_POWER_CHIPSET_TEST
+    .sw(),
+`endif // endif PITON_NOC_POWER_CHIPSET_TEST
+
+`ifdef PITON_RV64_PLATFORM
+`ifdef PITON_RV64_DEBUGUNIT
+    // Debug
+    .ndmreset_o    (  ), // non-debug module reset
+    .dmactive_o    (  ), // debug module is active
+    .debug_req_o   (  ), // async debug request
+    .unavailable_i ('0), // communicate whether the hart is unavailable (e.g.: power down)
+    // JTAG
+    .tck_i   ('0),
+    .tms_i   ('0),
+    .trst_ni ('0),
+    .td_i    ('0),
+    .td_o    (  ),
+    .tdo_oe_o(  ),
+`endif // ifdef PITON_RV64_DEBUGUNIT
+`ifdef PITON_RV64_CLINT
+    //CLINT
+    .rtc_i       ('0), // Real-time clock in (usually 32.768 kHz)
+    .timer_irq_o (  ), // Timer interrupts
+    .ipi_o       (  ), // software interrupt (a.k.a inter-process-interrupt)
+`endif // ifdef PITON_RV64_CLINT
+
+`ifdef PITON_RV64_PLIC
+    // PLIC
+    .irq_o ( ),// level sensitive IR lines, mip & sip (async)
+`endif //PITON_RV64_PLIC
+`endif //PITON_RV64_PLATFORM
+    // Do not provide any functionality
+    .leds()
+);
+
+
+`define MY_CHIPSET  `TOP_MOD_INST.chipset_impl 
+assign flit_o_cnts=`MY_CHIPSET.fake_mem_ctrl.flit_o_cnts;
+assign flit_i_cnts=`MY_CHIPSET.fake_mem_ctrl.flit_i_cnts;
+
+endmodule // cmp_top
+
+`endif

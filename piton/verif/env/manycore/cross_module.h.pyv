@@ -69,9 +69,24 @@
     `define SIM_TOP     jtag_testbench_top.helper
     `define TOP_MOD_INST `TOP_MOD
 `else
+`ifdef METRO_CHIPSET
+    `define TOP_MOD     metro_chipset
+    `define SIM_TOP     metro_chipset
+    `define TOP_MOD_INST `TOP_MOD.chipset
+    `define CHIPSET      `TOP_MOD_INST
+`else // ifdef METRO_CHIPSET
+`ifdef METRO_TILE
+    `define TOP_MOD     metro_tile
+    `define SIM_TOP     metro_tile
+    `define TOP_MOD_INST `TOP_MOD.L_[0].the_tile
+    `define CHIPSET      `TOP_MOD_INST
+`else // ifdef METRO_TILE
     `define TOP_MOD     cmp_top
     `define SIM_TOP     cmp_top
     `define TOP_MOD_INST `TOP_MOD.system
+    `define CHIPSET      `TOP_MOD_INST.chipset
+`endif // ifdef METRO_TILE
+`endif // ifdef METRO_CHIPSET
 // TODO: Alexey: use PITON_PROTO define ?
 //`define TOP_MOD      fpga_top.cmp_top
 `endif
@@ -80,9 +95,17 @@
 
     // `define TOP_SHELL    cmp_top_shell
 `define CHIP         `TOP_MOD_INST.chip
+`ifdef METRO_CHIPSET
+`define CHIP_INT_CLK `TOP_MOD.chipset_clk
+`else // ifdef METRO_CHIPSET
+`ifdef METRO_TILE
+`define CHIP_INT_CLK core_ref_clk
+`else // ifdef METRO_TILE
 `define CHIP_INT_CLK `CHIP.clk_muxed
+`endif // ifdef METRO_TILE
+`endif // ifdef METRO_CHIPSET
 `define TOP_DESIGN   `TOP_MOD.chip
-`define FAKE_IOB     `TOP_MOD.system.chipset.chipset_impl.ciop_fake_iob
+`define FAKE_IOB     `CHIPSET.chipset_impl.ciop_fake_iob
 // `define TOP_MEMORY   `TOP_MOD.cmp
 
 `define JTAG_CTAP    `CHIP.jtag_port.ctap
@@ -98,7 +121,11 @@
 <%
 for i in range(PITON_NUM_TILES):
     printstring = """
+    `ifdef METRO_TILE
+    `define TILE%d            `TOP_MOD_INST
+    `else // ifdef METRO_TILE
     `define TILE%d            `CHIP.tile%d
+    `endif // ifdef METRO_TILE
     `define ARIANE_CORE%d     `TILE%d.g_ariane_core.core.ariane.i_cva6
     `define SARG_CORE%d       `TILE%d.g_sarg_core.core.core_inst.subtile_inst.sargantana_inst.datapath_inst
     `define LOX_CORE%d        `TILE%d.g_lox_core.core.core_inst.core_system_inst.core_system_inst.ooo_data_path_inst
@@ -196,12 +223,26 @@ for i in range(PITON_NUM_TILES):
 `endif
     `define CFG_ASI_PATH%d    `SPARC_CORE%d.sparc0.cfg_asi
 
+`ifdef METRO_CHIPSET
+    `define PITON_CORE%d_INST_DONE  1'b0
+    `define PITON_CORE%d_PC_W%d     49'b0
+`else // ifdef METRO_CHIPSET
+
+    `ifndef DISABLE_ALL_MONITORS
     `define PITON_CORE%d_INST_DONE  `TOP_MOD.monitor.pc_cmp.spc%d_0_inst_done
+    `else 
+    	`define PITON_CORE%d_INST_DONE  1'b0
+    `endif    
 `ifdef RTL_SPARC%d
     `define PITON_CORE%d_PC_W%d     `PCPATH%d.fdp.pc_w
 `else
+        `ifndef DISABLE_ALL_MONITORS
     `define PITON_CORE%d_PC_W%d     `TOP_MOD.monitor.pc_cmp.spc%d_0_phy_pc_w
+        `else 
+        	 `define PITON_CORE%d_PC_W%d     49'b0
 `endif
+    `endif
+`endif // ifdef METRO_CHIPSET
 
     """
     printstring = printstring.replace("%d", str(i))

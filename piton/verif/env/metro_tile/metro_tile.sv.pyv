@@ -1,0 +1,498 @@
+/*
+ * Copyright (c) 2024, Barcelona Supercomputing Center
+ * Contact: alireza.monemi [at] bsc [dot] es *          
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *
+ *     * Neither the name of the copyright holder nor the names
+ *       of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+`ifndef USE_TEST_TOP // don't compile if user wants to use deprecated TOPs
+`include "sys.h"
+`include "iop.h"
+`include "cross_module.tmp.h"
+`include "ifu.tmp.h"
+`include "define.tmp.h"
+`include "piton_system.vh"
+`include "jtag.vh"
+
+<%
+    from pyhplib import *
+%>
+
+
+`timescale 1ps/1ps
+module metro_tile (
+    core_ref_clk,
+    sys_rst_n,
+    pll_rst_n,
+    clk_en,
+    pll_bypass,
+    pll_rangea,
+    pll_lock,
+    clk_mux_sel,
+    async_mux,
+    diag_done,
+    ok_iob,
+    
+    default_chipid,
+    default_coreid_x,
+    default_coreid_y,
+    flat_tileid,
+    cpu_enable,
+    current_r_id,
+    
+    noc_chanel_in,
+    noc_chanel_out,
+    
+    //parameter as output
+    smart_max,
+    pronoc_T1,
+    pronoc_T2,
+    
+    //statistic
+    hpm_st,
+    cache_st, 
+    flit_st,
+    pck_st,
+    
+    //To check trap
+    inst_done,
+    phy_pc_w
+);
+
+import metro_mpi_pkg::*;
+input reg                             core_ref_clk;
+input reg                             sys_rst_n;
+input reg                             pll_rst_n;
+input reg                             clk_en;
+input reg                             pll_bypass;
+input reg [4:0]                       pll_rangea;
+output wire                           pll_lock;
+input reg [1:0]                       clk_mux_sel;
+input reg                             async_mux;
+input                                 diag_done;
+input                                 ok_iob;
+
+input      [31 : 0]                   current_r_id;
+input wire [13:0]                     default_chipid ;
+input wire [7:0]                      default_coreid_x [CONCENTRATION-1 : 0];
+input wire [7:0]                      default_coreid_y [CONCENTRATION-1 : 0];
+input wire [`JTAG_FLATID_WIDTH-1:0]   flat_tileid [CONCENTRATION-1 : 0];
+input  cpu_enable [CONCENTRATION-1 : 0];
+
+
+input  noc_chanel_t noc_chanel_in    [PITON_P-1 : 0];
+output noc_chanel_t noc_chanel_out   [PITON_P-1 : 0];
+output [31 : 0] smart_max;
+output [31 : 0 ] pronoc_T1;
+output [31 : 0 ] pronoc_T2;
+
+output [31 : 0] cache_st [11: 0];
+output [63 : 0] flit_st  [0: 5]; // count flit in/out to/from processor for 3 NoCs 
+output [63 : 0] pck_st   [0: 5][0:11]; // packet sizes histogram in/out to/from processor for 3 NoCs 
+output reg [31 : 0] hpm_st [HPM_CNT_NUM-1 : 0];
+
+`ifdef RTL_LOX0
+output inst_done [3:0];
+output [63:0] phy_pc_w [3:0];
+`else 
+output inst_done;
+output [63:0] phy_pc_w;
+`endif
+
+metro_hpm hpm (
+    .flat_tileid(flat_tileid[0]),
+    .hpm_st(hpm_st),
+    .cache_st(cache_st),
+    .flit_st(flit_st),
+    .pck_st(pck_st),
+    .clk(core_ref_clk),
+    .rst_n(sys_rst_n),
+    .inst_done(inst_done),
+    .phy_pc_w(phy_pc_w),
+    .roi_start(),
+    .roi_en()
+);
+
+////////////////////////////////////////////////////////
+// SYNTHESIZABLE TILE
+///////////////////////////////////////////////////////
+
+
+`ifdef PITON_PRONOC 
+
+    import pronoc_pkg_N1::*;
+    import pronoc_pkg_N2::*;
+    import pronoc_pkg_N3::*;
+
+    wire  pronoc_reset = ~sys_rst_n;
+
+    assign smart_max = SMART_MAX_N1;
+    assign pronoc_T1 = T1_N1;
+    assign pronoc_T2 = T2_N1;
+
+    op_chanel_t  op_chanel_i  [CONCENTRATION-1 : 0];
+    op_chanel_t  op_chanel_o  [CONCENTRATION-1 : 0];
+
+    noc_chanel_t tile_chan_i  [CONCENTRATION-1 : 0];
+    noc_chanel_t tile_chan_o  [CONCENTRATION-1 : 0];
+
+
+
+    wire [RAw_N1-1 : 0] current_r_addr_N1;
+    wire [RAw_N1-1 : 0] current_r_addr_wire_N1 [CONCENTRATION-1 : 0];
+
+    wire [RAw_N2-1 : 0] current_r_addr_N2;
+    wire [RAw_N2-1 : 0] current_r_addr_wire_N2 [CONCENTRATION-1 : 0];
+
+    wire [RAw_N3-1 : 0] current_r_addr_N3;
+    wire [RAw_N3-1 : 0] current_r_addr_wire_N3 [CONCENTRATION-1 : 0];
+
+
+    genvar p,l;
+    generate
+
+<%
+    t='''
+        smartflit_chanel_t_N$ router_chan_i_N$  [MAX_P_N$-1:0];
+        smartflit_chanel_t_N$ router_chan_o_N$  [MAX_P_N$-1:0];
+        for(l=0;l<CONCENTRATION;l++) begin : L$_
+            pronoc_to_piton_wrapper_N$
+            #(
+                .PORT_NUM(0),
+                .FLATID_WIDTH(`JTAG_FLATID_WIDTH)
+            )pr2pi$
+            (
+                .default_chipid(default_chipid),
+                .default_coreid_x(default_coreid_x[l]), 
+                .default_coreid_y(default_coreid_y[l]),
+                .flat_tileid(flat_tileid[l]),    
+                .reset(pronoc_reset),
+                .clk(core_ref_clk),
+                .dataOut(op_chanel_i[l].data$),
+                .validOut(op_chanel_i[l].valid$),
+                .yummyOut(op_chanel_i[l].yummy$),
+                .current_r_addr_o(current_r_addr_wire_N$[l]),
+                .chan_in(tile_chan_i[l].smartflit_chanel_N$)
+            );    
+            
+            piton_to_pronoc_wrapper_N$
+            #(
+                .CHIP_SET_PORT(CHIP_SET_PORT),
+                .FLATID_WIDTH(`JTAG_FLATID_WIDTH)
+            )pi2pr$
+            (
+                .default_chipid (default_chipid),
+                .default_coreid_x(default_coreid_x[l]),
+                .default_coreid_y(default_coreid_y[l]),
+                .flat_tileid(flat_tileid[l]),    
+                .reset(pronoc_reset),
+                .clk(core_ref_clk),
+                .dataIn(op_chanel_o[l].data$),
+                .validIn(op_chanel_o[l].valid$),
+                .yummyIn(op_chanel_o[l].yummy$),
+                .current_r_addr_i(current_r_addr_N$ ),
+                .chan_out(tile_chan_o[l].smartflit_chanel_N$)
+            );    
+        end//  CONCENTRATION 
+        
+        router_config_t_N$ router_config_in_N$;
+        assign router_config_in_N$.router_id = current_r_id[NRw_N$-1 : 0];
+        assign router_config_in_N$.router_addr = current_r_addr_N$;
+        
+        router_top_N$ #(
+            .P(MAX_P_N$)
+        ) the_router$ (
+            .router_config_in    (router_config_in_N$),
+            .chan_in         (router_chan_i_N$), 
+            .chan_out        (router_chan_o_N$), 
+            .router_event    (),
+            .clk             (core_ref_clk ), 
+            .reset           (pronoc_reset )
+        );
+
+        //first tile localport connection
+        assign router_chan_i_N$[0]=    tile_chan_o[0].smartflit_chanel_N$;
+        assign tile_chan_i[0].smartflit_chanel_N$ = router_chan_o_N$[0];
+                //other tiles localport connection
+        for(l=1;l<CONCENTRATION;l++) begin : LL$_
+            assign router_chan_i_N$[4+l]=    tile_chan_o[l].smartflit_chanel_N$;
+            assign tile_chan_i[l].smartflit_chanel_N$ = router_chan_o_N$[4+l];
+        end
+
+        for(p=0;p<4;p++) begin: P$_
+            assign router_chan_i_N$[p+1]= noc_chanel_in[p].smartflit_chanel_N$;
+            assign noc_chanel_out[p].smartflit_chanel_N$ = router_chan_o_N$[p+1];
+        end
+
+        endp_addr_encoder_N$ encode1_N$ ( .id_in(current_r_id), .code_out(current_r_addr_N$));
+
+
+    '''
+    for k in [1,2,3]:
+        tt = t        
+        tt = tt.replace("$", repr(k));
+        print(tt)
+%>
+
+    endgenerate
+
+`else 
+
+    assign smart_max = 0;
+    assign pronoc_T1 = `PITON_X_TILES;
+    assign pronoc_T2 = `PITON_Y_TILES;
+
+`endif
+
+wire [31:0] default_total_num_tiles;
+assign default_total_num_tiles = `PITON_NUM_TILES;
+
+// Generate tile instances
+genvar ll;
+generate
+for(ll=0;ll<CONCENTRATION;ll++) begin : L_
+    tile #(
+    `ifdef PITON_ARIANE
+        .TILE_TYPE(`ARIANE_RV64_TILE)
+    `endif
+    `ifdef PITON_SARG
+        .TILE_TYPE(`SARGANTANA_RV64_TILE)
+    `endif   
+    `ifdef PITON_LOX
+        .TILE_TYPE(`LAGARTO_OX_RV64_TILE)
+    `endif 
+    ) the_tile (
+        .clk                (core_ref_clk),
+        .rst_n              (sys_rst_n),
+        .clk_en             (clk_en & cpu_enable[ll]),
+        .default_chipid     (default_chipid),    // the first chip
+        .default_coreid_x   (default_coreid_x[ll]),
+        .default_coreid_y   (default_coreid_y[ll]),
+        .flat_tileid        (flat_tileid[ll]),
+        .default_total_num_tiles(default_total_num_tiles),
+    `ifdef PITON_RV64_PLATFORM
+    `ifdef PITON_RV64_DEBUGUNIT
+        .debug_req_i        ( 1'b0 ),
+        .unavailable_o      (      ),
+    `endif // ifdef PITON_RV64_DEBUGUNIT
+    `ifdef PITON_RV64_CLINT
+        .timer_irq_i        ( 1'b0 ),
+        .ipi_i              ( 1'b0 ),
+    `endif // ifdef PITON_RV64_CLINT
+    `ifdef PITON_RV64_PLIC
+        .irq_i              ( 1'b0 ),
+    `endif // ifdef PITON_RV64_PLIC
+    `endif // ifdef PITON_RV64_PLATFORM
+        // ucb from tiles to jtag
+        .tile_jtag_ucb_val   (  ),
+        .tile_jtag_ucb_data  (  ),
+        // ucb from jtag to tiles
+        .jtag_tiles_ucb_val  ( 1'b0 ),
+        .jtag_tiles_ucb_data ( 1'b0 ),
+    
+    `ifdef PITON_PRONOC 
+        .dataIn1  (op_chanel_i[ll].data1),
+        .validIn1 (op_chanel_i[ll].valid1),
+        .yummyIn1 (op_chanel_i[ll].yummy1),
+        
+        .dataOut1 (op_chanel_o[ll].data1),
+        .validOut1(op_chanel_o[ll].valid1),
+        .yummyOut1(op_chanel_o[ll].yummy1), 
+        
+        .dataIn2  (op_chanel_i[ll].data2),
+        .validIn2 (op_chanel_i[ll].valid2),
+        .yummyIn2 (op_chanel_i[ll].yummy2),
+        
+        .dataOut2 (op_chanel_o[ll].data2),
+        .validOut2(op_chanel_o[ll].valid2),
+        .yummyOut2(op_chanel_o[ll].yummy2), 
+        
+        .dataIn3  (op_chanel_i[ll].data3),
+        .validIn3 (op_chanel_i[ll].valid3),
+        .yummyIn3 (op_chanel_i[ll].yummy3),
+        
+        .dataOut3 (op_chanel_o[ll].data3),
+        .validOut3(op_chanel_o[ll].valid3),
+        .yummyOut3(op_chanel_o[ll].yummy3)   
+        
+    `else
+        .dyn0_dataIn_N  ( noc_chanel_in [PITON_NORTH].data1), // ( in_N_noc1_data   ),
+        .dyn0_dataIn_E  ( noc_chanel_in [PITON_EAST ].data1), // ( in_E_noc1_data   ),
+        .dyn0_dataIn_W  ( noc_chanel_in [PITON_WEST ].data1), // ( in_W_noc1_data   ),
+        .dyn0_dataIn_S  ( noc_chanel_in [PITON_SOUTH].data1), // ( in_S_noc1_data   ),
+        .dyn0_validIn_N ( noc_chanel_in [PITON_NORTH].valid[0]), // ( in_N_noc1_valid  ),
+        .dyn0_validIn_E ( noc_chanel_in [PITON_EAST ].valid[0]), // ( in_E_noc1_valid  ),
+        .dyn0_validIn_W ( noc_chanel_in [PITON_WEST ].valid[0]), // ( in_W_noc1_valid  ),
+        .dyn0_validIn_S ( noc_chanel_in [PITON_SOUTH].valid[0]), // ( in_S_noc1_valid  ),
+        .dyn0_dNo_yummy ( noc_chanel_in [PITON_NORTH].yummy[0]), // ( in_N_noc1_yummy  ),
+        .dyn0_dEo_yummy ( noc_chanel_in [PITON_EAST ].yummy[0]), // ( in_E_noc1_yummy  ),
+        .dyn0_dWo_yummy ( noc_chanel_in [PITON_WEST ].yummy[0]), // ( in_W_noc1_yummy  ),
+        .dyn0_dSo_yummy ( noc_chanel_in [PITON_SOUTH].yummy[0]), // ( in_S_noc1_yummy  ),
+        
+        .dyn0_dNo         ( noc_chanel_out[PITON_NORTH].data1), //( out_N_noc1_data  ),
+        .dyn0_dEo         ( noc_chanel_out[PITON_EAST ].data1), //( out_E_noc1_data  ),
+        .dyn0_dWo         ( noc_chanel_out[PITON_WEST ].data1), //( out_W_noc1_data  ),
+        .dyn0_dSo         ( noc_chanel_out[PITON_SOUTH].data1), //( out_S_noc1_data  ),
+        .dyn0_dNo_valid   ( noc_chanel_out[PITON_NORTH].valid[0]), //( out_N_noc1_valid ),
+        .dyn0_dEo_valid   ( noc_chanel_out[PITON_EAST ].valid[0]), //( out_E_noc1_valid ),
+        .dyn0_dWo_valid   ( noc_chanel_out[PITON_WEST ].valid[0]), //( out_W_noc1_valid ),
+        .dyn0_dSo_valid   ( noc_chanel_out[PITON_SOUTH].valid[0]), //( out_S_noc1_valid ),
+        .dyn0_yummyOut_N  ( noc_chanel_out[PITON_NORTH].yummy[0]), //( out_N_noc1_yummy ),
+        .dyn0_yummyOut_E  ( noc_chanel_out[PITON_EAST ].yummy[0]), //( out_E_noc1_yummy ),
+        .dyn0_yummyOut_W  ( noc_chanel_out[PITON_WEST ].yummy[0]), //( out_W_noc1_yummy ),
+        .dyn0_yummyOut_S  ( noc_chanel_out[PITON_SOUTH].yummy[0]), //( out_S_noc1_yummy ),
+        
+        .dyn1_dataIn_N    ( noc_chanel_in [PITON_NORTH].data2), // ( in_N_noc2_data   ),
+        .dyn1_dataIn_E    ( noc_chanel_in [PITON_EAST ].data2), // ( in_E_noc2_data   ),
+        .dyn1_dataIn_W    ( noc_chanel_in [PITON_WEST ].data2), // ( in_W_noc2_data   ),
+        .dyn1_dataIn_S    ( noc_chanel_in [PITON_SOUTH].data2), // ( in_S_noc2_data   ),
+        .dyn1_validIn_N   ( noc_chanel_in [PITON_NORTH].valid[1]), // ( in_N_noc2_valid  ),
+        .dyn1_validIn_E   ( noc_chanel_in [PITON_EAST ].valid[1]), // ( in_E_noc2_valid  ),
+        .dyn1_validIn_W   ( noc_chanel_in [PITON_WEST ].valid[1]), // ( in_W_noc2_valid  ),
+        .dyn1_validIn_S   ( noc_chanel_in [PITON_SOUTH].valid[1]), // ( in_S_noc2_valid  ),
+        .dyn1_dNo_yummy   ( noc_chanel_in [PITON_NORTH].yummy[1]), // ( in_N_noc2_yummy  ),
+        .dyn1_dEo_yummy   ( noc_chanel_in [PITON_EAST ].yummy[1]), // ( in_E_noc2_yummy  ),
+        .dyn1_dWo_yummy   ( noc_chanel_in [PITON_WEST ].yummy[1]), // ( in_W_noc2_yummy  ),
+        .dyn1_dSo_yummy   ( noc_chanel_in [PITON_SOUTH].yummy[1]), // ( in_S_noc2_yummy  ),
+        
+        .dyn1_dNo         ( noc_chanel_out[PITON_NORTH].data2), //( out_N_noc2_data  ),
+        .dyn1_dEo         ( noc_chanel_out[PITON_EAST ].data2), //( out_E_noc2_data  ),
+        .dyn1_dWo         ( noc_chanel_out[PITON_WEST ].data2), //( out_W_noc2_data  ),
+        .dyn1_dSo         ( noc_chanel_out[PITON_SOUTH].data2), //( out_S_noc2_data  ),
+        .dyn1_dNo_valid   ( noc_chanel_out[PITON_NORTH].valid[1]), //( out_N_noc2_valid ),
+        .dyn1_dEo_valid   ( noc_chanel_out[PITON_EAST ].valid[1]), //( out_E_noc2_valid ),
+        .dyn1_dWo_valid   ( noc_chanel_out[PITON_WEST ].valid[1]), //( out_W_noc2_valid ),
+        .dyn1_dSo_valid   ( noc_chanel_out[PITON_SOUTH].valid[1]), //( out_S_noc2_valid ),
+        .dyn1_yummyOut_N  ( noc_chanel_out[PITON_NORTH].yummy[1]), //( out_N_noc2_yummy ),
+        .dyn1_yummyOut_E  ( noc_chanel_out[PITON_EAST ].yummy[1]), //( out_E_noc2_yummy ),
+        .dyn1_yummyOut_W  ( noc_chanel_out[PITON_WEST ].yummy[1]), //( out_W_noc2_yummy ),
+        .dyn1_yummyOut_S  ( noc_chanel_out[PITON_SOUTH].yummy[1]), //( out_S_noc2_yummy ),
+        
+        .dyn2_dataIn_N    ( noc_chanel_in [PITON_NORTH].data3), // ( in_N_noc3_data   ),
+        .dyn2_dataIn_E    ( noc_chanel_in [PITON_EAST ].data3), // ( in_E_noc3_data   ),
+        .dyn2_dataIn_W    ( noc_chanel_in [PITON_WEST ].data3), // ( in_W_noc3_data   ),
+        .dyn2_dataIn_S    ( noc_chanel_in [PITON_SOUTH].data3), // ( in_S_noc3_data   ),
+        .dyn2_validIn_N   ( noc_chanel_in [PITON_NORTH].valid[2]), // ( in_N_noc3_valid  ),
+        .dyn2_validIn_E   ( noc_chanel_in [PITON_EAST ].valid[2]), // ( in_E_noc3_valid  ),
+        .dyn2_validIn_W   ( noc_chanel_in [PITON_WEST ].valid[2]), // ( in_W_noc3_valid  ),
+        .dyn2_validIn_S   ( noc_chanel_in [PITON_SOUTH].valid[2]), // ( in_S_noc3_valid  ),
+        .dyn2_dNo_yummy   ( noc_chanel_in [PITON_NORTH].yummy[2]), // ( in_N_noc3_yummy  ),
+        .dyn2_dEo_yummy   ( noc_chanel_in [PITON_EAST ].yummy[2]), // ( in_E_noc3_yummy  ),
+        .dyn2_dWo_yummy   ( noc_chanel_in [PITON_WEST ].yummy[2]), // ( in_W_noc3_yummy  ),
+        .dyn2_dSo_yummy   ( noc_chanel_in [PITON_SOUTH].yummy[2]), // ( in_S_noc3_yummy  ),
+        
+        .dyn2_dNo         ( noc_chanel_out[PITON_NORTH].data3), //( out_N_noc3_data  ),
+        .dyn2_dEo         ( noc_chanel_out[PITON_EAST ].data3), //( out_E_noc3_data  ),
+        .dyn2_dWo         ( noc_chanel_out[PITON_WEST ].data3), //( out_W_noc3_data  ),
+        .dyn2_dSo         ( noc_chanel_out[PITON_SOUTH].data3), //( out_S_noc3_data  ),
+        .dyn2_dNo_valid   ( noc_chanel_out[PITON_NORTH].valid[2]), //( out_N_noc3_valid ),
+        .dyn2_dEo_valid   ( noc_chanel_out[PITON_EAST ].valid[2]), //( out_E_noc3_valid ),
+        .dyn2_dWo_valid   ( noc_chanel_out[PITON_WEST ].valid[2]), //( out_W_noc3_valid ),
+        .dyn2_dSo_valid   ( noc_chanel_out[PITON_SOUTH].valid[2]), //( out_S_noc3_valid ),
+        .dyn2_yummyOut_N  ( noc_chanel_out[PITON_NORTH].yummy[2]), //( out_N_noc3_yummy ),
+        .dyn2_yummyOut_E  ( noc_chanel_out[PITON_EAST ].yummy[2]), //( out_E_noc3_yummy ),
+        .dyn2_yummyOut_W  ( noc_chanel_out[PITON_WEST ].yummy[2]), //( out_W_noc3_yummy ),
+        .dyn2_yummyOut_S  ( noc_chanel_out[PITON_SOUTH].yummy[2])  //( out_S_noc3_yummy )
+    `endif
+    );
+end// concentration
+endgenerate
+
+/*
+integer i,j;
+always @( posedge core_ref_clk )begin
+    for(i=0;i<P;i++) begin 
+        for(j=0;j<3;j++) begin 
+            if(noc_chanel_in[i].valid[j] )  $display("noc%d_dat_in[%d]=%h",j,i,noc_chanel_in [i].data[j]); 
+            if(noc_chanel_out[i].valid[j] )  $display("noc%d_dat_out[%d]=%h",j,i,noc_chanel_out [i].data[j]); 
+        end
+    end
+
+end
+*/
+
+////////////////////////////////////////////////////////
+// MONITOR STUFF
+////////////////////////////////////////////////////////
+
+
+`ifndef DISABLE_ALL_MONITORS
+
+    // this is the T1 sparc core monitor
+    monitor   monitor(
+        .clk    (`CHIP_INT_CLK),
+        .cmp_gclk  (`CHIP_INT_CLK),
+        .rst_l     (sys_rst_n)
+        );
+
+`ifndef MINIMAL_MONITORING
+
+    // L15 MONITORS
+    cmp_l15_messages_mon l15_messages_mon(
+        .clk (`CHIP_INT_CLK)
+        );
+
+    // DMBR MONITOR
+    dmbr_mon dmbr_mon (
+        .clk(`CHIP_INT_CLK)
+    );
+    
+    //L2 MONITORS
+    `ifdef FAKE_L2
+    `else
+    l2_mon l2_mon(
+        .clk (`CHIP_INT_CLK)
+    );
+    `endif
+
+`ifdef PITON_OST1
+    sas_intf  sas_intf(/*AUTOINST*/
+        // Inputs
+        .clk    (`CHIP_INT_CLK),      // Templated
+        .rst_l  (`CHIP.rst_n_inter_sync)); // Templated
+`endif
+
+`ifdef PITON_OST1
+    // create sas tasks
+    sas_tasks sas_tasks(/*AUTOINST*/
+        // Inputs
+        .clk  (`CHIP_INT_CLK),      // Templated
+        .rst_l(`CHIP.rst_n_inter_sync));  // Templated
+`endif
+
+`ifdef PITON_OST1
+    // sparc pipe flow monitor
+    sparc_pipe_flow sparc_pipe_flow(/*AUTOINST*/
+        // Inputs
+        .clk  (`CHIP_INT_CLK)); // Templated
+`endif
+
+`endif // MINIMAL_MONITORING
+`endif // DISABLE_ALL_MONITOR
+
+endmodule // cmp_top
+`endif

@@ -27,3 +27,6 @@
 [submodule "piton/design/chip/ProNoC"]
 	path = piton/design/chip/ProNoC
 	url = ../../../fpga/third-party/bsc-pronoc.git
+[submodule "piton/tools/metro_mpi"]
+	path = piton/tools/metro_mpi
+	url = ../../../fpga/third-party/bsc_metrompi.git

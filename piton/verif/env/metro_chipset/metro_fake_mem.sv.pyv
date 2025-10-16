@@ -1,0 +1,237 @@
+/*
+ * Copyright (c) 2024, Barcelona Supercomputing Center
+ * Contact: alireza.monemi [at] bsc [dot] es *          
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *
+ *     * Neither the name of the copyright holder nor the names
+ *       of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+`include "sys.h"
+`include "iop.h"
+`include "cross_module.tmp.h"
+`include "ifu.tmp.h"
+`include "define.tmp.h"
+`include "piton_system.vh"
+`include "jtag.vh"
+
+
+`timescale 1ps/1ps
+module metro_fake_mem (
+    core_ref_clk,
+    sys_rst_n,
+    noc_chanel_in,
+    noc_chanel_out,
+    smart_max,
+    mem_valid_out,
+    mem_valid_in,
+    flit_o_cnts,
+    flit_i_cnts,
+    default_chipid,
+    default_coreid_x,
+    default_coreid_y,
+    flat_tileid
+`ifdef  PITON_LAT_FILE
+`ifdef  METRO_CHIPSET
+`ifdef  PITON_EXTRA_MEMS
+    ,
+    got_rd,
+    got_wr,
+    rd_lat_in
+`endif 
+`endif 
+`endif
+);
+
+import metro_mpi_pkg::*;
+
+`ifdef PITON_PRONOC
+    import pronoc_pkg_N1::*;
+    import pronoc_pkg_N2::*;
+    import pronoc_pkg_N3::*;
+`endif
+
+localparam NOC_CHANEL_w = $bits(noc_chanel_t);     
+
+
+
+
+input                              core_ref_clk;
+input                              sys_rst_n;
+input  noc_chanel_t noc_chanel_in;
+output noc_chanel_t noc_chanel_out;
+output [31: 0 ] smart_max;
+output [63 : 0] flit_o_cnts,flit_i_cnts;
+
+output mem_valid_out;
+output mem_valid_in;
+
+input wire [13:0]                     default_chipid  ;
+input wire [7:0]                      default_coreid_x;
+input wire [7:0]                      default_coreid_y;
+input wire [`JTAG_FLATID_WIDTH-1:0]   flat_tileid;
+
+`ifdef  PITON_LAT_FILE
+`ifdef  METRO_CHIPSET
+`ifdef  PITON_EXTRA_MEMS
+    output     got_rd,    got_wr;
+    input [31 : 0] rd_lat_in;
+`endif 
+`endif 
+`endif
+
+wire  [`PITON_NOC2_WIDTH -1:0] processor_mcx_noc2_data ; //input
+wire                         processor_mcx_noc2_valid; //input
+wire                         processor_mcx_noc2_yummy; //output
+
+wire  [`PITON_NOC3_WIDTH -1:0] mcx_processor_noc3_data; //output
+wire                         mcx_processor_noc3_valid;//output
+wire                         mcx_processor_noc3_yummy;//input
+
+wire  [`PITON_NOC2_WIDTH -1:0] intf_mcx_data_noc2; //input
+wire                         intf_mcx_val_noc2; //input
+wire                         intf_mcx_rdy_noc2; //output
+
+wire  [`PITON_NOC3_WIDTH -1:0] mcx_intf_data_noc3; //output
+wire                         mcx_intf_val_noc3;  //output
+wire                         mcx_intf_rdy_noc3;  //input 
+
+
+
+`ifdef PITON_PRONOC
+
+    assign smart_max = SMART_MAX_N1;
+    wire pronoc_reset = ~ sys_rst_n;
+
+    //NOC3
+    wire [RAw_N3-1 : 0] tile_0_0_current_r_addr3;
+    piton_to_pronoc_wrapper_N3 #(.FLATID_WIDTH(`JTAG_FLATID_WIDTH),.CHIP_SET_PORT(CHIP_SET_PORT)) pi2pr_wrapper3
+    (
+    .default_chipid(default_chipid), .default_coreid_x(default_coreid_x), .default_coreid_y(default_coreid_y), .flat_tileid(flat_tileid),    
+    .reset(pronoc_reset),
+    .clk (core_ref_clk),
+    .dataIn(mcx_processor_noc3_data ),
+    .validIn(mcx_processor_noc3_valid),
+    .yummyIn(processor_mcx_noc3_yummy),
+    .chan_out(noc_chanel_out.smartflit_chanel_N3),
+    .current_r_addr_i(tile_0_0_current_r_addr3)
+    );    
+    //NOC2
+    pronoc_to_piton_wrapper_N2 #(.FLATID_WIDTH(`JTAG_FLATID_WIDTH),.PORT_NUM(CHIP_SET_PORT)) pr2pi_wrapper2
+    (
+    .default_chipid(default_chipid), .default_coreid_x(default_coreid_x), .default_coreid_y(default_coreid_y), .flat_tileid(flat_tileid),        
+    .reset(pronoc_reset),
+    .clk (core_ref_clk),
+    .dataOut(processor_mcx_noc2_data),
+    .validOut(processor_mcx_noc2_valid),
+    .yummyOut(processor_mcx_noc2_yummy ),
+    .chan_in(noc_chanel_in.smartflit_chanel_N2),
+    .current_r_addr_o(tile_0_0_current_r_addr2)
+    );    
+
+`else
+
+    assign smart_max = 0;
+    assign processor_mcx_noc2_data = noc_chanel_in.data2;
+    assign processor_mcx_noc2_valid= noc_chanel_in.valid [1];
+    assign noc_chanel_out.yummy[1] =  processor_mcx_noc2_yummy;
+
+    assign noc_chanel_out.data3 = mcx_processor_noc3_data;  
+    assign noc_chanel_out.valid  [2] = mcx_processor_noc3_valid;
+    assign mcx_processor_noc3_yummy = noc_chanel_in.yummy[2];
+
+`endif
+
+valrdy_to_credit #(
+    .BUFFER_SIZE(4),
+    .BUFFER_BITS(3),
+    .FLIT_WIDTH(`PITON_NOC3_WIDTH)
+) mc_processor_noc3_v2c( 
+    .clk      (core_ref_clk), 
+    .reset    (~sys_rst_n),  
+
+    .data_in (mcx_intf_data_noc3), 
+    .valid_in(mcx_intf_val_noc3 ), 
+    .ready_in(mcx_intf_rdy_noc3 ), 
+
+    .data_out (mcx_processor_noc3_data ), 
+    .valid_out(mcx_processor_noc3_valid), 
+    .yummy_out(mcx_processor_noc3_yummy) 
+); 
+
+credit_to_valrdy #(.FLIT_WIDTH(`PITON_NOC2_WIDTH)) processor_mc_noc2_c2v( 
+    .clk      (core_ref_clk), 
+    .reset    (~sys_rst_n),  
+
+    .data_in (processor_mcx_noc2_data ), 
+    .valid_in(processor_mcx_noc2_valid), 
+    .yummy_in(processor_mcx_noc2_yummy),
+
+    .data_out (intf_mcx_data_noc2), 
+    .valid_out(intf_mcx_val_noc2 ), 
+    .ready_out(intf_mcx_rdy_noc2 ) 
+);
+
+
+
+// Fake Memory Controller
+fake_mem_ctrl fake_mc  ( 
+    .clk      (core_ref_clk), 
+    .rst_n     (sys_rst_n),  
+    .noc_valid_in       ( intf_mcx_val_noc2  ), 
+    .noc_data_in        ( intf_mcx_data_noc2 ), 
+    .noc_ready_in       ( intf_mcx_rdy_noc2  ), 
+    .noc_valid_out      ( mcx_intf_val_noc3  ), 
+    .noc_data_out       ( mcx_intf_data_noc3 ), 
+    .noc_ready_out      ( mcx_intf_rdy_noc3  ) 
+`ifdef  PITON_LAT_FILE
+`ifdef  METRO_CHIPSET
+`ifdef  PITON_EXTRA_MEMS
+    ,.rd_lat_in(rd_lat_in)
+`endif 
+`endif 
+`endif
+);
+
+
+assign mem_valid_out = mcx_intf_val_noc3 & mcx_intf_rdy_noc3;
+assign mem_valid_in  = intf_mcx_val_noc2 & intf_mcx_rdy_noc2;
+
+assign flit_o_cnts=fake_mc.flit_o_cnts;
+assign flit_i_cnts=fake_mc.flit_i_cnts;
+
+
+`ifdef  PITON_LAT_FILE
+`ifdef  METRO_CHIPSET
+`ifdef  PITON_EXTRA_MEMS
+    assign got_rd = fake_mc.got_rd;
+    assign got_wr = fake_mc.got_wr;
+`endif 
+`endif 
+`endif
+
+endmodule // cmp_top
+
+

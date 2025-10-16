@@ -44,6 +44,15 @@
 `define MEM_ADDR_WIDTH      64
 
 module fake_mem_ctrl (
+    
+`ifdef PITON_LAT_FILE
+`ifdef METRO_CHIPSET
+`ifdef PITON_EXTRA_MEMS
+    input [31 : 0] rd_lat_in,
+`endif
+`endif
+`endif
+
     input wire clk,
     input wire rst_n,
 

@@ -1127,5 +1127,13 @@
         </runargs>
     </ariane_tile4_simple>
 
+    <ariane_tile4_mmc_simple>
+        <runargs -x_tiles=2 -y_tiles=2 -ariane -rtl_timeout 1000000 -multimc=2 -multimc_indices=1,2 -hbm>
+            ariane-hello-world    hello_world_many.c
+            ariane-lrsc-test      lrsc_test.c
+            ariane-add-shared-var add_shared_var.c
+        </runargs>
+    </ariane_tile4_mmc_simple>
+
 </cmp_default>
 </ariane_tile4>

@@ -289,7 +289,7 @@ sub	chk_single_diag {
        $long_stat= "$STATUS_NAME{'flex'}";
        $status  = 'flex';
        last;
-    }elsif($curr_line=~/error/io) {
+    }elsif ($curr_line =~ /error/io) {
        $long_stat= "$STATUS_NAME{'fail'} (Monitor)";
        $status = 'fail';
        last;
@@ -871,10 +871,12 @@ sub vcsgrep{
                 '|Got exception\s+0x\w+\s+at MAXTL - entering\s+error_state' .
                 '|Triggering watchdog reset to end error_state' .
                 '|tick_reg-MISM' .
-		'|error from sem_wait \d+, retried OK'.
-		'|multi line buserror command specified'.
-		'|DEBUG: incoming command \"BUSERROR\"' .
-        '|Errors: 0';
+                '|error from sem_wait \d+, retried OK'.
+                '|multi line buserror command specified'.
+                '|DEBUG: incoming command \"BUSERROR\"' .
+                '|Errors: 0'.
+                '|Errors=0'.
+                '|doerrorfinish';
 
    while(<FUT>){
      if   (/$non_vcs_error/){
