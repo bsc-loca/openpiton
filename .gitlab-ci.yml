@@ -38,6 +38,7 @@ variables:
   MSM_BUILD_FLAGS: -sys=hpc -msm_build_args=+acc=n
   VLT_BUILD_FLAGS: -sys=hpc
   SIMS_FLAGS: -noclean -sim_run_args=-no_autoacc -diaglist ../piton/verif/diag/bsc_hpc_diaglist
+  ASIC_FLAGS: -sarg -x_tiles=1 -y_tiles=1 -sys=hpc
   CI_TAGS: dv
 
 default:
@@ -140,6 +141,22 @@ sargantana_build:
       - ./build
       - ./piton/design/chip/tile/sargantana/simulator/reference/build/libdisasm.so
       - ./piton/design/chip/tile/sargantana/tmp/riscv-tests/build/
+  
+sargantana_elab_build:
+  stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    CI_TAGS: non_resources
+  before_script:
+    - !reference [.sargantana_regression_base, before_script]
+  script:
+    - cd build
+    - asic_synth $ASIC_FLAGS -asic_rtl_only
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
 
 sargantana_isa_tests:
   extends: .sargantana_regression_base
@@ -615,4 +632,32 @@ linting_check:
     when: always
     paths:
       - ./linting_scripts/report
+
+
+################################################################################
+# DC elaboration
+################################################################################
+
+sarg_DC_elab:
+  stage: linting
+  needs: [sargantana_elab_build]
+  extends: .vc_base
+  before_script:
+    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
+    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
+    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
+    - export SNPSLMD_QUEUE=true
+    - export RISCV=/opt/riscv-gnu-toolchain/rvv-1.0.0/
+    - source /eda/synopsys/synopsys.sh
+    - source piton/sargantana_setup.sh
+  script:
+    - cd build; 
+    - asic_synth $ASIC_FLAGS -asic_skip_rtl_gen -asic_elaborate_only
+  artifacts:
+    expire_in: 1 day
+    when: always
+    paths:
+      - ./build
+
+
 

@@ -53,6 +53,7 @@ input wire [SIZE-1:0] presyncdata;
 output reg [SIZE-1:0] syncdata;
 reg [SIZE-1:0] presyncdata_tmp;
 
+`ifndef PITON_ASIC_SYNTH
 `ifdef PITON_ARIANE
 // this prevents SV assertion failures in Ariane
 // pragma translate_off
@@ -64,6 +65,7 @@ reg [SIZE-1:0] presyncdata_tmp;
 `undef SIM_RST_INIT
 `endif
 
+`endif //PITON_ASIC_SYNTH
 
     // bw_u1_syncff_4x u_synchronizer_syncff [SIZE-1:0](.q(presyncdata_tmp),
     //                  .so(),

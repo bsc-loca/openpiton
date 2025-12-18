@@ -1,0 +1,277 @@
+#!/bin/bash
+SCRPT_FULL_PATH=$(realpath "${BASH_SOURCE[0]}")
+SCRPT_DIR_PATH=$(dirname "$SCRPT_FULL_PATH")
+current_dir=$(pwd)
+log_dir="$current_dir/log_out"
+PITON_ROOT=$(realpath "$SCRPT_DIR_PATH/../../../..")
+echo $PITON_ROOT 
+ASIC_RAM_DIR="$PITON_ROOT/build/ASIC_RAMS" #Default RAM dir
+export ASIC_RAM_DIR="$ASIC_RAM_DIR"
+
+source $SCRPT_DIR_PATH/asic_config.sh
+
+# Array to store arguments to forward
+PASS_ARGS=()
+# Array to store ASIC specefic args
+ASIC_ARRAY=()
+
+failed(){
+    echo -e "\e[5;41m Error:\e[0m: $1!" >&2;
+    exit 1;
+}
+
+run_cmd() {
+    echo "Running: $*"
+    "$@" || { failed "Command failed: $* "; }
+}
+
+log_file=""
+log_and_run() {
+    # $@ is the command to run
+    # $log_file must already be set
+    run_cmd rm -f "$log_file"
+    run_cmd bash -c "$* > >(tee -a \"$log_file\") 2>&1"
+}
+
+info(){
+    echo -e "\e[42mINFO\e[0m: $1";
+}
+
+warning() {
+    echo -e "\e[43mWARNING\e[0m: $1" >&2
+}
+
+# Loop through all input arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -help|-h)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  -sys=SYS            Specify the system configuration (required)"
+            echo "  -asic_*             ASIC specific options"
+            echo "      -asic_rtl_only        Only generate the rtl for the ASIC"
+            echo "      -asic_skip_rtl_gen    Skip generation of the RTL, used for multi-pass with -asic_rtl_only"
+            echo "      -asic_elaborate_only  Only elaborate the design without generating RAMs"
+            echo "  Other options are passed to piton_srams.py"
+            exit 0
+            ;;
+        -sys=*)
+            SYS="${1#*=}"
+            shift
+            ;;
+        -sys)
+            SYS="$2"
+            shift 2
+            ;;
+        -asic_*)
+            ASIC_ARRAY+=("$1")
+            shift
+            ;;
+        *)
+            PASS_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+#if SYS is not set assert error
+if [ -z "$SYS" ]; then
+    failed "sys arg is not set"
+fi
+#ned to change sys to actual file path 
+sys_file="$SCRPT_DIR_PATH/../sims/$SYS.config"
+#check if file exists
+if [ ! -f "$sys_file" ]; then
+    failed "sys file $sys_file does not exist"
+fi
+
+
+#check if ASIC_ARRAY contains -asic_elaborate_only then not generate rams
+elaborate_only=0
+sram_top_files=""
+if [[ " ${ASIC_ARRAY[@]} " =~ " -asic_elaborate_only " ]]; then
+    info "ASIC elaborate only mode, skipping RAM generation"
+    elaborate_only=1
+    export ELABORATE_ONLY=1
+    #asic rams are considered as unresolved refrences. Turn 0ff fail on unresolved
+    export FAIL_ON_UNRESOLVED=0
+else 
+    export ELABORATE_ONLY=0
+fi
+
+rtl_only=0
+if [[ " ${ASIC_ARRAY[@]} " =~ " -asic_rtl_only " ]]; then
+    if [[ $elaborate_only -ne 0 ]]; then
+        fail "both -asic_elaborate_only and -asic_rtl_only set, please choose only one"
+    fi
+    info "ASIC RTL only mode, skipping RAM generation and elaboration steps"
+    rtl_only=1
+fi
+
+skip_rtl_gen=0
+if [[ " ${ASIC_ARRAY[@]} " =~ " -asic_skip_rtl_gen " ]]; then
+    if [[ $rtl_only -ne 0 ]]; then
+        fail "both -asic_rtl_only and -asic_skip_rtl_gen set, please choose only one"
+    fi
+    info "Skipping RTL generation, checking if files exist"
+    skip_rtl=1
+fi
+
+run_cmd mkdir -p "$log_dir"
+run_cmd mkdir -p "$ASIC_RAM_DIR"
+
+#================Step 1: Generate ASIC memory file list using piton_srams.py================#
+generate_asic_ram_func () {
+    cd $SCRPT_DIR_PATH
+    
+    info "Generating ASIC memory file list using piton_srams.py"
+    echo "python ./piton_srams.py ${PASS_ARGS[@]} -sys=$sys_file"
+    run_cmd python ./piton_srams.py ${PASS_ARGS[@]} -sys=$sys_file
+    run_cmd mv  $SCRPT_DIR_PATH/srams.csv $ASIC_RAM_DIR/
+    
+    #================Step 2: Generate ASIC RAMs using asic_mem_gen.sh================#
+    info "Generating ASIC RAMs..."
+    
+    # Only copies files that do not yet exist
+    run_cmd cp -n "$SCRPT_DIR_PATH/rtl"/* "$ASIC_RAM_DIR/"
+    
+    awk -F',' 'NR>1 {print $2, $3, $5}' $ASIC_RAM_DIR/srams.csv | sort -u \
+    | while read -r depth width port; do
+        if [ "$width" -le 4 ] ; then
+            echo "Skipping generation for small memory depth=$depth, bits=$width, port=$port"
+            continue
+        fi
+        echo "Running asic_mem_gen.sh with depth=$depth, bits=$width, port=$port ..."
+        bash "$SCRPT_DIR_PATH/asic_mem_gen.sh" "$depth" "$width" "$port"
+        # Check if the command was successful
+        if [ $? -ne 0 ]; then
+            failed "asic_mem_gen.sh failed for depth=$depth, bits=$width, port=$port"
+        fi
+    done
+    
+    info "Asic RAM gen PASSED!"
+    cd -
+}
+
+if [ $elaborate_only -ne 0 ]; then
+    info "Skipping ASIC RAM generation as per elaborate only mode"
+elif [ $rtl_only -ne 0 ]; then
+    info "Skipping ASIC RAM generation as per rtl only mode"
+else
+    generate_asic_ram_func
+
+    sram_top_files="
+    asic_ram_1p.sv
+    asic_ram_2p.sv
+    sp_ram.sv"
+fi
+
+#================= step3: run sims with PITON_ASIC_SYNTH macro =====================
+
+generate_rtl() {
+    CONFIG_RTLs=""
+    for macro in "${asic_macros[@]}"; do
+        if [ -z "$CONFIG_RTLs" ]; then
+            CONFIG_RTLs="-config_rtl=$macro"
+        else
+            CONFIG_RTLs="$CONFIG_RTLs -config_rtl=$macro"
+        fi
+    done
+    info "Running sims with $CONFIG_RTLs to generate RTL files..."
+
+    log_file="$log_dir/${target}_sims.log"
+    log_and_run sims ${PASS_ARGS[@]} -sys=$SYS $CONFIG_RTLs -dryrun -msm_build
+    #check log_file for Error:
+    grep -i "Error:" "$log_file" && failed "Sims build failed! Check log at $log_file"
+}
+
+if [[ $skip_rtl -eq 0 ]]; then
+    generate_rtl
+fi
+
+# Find config.v inside model1 (e.g. model1/hpc/rel-0.1/config.v)
+config_file=$(grep -E "/config\.v$" "$current_dir/flist")
+if [[ -z "$config_file" ]]; then
+    failed "config.v not found in $current_dir/flist file"
+fi
+info "Found: $config_file"
+
+# Comment out lines containing the macros
+for macro in "${remove_macros[@]}"; do
+    echo "Commenting out macro: $macro"
+    # Prefix with '//' only if not already commented
+    sed -i "s/^[[:space:]]*\`define[[:space:]]\+$macro/\/\/ &/" "$config_file"
+done
+info "The sims build PASSED!"
+
+#================ Step4: generate synthesis tcl file list =====================
+generate_flist() {
+    source "$SCRPT_DIR_PATH/asic_functions.sh"
+    info "Generating synthesis tcl file list..."
+    FLIST_OUT=$current_dir/flist.tcl
+    src_hdl=$current_dir/src_hdl
+    run_cmd rm -rf $src_hdl
+    run_cmd rm -f $FLIST_OUT
+    run_cmd mkdir -p $src_hdl
+    process_flist "$current_dir/flist"  "$current_dir" "$src_hdl" 
+    unique_files=$(echo "$include_files" | awk '!seen[$0]++')
+
+    echo "
+    lappend search_path \$SRC_HDL/
+    lappend search_path \$SRC_HDL/ASIC_RAMS/
+    $inc_opts
+
+    set rtl_files {${unique_files}
+    $sram_top_files
+    }
+    " >> "$FLIST_OUT"
+
+    run_cmd cp $SCRPT_DIR_PATH/lib_gen.tcl $current_dir/lib_gen.tcl
+    run_cmd cp $SCRPT_DIR_PATH/asic_synth.tcl $current_dir/asic_synth.tcl
+    run_cmd cp -r $ASIC_RAM_DIR $src_hdl/
+    info "Synthesis tcl file list generated at $FLIST_OUT"
+}
+
+if [[ $skip_rtl -eq 0 ]]; then
+    generate_flist
+fi
+
+if [[ $rtl_only -ne 0 ]]; then
+    exit 0
+fi
+
+#================= Step5: Process ASIC memory .lib files to change library names =====================
+process_asic_rams (){
+    info "Processing ASIC memory .lib files to change library names..."
+    #change lib name to be the sma e as mem file name
+    ram_dir="$src_hdl/ASIC_RAMS"
+    # Loop over all .lib files
+    find "$ram_dir" -type f -name "*.lib" | while read -r mem_lib; do
+        mem_name=$(basename "$mem_lib" .lib)
+        echo "Processing $mem_lib -> library name: $mem_name"
+        # Make a backup first
+        cp "$mem_lib" "$mem_lib.bak"
+        # Replace the first line starting with 'library('
+        sed -i "0,/^library(/s/^library(.*/library($mem_name) {/" "$mem_lib"
+        echo "Updated library name in $mem_lib"
+    done
+    # Convert ASIC memory .lib files to .db
+    info "Generating memory .db files via lc_shell..."
+    log_file="$log_dir/${target}_lib_gen.log"
+    log_and_run lc_shell -f "$current_dir/lib_gen.tcl"
+    info "Memory .db file generation PASSED!"
+}
+
+if [ $elaborate_only -eq 0 ]; then
+    process_asic_rams
+else
+    info "Skipping ASIC memory .lib file processing as per elaborate only mode"
+fi
+
+#================= Step6: Run synthesis =====================
+info "Running synthesis via dc_shell..."
+log_file="$log_dir/${target}_synth.log"
+log_and_run dc_shell -64bit -f "$current_dir/asic_synth.tcl"
+#check log_file for Error:
+grep -i "Error:" "$log_file" && failed "Synthesis failed! Check log at $log_file"
+info "Synthesis PASSED!"

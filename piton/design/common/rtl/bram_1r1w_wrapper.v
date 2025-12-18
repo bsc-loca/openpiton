@@ -50,6 +50,27 @@ module bram_1r1w_wrapper
   // input wire [`BIST_ID_WIDTH-1:0] SRAMID
 );
 
+`ifdef PITON_ASIC_SYNTH
+
+asic_sram_2p #(
+   .ADDR_WIDTH    (ADDR_WIDTH),
+   .DATA_WIDTH    (DATA_WIDTH)
+)   asic_ram2p (
+   .CLKA   (MEMCLK ),
+   .CLKB   (MEMCLK ),
+   .AA     (AA     ),
+   .AB     (AB     ),
+   .DB     (DINB   ),
+   .QA     (DOUTA  ),
+   .BWB    (BWB    ),
+   .CEB    (CEB    ),
+   .CEA    (CEA    )
+);
+
+
+`else
+
+
 wire                            write_enable_in;
 wire                            read_enable_in;
 
@@ -190,5 +211,6 @@ begin
    end
 end
 
+`endif //PITON_ASIC_SYNTH
 
 endmodule

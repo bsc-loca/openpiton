@@ -43,6 +43,9 @@ module clk_gating_latch (
     output wire clk_out
 );
 
+`ifdef PITON_ASIC_SYNTH
+    assign clk_out = clk;
+`else 
 // use clock buffer on FPGA
 // note that not all FPGAs have enough of these available
 // so we use the latch as a fallback on certain boards (e.g., vc707)
@@ -70,4 +73,5 @@ module clk_gating_latch (
 `endif
 
 
+`endif // PITON_ASIC_SYNTH
 endmodule // clk_gating_latch

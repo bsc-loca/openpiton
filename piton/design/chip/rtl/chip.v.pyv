@@ -852,6 +852,7 @@ module chip (
    .chip_intf_channel_inter      (chip_intf_channel_inter),
    .chip_intf_credit_back_inter  (chip_intf_credit_back_inter) );
 
+`ifndef PITON_ASIC_SYNTH
    // PLL and clock mux.  See above for alternatives
    clk_se_to_diff ref_clk_converter (
        .clk_se  (core_ref_clk_inter),
@@ -878,6 +879,15 @@ module chip (
       .ref_clk(core_ref_clk_inter),
       .rst(~pll_rst_n_inter)
    );
+   `else 
+      // Bypass clock_mux for prototyping
+      assign clk_muxed = core_ref_clk;
+      assign pll_clk = core_ref_clk;
+      assign pll_lock_inter = 1'b1;
+
+
+
+   `endif
 
    // reset synchronizer, might need to be placed near the
    //   pll or clock source so that reset signal has the same propagation
@@ -1146,7 +1156,11 @@ module chip (
     tile0 (
         .clk                (clk_muxed),
         .rst_n              (rst_n_inter_sync),
+      `ifndef PITON_ASIC_SYNTH
         .clk_en             (ctap_clk_en_inter[_FLAT_ID_] && clk_en_inter),
+      `else 
+      .clk_en             (1'b1),
+      `endif
         .default_chipid             (14'b0),    // the first chip
         .default_coreid_x           (COREIDX),
         .default_coreid_y           (COREIDY),

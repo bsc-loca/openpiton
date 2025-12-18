@@ -190,7 +190,7 @@ always @(posedge fpga_clk) begin
        buf_prev_net_int <= 1'b0;
        prev_uart_interrupt <= 1'b0;
        buf_prev_uart_int <= 1'b0;
-       iob_buffer_val = 1'b0;
+       iob_buffer_val <= 1'b0;
     end
     else begin
        prev_net_interrupt <= net_interrupt;

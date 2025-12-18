@@ -271,7 +271,7 @@ module piton_pck_monitor #(
             for(i=0; i<pck_size; i=i+1)begin
                     j=i % WORLD_NUM;
                     temp =  data[i/WORLD_NUM] >> (j*64);
-                    $display("      Data%d:  %x",i, temp);
+                    $display("      Data%d:  %h",i, temp);
             end
     //      $display("      #Tail time:  %d",$time);
     $display("------------------------------------");

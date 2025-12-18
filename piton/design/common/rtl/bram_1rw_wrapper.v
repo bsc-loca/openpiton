@@ -39,6 +39,49 @@ module bram_1rw_wrapper
     output  [DATA_WIDTH-1:0]      DOUT
 );
 
+`ifdef PITON_ASIC_SYNTH
+
+generate if(DATA_WIDTH >= 4) begin 
+asic_sram_1p #(
+   .ADDR_WIDTH    (ADDR_WIDTH),
+   .DATA_WIDTH    (DATA_WIDTH)
+)   asic_ram (
+   .CLK     (MEMCLK ),
+   .CE      (CE     ),
+   .A       (A      ),
+   .RDWEN   (RDWEN  ),
+   .BW      (BW     ),
+   .DI      (DIN    ),
+   .DO      (DOUT   )
+);
+end else begin 
+   reg [DATA_WIDTH-1:0] cache [DEPTH-1:0];
+   reg [DATA_WIDTH-1:0] dout_f;
+
+   assign DOUT = dout_f;
+
+   always @ (posedge MEMCLK)
+   begin
+      if(!RESET_N) 
+      begin
+         cache[A] <=  {DATA_WIDTH{1'b0}};
+         dout_f <=  {DATA_WIDTH{1'b0}};
+      end else begin
+         if (CE)
+         begin
+            if (RDWEN == 1'b0)
+               cache[A] <= (DIN & BW) | (cache[A] & ~BW);
+            else
+               dout_f <= cache[A];
+         end
+      end
+   end
+
+end
+endgenerate
+
+`else
+
 wire                            write_en;
 wire                            read_en;
 
@@ -175,5 +218,5 @@ end
 
 `endif
 
-
+`endif //PITON_ASIC_SYNTH
 endmodule
