@@ -71,7 +71,112 @@ extern void setStats(int enable);
     : "r" (i)                                   \
     : "memory");
 
+// CSR READ/WRITE MACROS
+#define __ASM_STR(x)	#x
+#define csr_read(csr)                                           \
+	({                                                      \
+		register unsigned long __v;                     \
+		__asm__ __volatile__("csrr %0, " __ASM_STR(csr) \
+				     : "=r"(__v)                \
+				     :                          \
+				     : "memory");               \
+		__v;                                            \
+	})
+
+#define csr_write(csr, val)					\
+({								\
+	unsigned long __v = (unsigned long)(val);		\
+	__asm__ __volatile__ ("csrw " __ASM_STR(csr) ", %0"	\
+			      : : "rK" (__v)			\
+			      : "memory");			\
+})
+
+
 #define static_assert(cond) switch(0) { case 0: case !!(long)(cond): ; }
+
+static inline void save_registers() {
+    asm volatile (
+        "csrrw sp, mscratch, sp\n\t"
+
+        "sd x1, 0(sp)\n\t"
+        "sd x3, 16(sp)\n\t"
+        "sd x4, 24(sp)\n\t"
+        "sd x5, 32(sp)\n\t"
+        "sd x6, 40(sp)\n\t"
+        "sd x7, 48(sp)\n\t"
+        "sd x8, 56(sp)\n\t"
+        "sd x9, 64(sp)\n\t"
+        "sd x10, 72(sp)\n\t"
+        "sd x11, 80(sp)\n\t"
+        "sd x12, 88(sp)\n\t"
+        "sd x13, 96(sp)\n\t"
+        "sd x14, 104(sp)\n\t"
+        "sd x15, 112(sp)\n\t"
+        "sd x16, 120(sp)\n\t"
+        "sd x17, 128(sp)\n\t"
+        "sd x18, 136(sp)\n\t"
+        "sd x19, 144(sp)\n\t"
+        "sd x20, 152(sp)\n\t"
+        "sd x21, 160(sp)\n\t"
+        "sd x22, 168(sp)\n\t"
+        "sd x23, 176(sp)\n\t"
+        "sd x24, 184(sp)\n\t"
+        "sd x25, 192(sp)\n\t"
+        "sd x26, 200(sp)\n\t"
+        "sd x27, 208(sp)\n\t"
+        "sd x28, 216(sp)\n\t"
+        "sd x29, 224(sp)\n\t"
+        "sd x30, 232(sp)\n\t"
+        "sd x31, 240(sp)\n\t"
+
+        "csrrw t0, mscratch, sp\n\t"
+        "sd x2, 8(sp)\n\t"
+        :
+        :
+        : "memory"
+    );
+}
+
+static inline void restore_registers() {
+    asm volatile (
+        "ld x1, 0(sp)\n\t"
+        "ld x3, 16(sp)\n\t"
+        "ld x4, 24(sp)\n\t"
+        "ld x5, 32(sp)\n\t"
+        "ld x6, 40(sp)\n\t"
+        "ld x7, 48(sp)\n\t"
+        "ld x8, 56(sp)\n\t"
+        "ld x9, 64(sp)\n\t"
+        "ld x10, 72(sp)\n\t"
+        "ld x11, 80(sp)\n\t"
+        "ld x12, 88(sp)\n\t"
+        "ld x13, 96(sp)\n\t"
+        "ld x14, 104(sp)\n\t"
+        "ld x15, 112(sp)\n\t"
+        "ld x16, 120(sp)\n\t"
+        "ld x17, 128(sp)\n\t"
+        "ld x18, 136(sp)\n\t"
+        "ld x19, 144(sp)\n\t"
+        "ld x20, 152(sp)\n\t"
+        "ld x21, 160(sp)\n\t"
+        "ld x22, 168(sp)\n\t"
+        "ld x23, 176(sp)\n\t"
+        "ld x24, 184(sp)\n\t"
+        "ld x25, 192(sp)\n\t"
+        "ld x26, 200(sp)\n\t"
+        "ld x27, 208(sp)\n\t"
+        "ld x28, 216(sp)\n\t"
+        "ld x29, 224(sp)\n\t"
+        "ld x30, 232(sp)\n\t"
+        "ld x31, 240(sp)\n\t"
+        "ld x2, 8(sp)\n\t"
+
+        :
+        : 
+        : "memory"                           
+    );
+}
+
 
 static int verify(int n, const volatile int* test, const int* verify)
 {

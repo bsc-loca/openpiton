@@ -621,13 +621,16 @@
     </sarg_tile1_mt_benchmarks>
 
     <sarg_tile1_simple>
-        <runargs -x_tiles=1 -y_tiles=1 -sarg -rtl_timeout 1000000>
+        <runargs -x_tiles=1 -y_tiles=1 -rv64_march=rv64gv_zicbom_zicboz_zicbop -sarg -rtl_timeout 1000000>
             sarg-hello-world  hello_world.c
             sarg-accu         accu_test.c
             sarg-amo-align    amo_align.c
             sarg-vector-wt    vectorial_mem_access_test.c
             sarg-lrsc-check   lrsc_check.c
             sarg-icache-inval icache_inval_test.c
+            sarg-cmo-prefetch cmo_prefetch.c
+            sarg-cmo-privileged cmo_privileged.c
+            sarg-cmo-virtual cmo_virtual.c
         </runargs>
     </sarg_tile1_simple>
 
@@ -653,10 +656,13 @@
     </sarg_tile2_mt_benchmarks>
 
     <sarg_tile2_simple>
-        <runargs -x_tiles=1 -y_tiles=2 -sarg -rtl_timeout 1000000>
+        <runargs -x_tiles=1 -y_tiles=2 -sarg -rv64_march=rv64gv_zicbom_zicboz_zicbop -rtl_timeout 1000000>
             sarg-hello-world    hello_world_many.c
             //sarg-lrsc-test      lrsc_test.c
             sarg-add-shared-var add_shared_var.c
+            sarg-cmo-icache cmo_icache.c
+            sarg-cmo-op cmo_op.c
+            sarg-cmo-zero cmo_zero.c
         </runargs>
     </sarg_tile2_simple>
 

@@ -53,6 +53,7 @@ module pcx_decoder(
    output reg        pcxdecoder_pcxbuf_ack,
    output reg [4:0]  pcxdecoder_l15_rqtype,
    output reg [`L15_AMO_OP_WIDTH-1:0]  pcxdecoder_l15_amo_op,
+   output reg [`L15_CMO_OP_WIDTH-1:0]  pcxdecoder_l15_cmo_op,
    output reg        pcxdecoder_l15_nc,
    output reg [2:0]  pcxdecoder_l15_size,
    output reg [`L15_THREADID_MASK]  pcxdecoder_l15_threadid,
@@ -93,6 +94,7 @@ begin
 
    pcxdecoder_l15_rqtype = message[`PCX_RQ_HI:`PCX_RQ_LO];
    pcxdecoder_l15_amo_op = `L15_AMO_OP_NONE;
+   pcxdecoder_l15_cmo_op = `L15_CMO_OP_NONE;
    pcxdecoder_l15_nc = message[`PCX_NC];
    pcxdecoder_l15_threadid = message[`PCX_TH_HI:`PCX_TH_LO];
    pcxdecoder_l15_prefetch = message[110];

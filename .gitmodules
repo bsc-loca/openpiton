@@ -18,9 +18,6 @@
 	path = piton/design/chipset/bsc_rv64_peripherals
 	url = ../bsc_rv64_peripherals.git
 	branch = main
-[submodule "piton/design/chip/tile/ariane"]
-	path = piton/design/chip/tile/ariane
-	url = ../../cores/cva6.git
 [submodule "piton/design/chip/tile/lagarto_ox"]
 	path = piton/design/chip/tile/lagarto_ox
 	url = ../../core-tile/lagarto_ox_tile.git
@@ -33,3 +30,7 @@
 [submodule "piton/tools/metro_mpi"]
 	path = piton/tools/metro_mpi
 	url = ../../../fpga/third-party/bsc_metrompi.git
+[submodule "piton/design/chip/tile/ariane"]
+	path = piton/design/chip/tile/ariane
+	url = ../../cores/cva6.git
+	branch = cincoranch_cva6_hpdc_op-dev

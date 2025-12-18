@@ -76,6 +76,7 @@ module l15_pipeline #(
     // pcx
     input wire [`PCX_REQTYPE_WIDTH-1:0] pcxdecoder_l15_rqtype,
     input wire [`L15_AMO_OP_WIDTH-1:0] pcxdecoder_l15_amo_op,
+    input wire [`L15_CMO_OP_WIDTH-1:0] pcxdecoder_l15_cmo_op,
     input wire pcxdecoder_l15_nc,
     input wire [`PCX_SIZE_FIELD_WIDTH-1:0] pcxdecoder_l15_size,
     // input wire pcxdecoder_l15_invalall,         // unused input from core
@@ -707,10 +708,13 @@ begin
                     predecode_address_s1 = mshr_address_array[noc2decoder_l15_mshr_index];
 
                     // one way to distinguish prefetch ack from write-through ack is the mshr type
-                    if (noc2decoder_l15_mshr_type == `L15_MSHR_TYPE_ST)
+                    if (noc2decoder_l15_mshr_type == `L15_MSHR_TYPE_ST) begin
                         predecode_reqtype_s1 = `L15_REQTYPE_ACK_WRITETHROUGH;
-                    else
-                    begin
+                    end
+                    else if (noc2decoder_l15_mshr_type == `L15_MSHR_TYPE_CMO) begin
+                        predecode_reqtype_s1 = `L15_REQTYPE_ACK_CMO;
+                    end
+                    else begin
                         predecode_reqtype_s1 = `L15_REQTYPE_ACK_PREFETCH;
                         predecode_address_s1 = 0; // bug fix, address cannot be X's
                     end
@@ -738,6 +742,23 @@ begin
             // predecode_invalidate_index_s1 = pcxdecoder_l15_invalall;
 
             case(pcxdecoder_l15_rqtype)
+                `PCX_REQTYPE_CMO:
+                begin
+                    case (pcxdecoder_l15_cmo_op)
+                    `L15_CMO_OP_INVAL:
+                    begin
+                        predecode_reqtype_s1 = `L15_REQTYPE_CMO_INVAL;
+                    end
+                    `L15_CMO_OP_CLEAN:
+                    begin
+                        predecode_reqtype_s1 = `L15_REQTYPE_CMO_CLEAN;
+                    end
+                    `L15_CMO_OP_FLUSH:
+                    begin
+                        predecode_reqtype_s1 = `L15_REQTYPE_CMO_FLUSH;
+                    end
+                    endcase
+                end
                 `PCX_REQTYPE_LOAD: //0
                 begin
                     if (predecode_is_pcx_config_asi_s1)
@@ -1089,17 +1110,17 @@ always @ *
 begin
     fetch_is_pcx_atomic_instruction_s1 =
         ((predecode_reqtype_s1 == `L15_REQTYPE_CAS) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_SWP_LOADSTUB) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_LR) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_SC) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_ADD) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_AND) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_OR) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_XOR) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAX) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAXU) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MIN) ||
-        ( predecode_reqtype_s1 == `L15_REQTYPE_AMO_MINU));
+         (predecode_reqtype_s1 == `L15_REQTYPE_SWP_LOADSTUB) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_LR) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_SC) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_ADD) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_AND) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_OR) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_XOR) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAX) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_MAXU) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_MIN) ||
+         (predecode_reqtype_s1 == `L15_REQTYPE_AMO_MINU));
     // fetch_is_pcx_blockstore_instruction_s1 = 0;
     fetch_is_pcx_storenc_instruction_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_WRITETHROUGH) && !predecode_int_vec_dis_s1;
     fetch_is_pcx_loadnc_instruction_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_LOAD_NC);
@@ -1108,7 +1129,7 @@ begin
     fetch_is_noc2_instruction_invalidation_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_ICACHE_INVALIDATION);
     fetch_is_noc2_ackdt_s1 = ((predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_LD) || (predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_ST_IM) || (predecode_reqtype_s1 == `L15_REQTYPE_ACKDT_LR));
     fetch_state_next_s1 = `L15_FETCH_STATE_NORMAL;
-    fetch_is_pcx_flush_s1 = (predecode_reqtype_s1 == `L15_REQTYPE_LINE_FLUSH);
+    fetch_is_pcx_flush_s1 = predecode_reqtype_s1 == `L15_REQTYPE_LINE_FLUSH;
 
     case (fetch_state_s1)
         `L15_FETCH_STATE_NORMAL:
@@ -1274,6 +1295,35 @@ begin
     decoder_hmt_op_s1 = 0;
     `endif
     case (predecode_reqtype_s1)
+        `L15_REQTYPE_CMO_INVAL,
+        `L15_REQTYPE_CMO_CLEAN,
+        `L15_REQTYPE_CMO_FLUSH:
+        begin
+            decoder_pcx_ack_stage_s1 = `L15_ACK_STAGE_S1;
+            decoder_csm_op_s1 = `L15_CSM_OP_READ_GHID;
+
+            decoder_stall_on_matched_bypassed_index_s1 = 1'b1;
+            decoder_stall_on_matched_mshr_s1 = 1'b1;
+            decoder_stall_on_mshr_allocation_s1 = 1'b1;
+            decoder_mshr_allocation_type_s1 = `L15_MSHR_TYPE_CMO;
+            decoder_s1_mshr_operation_s1 = `L15_S1_MSHR_OP_ALLOCATE;
+
+            decoder_creditman_noc1_needed = 2'd1;
+	    case (predecode_reqtype_s1)
+		`L15_REQTYPE_CMO_INVAL:
+		begin
+		    decoder_noc1_operation_s1 = `L15_NOC1_GEN_RVCMO_INVAL_REQUEST_FROM_PCX;
+		end
+		`L15_REQTYPE_CMO_CLEAN:
+		begin
+		    decoder_noc1_operation_s1 = `L15_NOC1_GEN_RVCMO_CLEAN_REQUEST_FROM_PCX;
+		end
+		`L15_REQTYPE_CMO_FLUSH:
+		begin
+		    decoder_noc1_operation_s1 = `L15_NOC1_GEN_RVCMO_FLUSH_REQUEST_FROM_PCX;
+		end
+	    endcase
+        end
         `L15_REQTYPE_LOAD_NC:
         begin
             if (fetch_state_s1 == `L15_FETCH_STATE_NORMAL)
@@ -1935,6 +1985,14 @@ begin
             decoder_stall_on_matched_bypassed_index_s1 = 1;
             decoder_s3_mshr_operation_s1 = `L15_S3_MSHR_OP_DEALLOCATION;
             decoder_cpx_operation_s1 = `L15_CPX_GEN_ATOMIC_ACK_FROM_NOC2;
+        end
+
+        `L15_REQTYPE_ACK_CMO:
+        begin
+            decoder_noc2_ack_stage_s1 = `L15_ACK_STAGE_S3;
+            decoder_stall_on_matched_bypassed_index_s1 = 1;
+            decoder_s3_mshr_operation_s1 = `L15_S3_MSHR_OP_DEALLOCATION;
+            decoder_cpx_operation_s1 = `L15_CPX_GEN_CMO_ACK_FROM_NOC2;
         end
 
         `L15_REQTYPE_ACKDT_LR:
@@ -4530,6 +4588,11 @@ begin
             cpx_type_s3 = `CPX_RESTYPE_LOAD;
             cpx_data_source_s3 = `L15_CPX_SOURCE_CSM;
         end
+        `L15_CPX_GEN_CMO_ACK_FROM_NOC2:
+        begin
+            cpx_req_val_s3 = 1'b1;
+            cpx_type_s3 = `CPX_RESTYPE_CMO_RES;
+        end
     endcase
 
     l15_cpxencoder_returntype[`L15_UNPARAM_3_0] = cpx_type_s3; //default
@@ -4849,6 +4912,30 @@ begin
             noc1_type_s3 = `L15_NOC1_REQTYPE_INTERRUPT_FWD;
             noc1_data_source_s3 = `L15_NOC1_SOURCE_PCX_64B;
             noc1_homeid_not_required_s3 = 1'b1;
+        end
+        `L15_NOC1_GEN_RVCMO_INVAL_REQUEST_FROM_PCX:
+        begin
+            noc1_req_val_s3 = val_s3;
+            noc1_type_s3 = `L15_NOC1_REQTYPE_RVCMO_INVAL_REQUEST;
+            //noc1_data_source_s3 = `L15_NOC1_SOURCE_PCX_64B;
+            l15_noc1buffer_req_address = address_s3;
+            noc1_homeid_source_s3 = `L15_HOMEID_SRC_CSM_MODULE;
+        end
+        `L15_NOC1_GEN_RVCMO_CLEAN_REQUEST_FROM_PCX:
+        begin
+            noc1_req_val_s3 = val_s3;
+            noc1_type_s3 = `L15_NOC1_REQTYPE_RVCMO_CLEAN_REQUEST;
+            //noc1_data_source_s3 = `L15_NOC1_SOURCE_PCX_64B;
+            l15_noc1buffer_req_address = address_s3;
+            noc1_homeid_source_s3 = `L15_HOMEID_SRC_CSM_MODULE;
+        end
+        `L15_NOC1_GEN_RVCMO_FLUSH_REQUEST_FROM_PCX:
+        begin
+            noc1_req_val_s3 = val_s3;
+            noc1_type_s3 = `L15_NOC1_REQTYPE_RVCMO_FLUSH_REQUEST;
+            //noc1_data_source_s3 = `L15_NOC1_SOURCE_PCX_64B;
+            l15_noc1buffer_req_address = address_s3;
+            noc1_homeid_source_s3 = `L15_HOMEID_SRC_CSM_MODULE;
         end
     endcase
 `ifdef PARALLEL_SRAMS

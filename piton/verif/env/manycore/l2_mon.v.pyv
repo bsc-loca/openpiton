@@ -710,6 +710,9 @@ begin
         `MSG_TYPE_AMO_MAXU_P2_REQ       : $write("  amo_maxu_p2  ");
         `MSG_TYPE_AMO_MIN_P2_REQ        : $write("  amo_min_p2   ");
         `MSG_TYPE_AMO_MINU_P2_REQ       : $write("  amo_minu_p2  ");
+        `MSG_TYPE_RVCMO_INVAL_REQ       : $write(" cmo_inval_req ");
+        `MSG_TYPE_RVCMO_CLEAN_REQ       : $write(" cmo_clean_req ");
+        `MSG_TYPE_RVCMO_FLUSH_REQ       : $write(" cmo_flush_req ");
         default                         : $write("      undef    ");
     endcase
 end

@@ -108,6 +108,7 @@ begin
         `MSG_TYPE_AMO_MINU_REQ          : $sformat( msg_type_string, "    amo_minu_req ");
         `MSG_TYPE_AMO_MINU_P1_REQ       : $sformat( msg_type_string, "  amo_minu_p1_req");
         `MSG_TYPE_AMO_MINU_P2_REQ       : $sformat( msg_type_string, "  amo_minu_p2_req");
+	`MSG_TYPE_RVCMO_INVAL_REQ       : $sformat( msg_type_string, "  cmo_inval_req  ");
         default                         : $sformat( msg_type_string, "      undef    ");
       endcase
 end

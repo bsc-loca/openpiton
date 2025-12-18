@@ -417,6 +417,24 @@ begin
          msg_cache_type = `MSG_CACHE_TYPE_DATA;
          msg_length = 3; // 2 extra headers + 1 swap data
       end
+      `L15_NOC1_REQTYPE_RVCMO_CLEAN_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_RVCMO_CLEAN_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 2; // 2 extra headers
+      end
+      `L15_NOC1_REQTYPE_RVCMO_INVAL_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_RVCMO_INVAL_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 2; // 2 extra headers
+      end
+      `L15_NOC1_REQTYPE_RVCMO_FLUSH_REQUEST:
+      begin
+         msg_type = `MSG_TYPE_RVCMO_FLUSH_REQ;
+         msg_cache_type = `MSG_CACHE_TYPE_DATA;
+         msg_length = 2; // 2 extra headers
+      end
    endcase
 end
 
@@ -598,20 +616,21 @@ begin
    // if (sending && noc1out_ready && (flit_state == msg_length))
    if (noc1encoder_noc1buffer_req_ack)
    begin
-      if (req_type == `L15_NOC1_REQTYPE_LD_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_IFILL_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_ST_UPGRADE_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_ST_FILL_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_CAS_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_SWAP_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_ADD_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_AND_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_OR_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_XOR_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_MAX_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_MAXU_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_MIN_REQUEST ||
-         req_type == `L15_NOC1_REQTYPE_AMO_MINU_REQUEST)
+      if ((req_type == `L15_NOC1_REQTYPE_LD_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_IFILL_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_ST_UPGRADE_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_ST_FILL_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_CAS_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_SWAP_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_ADD_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_AND_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_OR_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_XOR_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_MAX_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_MAXU_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_MIN_REQUEST) ||
+         (req_type == `L15_NOC1_REQTYPE_AMO_MINU_REQUEST))//||
+         //req_type == `L15_NOC1_REQTYPE_RVCMO_INVAL_REQUEST)
       begin
          l15_dmbr_l1missIn = 1'b1;
          l15_dmbr_l1missTag = msg_mshrid[`DMBR_TAG_WIDTH-1:0]; // TODO: might be wrong please contact Tri

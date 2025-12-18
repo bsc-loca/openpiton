@@ -189,6 +189,7 @@
 `define FWD_RQ          5'b01101
 `define FWD_RPY         5'b01110
 `define RSVD_RQ         5'b11111
+`define CMO_RQ          5'b01100
 
 `define LOAD_RET        4'b0000
 `define INV_RET         4'b0011

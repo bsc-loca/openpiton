@@ -39,6 +39,7 @@ module l15_wrap #(
 
     input [4:0]                             transducer_l15_rqtype,
     input [`L15_AMO_OP_WIDTH-1:0]           transducer_l15_amo_op,
+    input [`L15_CMO_OP_WIDTH-1:0]           transducer_l15_cmo_op,
     input                                   transducer_l15_nc,
     input [2:0]                             transducer_l15_size,
     input [`L15_THREADID_MASK]              transducer_l15_threadid,
@@ -133,6 +134,7 @@ module l15_wrap #(
 
         .transducer_l15_rqtype              (transducer_l15_rqtype),
         .transducer_l15_amo_op              (transducer_l15_amo_op),
+        .transducer_l15_cmo_op              (transducer_l15_cmo_op),
         .transducer_l15_nc                  (transducer_l15_nc),
         .transducer_l15_size                (transducer_l15_size),
         // .pcxdecoder_l15_invalall         (transducer_l15_invalall),

@@ -157,6 +157,14 @@ begin
             $display("L15_REQTYPE_AMO_MINU");
         `L15_REQTYPE_ACKDT_LR:
             $display("L15_REQTYPE_ACKDT_LR");    
+	`L15_REQTYPE_CMO_INVAL:
+	    $display("L15_REQTYPE_CMO_INVAL");
+	`L15_REQTYPE_CMO_CLEAN:
+	    $display("L15_REQTYPE_CMO_CLEAN");
+	`L15_REQTYPE_CMO_FLUSH:
+	    $display("L15_REQTYPE_CMO_FLUSH");
+	`L15_REQTYPE_ACK_CMO:
+	    $display("L15_REQTYPE_ACK_CMO");
         default:
             $display("UNKNOWN_ERROR_OPERATION");
     endcase
@@ -272,7 +280,9 @@ endtask
 task decode_pcx_op;
 input [`PCX_REQTYPE_WIDTH-1:0] op;
 input [`L15_AMO_OP_WIDTH-1:0] amo_op;
+input [`L15_CMO_OP_WIDTH-1:0] cmo_op;
 begin
+    $write("op %d\t", op);
     case (op)
         `PCX_REQTYPE_LOAD:
             $write("PCX_REQTYPE_LOAD");
@@ -280,6 +290,15 @@ begin
             $write("PCX_REQTYPE_IFILL");
         `PCX_REQTYPE_STORE:
             $write("PCX_REQTYPE_STORE");
+	`PCX_REQTYPE_CMO:
+	    case (cmo_op)
+		`L15_REQTYPE_CMO_INVAL:
+		    $write("PCX_REQTYPE_CMO - L15_REQTYPE_CMO_INVAL");
+		`L15_REQTYPE_CMO_CLEAN:
+		    $write("PCX_REQTYPE_CMO - L15_REQTYPE_CMO_CLEAN");
+		`L15_REQTYPE_CMO_FLUSH:
+		    $write("PCX_REQTYPE_CMO - L15_REQTYPE_CMO_FLUSH");
+	    endcase
         `PCX_REQTYPE_AMO:
             case (amo_op)
                 `L15_AMO_OP_LR:
@@ -407,7 +426,9 @@ begin
     if (`L15_PIPE0.pcxdecoder_l15_val && `L15_PIPE0.val_s1 && !`L15_PIPE0.stall_s1 && !`L15_PIPE0.noc2decoder_l15_val
         && `L15_PIPE0.fetch_state_s1 == `L15_FETCH_STATE_NORMAL)
     begin
-        $write("%0d TILE0 L1.5 th%d: Received PCX ", $time, `L15_PIPE0.pcxdecoder_l15_threadid); decode_pcx_op(`L15_PIPE0.pcxdecoder_l15_rqtype, `L15_PIPE0.pcxdecoder_l15_amo_op);
+	if (`L15_PIPE0.pcxdecoder_l15_cmo_op) begin
+	end
+        $write("%0d TILE0 L1.5 th%d: Received PCX ", $time, `L15_PIPE0.pcxdecoder_l15_threadid); decode_pcx_op(`L15_PIPE0.pcxdecoder_l15_rqtype, `L15_PIPE0.pcxdecoder_l15_amo_op, `L15_PIPE0.pcxdecoder_l15_cmo_op);
         $display("   Addr 0x%x, nc %d, size %d, invalall %d, pf %d, bs %d, bsi %d, l1way %d",
                                 `L15_PIPE0.pcxdecoder_l15_address, `L15_PIPE0.pcxdecoder_l15_nc, `L15_PIPE0.pcxdecoder_l15_size, `L15_PIPE0.pcxdecoder_l15_invalidate_cacheline,
                                 `L15_PIPE0.pcxdecoder_l15_prefetch, `L15_PIPE0.pcxdecoder_l15_blockstore, `L15_PIPE0.pcxdecoder_l15_blockinitstore, `L15_PIPE0.pcxdecoder_l15_l1rplway);
@@ -607,6 +628,12 @@ begin
             noc1 = "L15_NOC1_REQTYPE_AMO_MINU_REQUEST";
         `L15_NOC1_REQTYPE_LR_REQUEST:
             noc1 = "L15_NOC1_REQTYPE_LR_REQUEST";
+        `L15_NOC1_REQTYPE_RVCMO_INVAL_REQUEST:
+            noc1 = "L15_NOC1_REQTYPE_RVCMO_INVAL_REQUEST";
+        `L15_NOC1_REQTYPE_RVCMO_CLEAN_REQUEST:
+            noc1 = "L15_NOC1_REQTYPE_RVCMO_CLEAN_REQUEST";
+        `L15_NOC1_REQTYPE_RVCMO_FLUSH_REQUEST:
+            noc1 = "L15_NOC1_REQTYPE_RVCMO_FLUSH_REQUEST";
         default:
             noc1 = "ERROR noc1";
         endcase
@@ -712,7 +739,7 @@ begin
             $write(" X ");
         $display("");
 
-        // $write("PCX pipe info: "); decode_pcx_op(`L15_PIPE0.pcxdecoder_l15_rqtype, L15_PIPE0.pcxdecoder_l15_amo_op);
+        // $write("PCX pipe info: "); decode_pcx_op(`L15_PIPE0.pcxdecoder_l15_rqtype, L15_PIPE0.pcxdecoder_l15_amo_op, L15_PIPE0.pcxdecoder_l15_cmo_op);
         // if (`L15_PIPE0.noc1_req_val_s3 && `L15_PIPE0.noc1encoder_req_staled_s3)
         //     $display(" (staled)");
         // else if (!`L15_PIPE0.noc1_req_val_s3)

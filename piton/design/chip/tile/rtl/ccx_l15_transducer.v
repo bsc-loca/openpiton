@@ -48,6 +48,7 @@ module ccx_l15_transducer (
 
     output [4:0]                    transducer_l15_rqtype,
     output [`L15_AMO_OP_WIDTH-1:0]  transducer_l15_amo_op,
+    output [`L15_CMO_OP_WIDTH-1:0]  transducer_l15_cmo_op,
     output                          transducer_l15_nc,
     output [2:0]                    transducer_l15_size,
     output [`L15_THREADID_MASK]     transducer_l15_threadid,
@@ -136,6 +137,7 @@ pcx_decoder pcx_decoder(
    .pcxdecoder_pcxbuf_ack               ( pcxdecoder_pcxbuf_ack               ),
    .pcxdecoder_l15_rqtype               ( transducer_l15_rqtype               ),
    .pcxdecoder_l15_amo_op               ( transducer_l15_amo_op               ),
+   .pcxdecoder_l15_cmo_op               ( transducer_l15_cmo_op               ),
    .pcxdecoder_l15_nc                   ( transducer_l15_nc                   ),
    .pcxdecoder_l15_size                 ( transducer_l15_size                 ),
    // .pcxdecoder_l15_invalall          ( transducer_l15_invalall             ),
