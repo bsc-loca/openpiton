@@ -24,6 +24,9 @@
 [submodule "piton/design/chip/tile/lagarto_ox"]
 	path = piton/design/chip/tile/lagarto_ox
 	url = ../../core-tile/lagarto_ox_tile.git
+[submodule "piton/design/chipset/io_ctrl/xilinx/common/ip_cores/eth_cmac_syst"]
+	path = piton/design/chipset/io_ctrl/xilinx/common/ip_cores/eth_cmac_syst
+	url = https://github.com/bsc-loca/100gb-ethernet
 [submodule "piton/design/chip/ProNoC"]
 	path = piton/design/chip/ProNoC
 	url = ../../../fpga/third-party/bsc-pronoc.git

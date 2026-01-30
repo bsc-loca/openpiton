@@ -34,11 +34,113 @@ set DESIGN_INCLUDE_DIRS ""
 
 set DESIGN_DEFAULT_VERILOG_MACROS "PITON_FULL_SYSTEM PITON_FPGA_NO_DMBR MERGE_L1_DCACHE FPGA_SYN_1THREAD FPGA_FORCE_SRAM_ICACHE_TAG FPGA_FORCE_SRAM_LSU_ICACHE FPGA_FORCE_SRAM_DCACHE_TAG FPGA_FORCE_SRAM_LSU_DCACHE FPGA_FORCE_SRAM_RF16X160 FPGA_FORCE_SRAM_RF32X80 CONFIG_DISABLE_BIST_CLEAR"
 
+set CORE_RTL_FILES ""
+
+proc getRTLfile {line} {
+    set line [regsub -all {\r} $line ""]
+    set line [regsub -all {\+.*} $line ""]
+    set line [regsub {cpp.*} $line ""]
+    set line [regsub {//.*} $line ""]
+    set line [regsub {#.*} $line ""]
+    return $line
+}
+
+proc getIncdirValue {line} {
+    set pattern {^\s*\+incdir\+\s*(.*)$}
+    if {[regexp $pattern $line match value]} {
+        return $value
+    } else {
+        return ""
+    }
+}
+
+
+if {[info exists ::env(PITON_ARIANE)]} {
+  set fp [open "$::env(ARIANE_ROOT)/Flist.ariane" r]
+  set file_data [read $fp]
+  set data [split $file_data "\n"]
+  set ARIANE_RTL_FILES {}
+  puts "Sources from $::env(ARIANE_ROOT)/Flist.ariane:"
+  foreach line $data {
+   set line [getRTLfile $line]
+   if  {[string trim $line] eq ""} then continue
+   lappend ARIANE_RTL_FILES "$::env(ARIANE_ROOT)/${line}"
+   puts "$::env(ARIANE_ROOT)/${line}"
+  } 
+  close $fp
+
+  set CORE_RTL_FILES [concat ${CORE_RTL_FILES} ${ARIANE_RTL_FILES}]
+  puts "Including Ariane RTL files"
+}
+
+# Function to parse flist files
+proc parseFlist {flistFile &_includeDirs &_sourceFiles &_defines basePath} {
+    global HPDCACHE_DIR
+    upvar 1 ${&_includeDirs} includeDirs
+    upvar 1 ${&_sourceFiles} sourceFiles
+    upvar 1 ${&_defines} defines
+
+    puts "\[Sargantana\] Parsing $flistFile"
+
+    set file [open $flistFile r]
+    set content [read $file]
+    close $file
+
+    set lines [split $content "\n"]
+    foreach line $lines {
+        # Ignore empty lines
+        if {[string trim $line] eq ""} {
+            continue
+        }
+
+        # Ignore comments
+        if {[string match -nocase "//*" [string trimleft $line]]} {
+            continue
+        }
+
+        # Parse recursively for -F <path>
+        if {[regexp {^-F\s+(.+)} $line - match]} {
+            set subFlist [file join $basePath [subst -nocommands $match]]
+            parseFlist $subFlist includeDirs sourceFiles defines [file dirname $subFlist]
+        }
+
+        # Parse recursively for -f <path>
+        if {[regexp {^-f\s+(.+)} $line - match]} {
+            # Substitute environment variables in the file path
+            set subFlist [file join $basePath [subst -nocommands $match]]
+            parseFlist $subFlist includeDirs sourceFiles defines ""
+        }
+
+        # Add directory to includeDirs for +incdir+
+        if {[regexp {^\+incdir\+(.+)} $line - match]} {
+            set directory [subst -nocommands $match]
+            lappend includeDirs [file join $basePath $directory]
+            puts "including $directory"
+        }
+
+        # Add define to list of defines for +define+
+        if {[regexp {^\+define\+(.+)} $line - match]} {
+            set definition [subst -nocommands $match]
+            lappend defines $definition
+            puts "defining $definition"
+        }
+
+        # Add source file to sourceFiles
+        if {![regexp {^-F\s+.+} $line] && ![regexp {^-f\s+.+} $line] && ![regexp {^\+incdir\+.+} $line] && ![regexp {^\+define\+.+} $line]} {
+            set filePath [subst -nocommands $line]
+            lappend sourceFiles [file join $basePath $filePath]
+            puts "adding $filePath"
+        }
+    }
+}
+
+
 set DESIGN_RTL_IMPL_FILES [concat \
     ${SYSTEM_RTL_IMPL_FILES} \
     ${CHIP_RTL_IMPL_FILES} \
     ${PASSTHRU_RTL_IMPL_FILES} \
     ${CHIPSET_RTL_IMPL_FILES} \
+    ${CORE_RTL_FILES} \
 ]
 
 set DESIGN_INCLUDE_FILES [concat \

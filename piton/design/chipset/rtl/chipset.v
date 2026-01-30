@@ -253,8 +253,21 @@ module chipset(
     output [`DDR3_CS_WIDTH-1:0]                 ddr_cs_n,
 `endif // endif NEXYSVIDEO_BOARD
 `ifdef PITONSYS_DDR4
+`ifdef PITONSYS_PCIE
+    input  [15:0] pci_express_x16_rxn,
+    input  [15:0] pci_express_x16_rxp,
+    output [15:0] pci_express_x16_txn,
+    output [15:0] pci_express_x16_txp,   
+    output [4:0] pcie_gpio,     
+    input  pcie_perstn,
+    input  pcie_refclk_n,
+    input  pcie_refclk_p,
+`endif
 `ifdef XUPP3R_BOARD
     output                                      ddr_parity,
+`elsif ALVEO_BOARD
+      output                          ddr_parity,
+      output                          hbm_cattrip,
 `else
     inout [`DDR3_DM_WIDTH-1:0]                  ddr_dm,
 `endif // XUPP3R_BOARD
@@ -364,7 +377,15 @@ module chipset(
         inout                                           net_phy_mdio_io,
         output                                          net_phy_mdc,
 
-    `endif // PITON_FPGA_ETHERNETLITE    
+    `elsif PITON_FPGA_ETH_CMAC // PITON_FPGA_ETHERNETLITE
+        // GTY quads connected to QSFP unit on Alveo board
+        input          qsfp_ref_clk_n,
+        input          qsfp_ref_clk_p,
+        input   [3:0]  qsfp_4x_grx_n,
+        input   [3:0]  qsfp_4x_grx_p,
+        output  [3:0]  qsfp_4x_gtx_n,
+        output  [3:0]  qsfp_4x_gtx_p,
+    `endif // PITON_FPGA_ETH_CMAC
 `else // ifndef PITONSYS_IOCTRL
 
 `endif // endif PITONSYS_IOCTRL
@@ -473,6 +494,9 @@ module chipset(
         input  [3:0]                                        sw,
     `elsif XUPP3R_BOARD
         // no switches :(
+    `elsif ALVEO_BOARD
+        input  [2:0]                                        sw,
+        // virtual switches :)
     `else         
         input  [7:0]                                        sw,
     `endif
@@ -566,8 +590,14 @@ reg                                             chipset_rst_n_ff;
 `endif
 
 // UART boot stuff
+`ifndef ALVEO_BOARD
 wire                                            uart_boot_en;
 wire                                            uart_timeout_en;
+`else
+reg                                             uart_boot_en;
+reg                                             uart_timeout_en;
+reg                                             uart_bootrom_linux_en;
+`endif
 
 // NoC power test hop count from switches if enabled
 wire  [3:0]                                     noc_power_test_hop_count;
@@ -771,6 +801,12 @@ end
             `elsif XUPP3R_BOARD
                 assign uart_boot_en    = 1'b1;
                 assign uart_timeout_en = 1'b0;
+            `elsif ALVEO_BOARD
+                always @ (posedge chipset_clk) begin
+                  uart_boot_en          <= sw[0];
+                  uart_timeout_en       <= sw[1]; 
+                  uart_bootrom_linux_en <= sw[2];
+                end
             `else 
                 assign uart_boot_en    = sw[7];
                 assign uart_timeout_en = sw[6];
@@ -781,6 +817,9 @@ end
 
 `ifdef PITON_NOC_POWER_CHIPSET_TEST
     `ifdef VCU118_BOARD
+        // only two switches available...
+        assign noc_power_test_hop_count = {2'b0, sw[3:2]};
+    `elsif ALVEO_BOARD
         // only two switches available...
         assign noc_power_test_hop_count = {2'b0, sw[3:2]};
     `elsif XUPP3R_BOARD
@@ -1376,6 +1415,16 @@ chipset_impl_noc_power_test  chipset_impl (
             .init_calib_complete(init_calib_complete),
             `ifndef F1_BOARD
                 `ifdef PITONSYS_DDR4
+                     `ifdef PITONSYS_PCIE
+                     .pci_express_x16_rxn(pci_express_x16_rxn),
+                     .pci_express_x16_rxp(pci_express_x16_rxp),
+                     .pci_express_x16_txn(pci_express_x16_txn),
+                     .pci_express_x16_txp(pci_express_x16_txp),
+                     .pcie_gpio(pcie_gpio),        
+                     .pcie_perstn(pcie_perstn),
+                     .pcie_refclk_n(pcie_refclk_n),
+                     .pcie_refclk_p(pcie_refclk_p),
+                     `endif
                     .ddr_act_n(ddr_act_n),                    
                     .ddr_bg(ddr_bg), 
                 `else // PITONSYS_DDR4
@@ -1400,6 +1449,9 @@ chipset_impl_noc_power_test  chipset_impl (
             
                 `ifdef XUPP3R_BOARD
                     .ddr_parity(ddr_parity),
+                `elsif ALVEO_BOARD
+                    .ddr_parity(ddr_parity),
+                    .hbm_cattrip(hbm_cattrip),       
                 `else
                     .ddr_dm(ddr_dm),
                 `endif // XUPP3R_BOARD
@@ -1467,14 +1519,17 @@ chipset_impl_noc_power_test  chipset_impl (
     `endif // endif PITONSYS_NO_MC
 
     `ifdef PITONSYS_IOCTRL
-        `ifdef PITONSYS_UART
-            ,
+        `ifdef PITONSYS_UART           
+            ,            
             .uart_tx(uart_tx),
             .uart_rx(uart_rx)
             `ifdef PITONSYS_UART_BOOT
                 ,
                 .uart_boot_en(uart_boot_en),
                 .uart_timeout_en(uart_timeout_en)
+                `ifdef ALVEOU280_BOARD                           
+                ,.bootrom_linux_en(uart_bootrom_linux_en)
+                `endif
             `endif // endif PITONSYS_UART_BOOT
         `endif // endif PITONSYS_UART
 
@@ -1509,7 +1564,16 @@ chipset_impl_noc_power_test  chipset_impl (
                 .net_phy_mdio_io    (net_phy_mdio_io        ),
                 .net_phy_mdc        (net_phy_mdc            )
 
-            `endif // PITON_FPGA_ETHERNETLITE   
+            `elsif PITON_FPGA_ETH_CMAC // PITON_FPGA_ETHERNETLITE
+                ,
+                .eth_init_clk        (mc_clk),
+                .qsfp_ref_clk_n      (qsfp_ref_clk_n),
+                .qsfp_ref_clk_p      (qsfp_ref_clk_p),
+                .qsfp_4x_grx_n       (qsfp_4x_grx_n),
+                .qsfp_4x_grx_p       (qsfp_4x_grx_p),
+                .qsfp_4x_gtx_n       (qsfp_4x_gtx_n),
+                .qsfp_4x_gtx_p       (qsfp_4x_gtx_p)
+            `endif // PITON_FPGA_ETH_CMAC
     `endif // endif PITONSYS_IOCTRL
 
     `ifdef PITON_RV64_PLATFORM

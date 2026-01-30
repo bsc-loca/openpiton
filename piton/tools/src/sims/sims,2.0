@@ -365,6 +365,9 @@ GetOptions (\%opt,
             'simslog!',
             'simslog_name=s',
             'build_id=s',
+            'board=s',
+            'eth!',
+            'uart_dmw!',
             'sys=s',
             'hbm!',
            ) ;
@@ -409,6 +412,11 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_SARG")     if ($opt{sarg}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_LOX")     if ($opt{lox}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
+push (@{$opt{config_cpp_args}}, "-DVERILATOR")      if ($opt{vlt_build}) ;
+# Other boards may be added here for simple MC/UART/Ethernet access simulation
+push (@{$opt{config_cpp_args}}, "-DALVEO_BOARD")    if (($opt{board}) and (($opt{board} eq "alveou280") || ($opt{board} eq "alveou55c") || ($opt{board} eq "alveou250"))) ;
+push (@{$opt{config_cpp_args}}, "-DUART_BOOT")      if ($opt{uart_dmw}) ;
+push (@{$opt{config_cpp_args}}, "-DETH_CORE")       if ($opt{eth}) ;
 push (@{$opt{config_cpp_args}}, "-DHBM_DEF")        if ($opt{hbm}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_PRONOC")  if ($opt{pronoc}) ;
 push (@{$opt{config_cpp_args}}, "-DSIM_USE_DPI")   if ($opt{metro_mpi_build}) ;
@@ -3059,6 +3067,7 @@ sub parse_args
             'num_tile=s',
             'x_tiles=s',
             'y_tiles=s',
+            'board=s',
             'dynamic_csm=s',
             'gui!',
             'log_all!',
@@ -3119,6 +3128,12 @@ sub parse_args
     }
   }
 
+  # Considering board specific defines, needed when sims is run from protosyn, not to confuse it with their incorrect values
+  if ($opt{board}) {
+    $ENV{PROTOSYN_RUNTIME_DESIGN_PATH} = $ENV{DV_ROOT} . "/design/xilinx";
+    $ENV{PROTOSYN_RUNTIME_BOARD} = $opt{board};
+  }
+  else {
   GetOptions (\%opt,"l15_num_threads=s",
     );
 
@@ -3160,6 +3175,7 @@ sub parse_args
   }
   $ENV{PROTOSYN_RUNTIME_DESIGN_PATH} = $ENV{DV_ROOT} . "/verif/env/manycore";
   $ENV{PROTOSYN_RUNTIME_BOARD} = "";
+  }
 
 
   # these arguments may not have any options associated with them
@@ -3541,7 +3557,15 @@ OPENPITON ARGUMENTS
             in the x dimension and Y tiles in the y dimension. If
             -x_tiles and -y_tiles is not specified, the default is
             X=1 and Y=1. The maximum value for both X and Y is 1024.
-    -hbm enables HBM related definitions.
+  
+    -board=<board_type>
+            enables board specific definitions.
+
+    -eth
+            enables ethernet related hardware.
+
+    -hbm
+            enables HBM related definitions.
 
     -ed_enable
             enable Execution Drafting in each core.

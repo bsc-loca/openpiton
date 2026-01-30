@@ -58,6 +58,18 @@ close_project
 open_project ${VIVADO_PROJECT_FILE}
 auto_detect_xpm
 # Launch implementation
+if {$::env(ENABLE_ILA) == "True"} {
+    puts "INFO: Adding ILA '${PROJECT_NAME}'"
+    reset_run synth_1
+    launch_runs synth_1 -jobs $::env(NUM_VIVADO_JOBS)
+    wait_on_run synth_1
+    open_run synth_1 -name synth_1
+    source $DV_ROOT/tools/src/proto/vivado/imp_ila.tcl 
+    #save_constraints -force
+    close_design
+} else { 
+    puts "INFO: Not adding ILA '${PROJECT_NAME}'"
+}
 launch_run impl_1 -to_step write_bitstream -jobs $::env(NUM_VIVADO_JOBS)
 puts "INFO: Implementation launched for project '${PROJECT_NAME}'"
 
@@ -68,4 +80,69 @@ if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
     puts "ERROR: Implementation failed."
 } else {
     puts "INFO: Implementation passed!"
+}
+
+set VIVADO_POSTROUTEPHYSOPT $::env(VIVADO_POSTROUTEPHYSOPT)
+if {$VIVADO_POSTROUTEPHYSOPT && $BOARD_DEFAULT_VERILOG_MACROS == "ALVEO_BOARD"} {
+
+  open_run impl_1
+  set CurrentSlack [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
+  if { [expr $CurrentSlack < 0.000] } {
+
+  # Here is iterative routing procedure applying a set of strategies
+  file mkdir $env(PITON_ROOT)/build/iter_impl
+
+  # Explore routing strategies
+  set RouteDirectives "NoTimingRelaxation \
+        Explore \
+        MoreGlobalIterations \
+        HigherDelayCost \
+        AdvancedSkewModeling \
+        AlternateCLBRouting \
+        AggressiveExplore  \
+        Default"
+
+  set PhysOptDirectives "Explore \
+        ExploreWithHoldFix  \
+        AggressiveExplore  \
+        AlternateReplication  \
+        AggressiveFanoutOpt \
+        AddRetime \
+        AlternateFlowWithRetiming \
+        RuntimeOptimized \
+        ExploreWithAggressiveHoldFix \
+        Default"
+
+  set route_loops [llength $RouteDirectives]
+  puts "=== Running route_design with $route_loops strategies"
+  for {set route_loop 0} {$route_loop < $route_loops} {incr route_loop} {
+    set route_design_directive [lindex $RouteDirectives $route_loop]
+    route_design -directive $route_design_directive
+    set CurrentSlack [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
+    puts "=== Finished $route_loop of $route_loops route_design $route_design_directive on [exec date] (WNS: $CurrentSlack)"
+
+    set i 0
+    set nloops [llength $PhysOptDirectives]
+    # Post-Route Physical Optimization is effective when WNS is above -0.5ns, and could be stuck otherwise
+    if { [expr {$CurrentSlack >= -0.5 || $route_loop == ($route_loops-1)}] } {
+      for {set i 0} {$i < $nloops} {incr i} {
+        set CurrentDirective [lindex $PhysOptDirectives $i]
+        phys_opt_design -directive $CurrentDirective
+        # Get the Slack after the optimization
+        set CurrentSlack [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
+        puts "--- Finished post-route ($route_loop/$route_loops) phys_opt_design ($i/$nloops ) with directive $CurrentDirective (WNS: $CurrentSlack)"
+      }
+    }
+    set CurrentSlack [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
+    puts "=== Finished phys_opt_design after $route_loop of $route_loops route_design $route_design_directive on [exec date] (WNS: $CurrentSlack)"
+    write_checkpoint -force $env(PITON_ROOT)/build/iter_impl/post_route${route_loop}_${route_design_directive}.dcp
+
+    if { [expr $CurrentSlack >= 0.000] } {
+      break
+    }
+  }
+
+  write_bitstream -force $env(PITON_ROOT)/build/iter_impl/iter_system.bit
+
+  }
 }
