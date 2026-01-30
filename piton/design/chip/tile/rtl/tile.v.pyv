@@ -1331,7 +1331,7 @@ if (TILE_TYPE == `SARGANTANA_RV64_TILE) begin : g_sarg_core
 <%
 str = '''
         .NIOSections     ( 1 ),
-        .InitIOBase      ( {40'hFF_F000_0000} ),
+        .InitIOBase      ( {40'h80_4000_0000} ),
         .InitIOEnd       ( {40'hFF_F200_0000} ),
         .NMappedSections ( 2 ),
         .InitMappedBase  ( {40'h00_8000_0000, 40'hFF_F000_0000}   ),
