@@ -134,6 +134,41 @@ proc parseFlist {flistFile &_includeDirs &_sourceFiles &_defines basePath} {
     }
 }
 
+if {[info exists ::env(PITON_SARG)]} {
+    set HPDCACHE_DIR "$::env(SARG_ROOT)/rtl/dcache/"
+
+    set define_list [list]
+    set SARG_RTL_FILES [list]
+    set sarg_flists [list \
+        "$::env(SARG_ROOT)/filelist.f" \
+        "$::env(SARG_ROOT)/openpiton.f"]
+    
+    
+    set bsc_flists [list \
+        "${DV_ROOT}/design/chipset/rv64_platform/Flist.rv64_platform" \
+        "${DV_ROOT}/design/chipset/bsc/rtl/Flist.bsc_riscv_peripherals" \
+        "${DV_ROOT}/design/chipset/bsc_rv64_peripherals/rtl/clint/Flist.clint" \
+        "${DV_ROOT}/design/chipset/bsc_rv64_peripherals/rtl/plic/Flist.plic"]
+    
+    if {[info exists ::env(PITON_BSC_RISCV_PERIPHERALS)]} {
+        puts "Including BSC RISCV_PERIPHERALS RTL files"
+        set sarg_flists [concat ${sarg_flists} ${bsc_flists}]
+    }
+
+    foreach file_path $sarg_flists {
+        set dir_path [file dirname $file_path]
+        puts "Sources from ${file_path}:"
+       
+        parseFlist $file_path GLOBAL_INCLUDE_DIRS SARG_RTL_FILES define_list $dir_path 
+    }
+
+    set CORE_RTL_FILES [concat ${CORE_RTL_FILES} ${SARG_RTL_FILES}]
+    set DESIGN_DEFAULT_VERILOG_MACROS [concat ${DESIGN_DEFAULT_VERILOG_MACROS} $define_list]
+    puts "Including Sargantana RTL files"
+}
+
+puts " GLOBAL_INCLUDE_DIRS = $GLOBAL_INCLUDE_DIRS"   
+
 
 set DESIGN_RTL_IMPL_FILES [concat \
     ${SYSTEM_RTL_IMPL_FILES} \

@@ -77,6 +77,7 @@ def usage():
     print("                  pico      (32bit RISCV core)", file=sys.stderr)
     print("                  pico_het  (heterogeneous pico+sparc arrangement)", file=sys.stderr)
     print("                  ariane    (64bit RISCV core)", file=sys.stderr)
+    print("                  sarg      (64bit RISCV core)", file=sys.stderr)
     print("\n       --network_config <network_config>", file=sys.stderr)
     print("              Name of the network type to be used:", file=sys.stderr)
     print("                  2dmesh_config (default)", file=sys.stderr)
@@ -530,7 +531,8 @@ def makeDefList(options):
     # disable CSM in this case
     if options.core == 'ariane':
         defines.append("NO_RTL_CSM")
-
+    if options.core == 'sarg':
+        defines.append("NO_RTL_CSM")
     if (options.board == "f1"):
         print_info("design option is ignored for f1")
 
@@ -938,6 +940,22 @@ def main():
             os.environ['RTL_ARIANE' + str(i)] = "1"
             print_info('setenv RTL_ARIANE' + str(i))
 
+    # Hardcoded RTL defines, as done in Cincoranch
+    # could be defined as parametric flags
+    elif options.core == 'sarg':
+        os.environ['PITON_SARG'] = "1"
+        os.environ['PITON_ARIANE_HPDC'] = "1"
+        os.environ['PITON_RV64_PLATFORM'] = "1"
+        os.environ['PITON_BSC_RISCV_PERIPHERALS'] = "1"
+        os.environ['CONFIG_HPDC_REQ_WORDS'] = "8"
+    
+    # ! Some parameters are defined as environment variables and some others are defined as
+    # default verilog defines at synthesis (filelists or design.tcl script)
+
+        for i in range(int(options.num_tiles)):
+            os.environ['RTL_SARG' + str(i)] = "1"
+            print_info('setenv RTL_SARG' + str(i))   
+    
     elif options.core == 'sparc':
         # this is the default
         os.environ['PITON_OST1'] = "1"
@@ -1050,6 +1068,9 @@ def main():
 
         if options.core == 'ariane':
             config += ' -ariane'
+        
+        if options.core == 'sarg':
+            config += ' -sarg'
 
         if options.board:
             config += ' -board=' + options.board

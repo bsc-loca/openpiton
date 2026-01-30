@@ -94,7 +94,13 @@ if {[info exists ::env(PITON_PICO_HET)]} {
 }
 
 if {[info exists ::env(PITON_ARIANE)]} {
+  set PITON_CORE "Arine" 
   append ALL_DEFAULT_VERILOG_MACROS " PITON_ARIANE PITON_RV64_PLATFORM PITON_RV64_DEBUGUNIT PITON_RV64_CLINT PITON_RV64_PLIC WT_DCACHE"
+}
+
+if {[info exists ::env(PITON_SARG)]} {
+  set PITON_CORE "Sargantana" 
+  append ALL_DEFAULT_VERILOG_MACROS " PITON_SARG PITON_RV64_PLATFORM PITON_ARIANE_HPDC HPDCACHE_OPENPITON ICACHE_64B PITON_BSC_RISCV_PERIPHERALS PITON_RV64_CLINT PITON_RV64_PLIC CONF_SARGANTANA_PHY_ADDR_SIZE=40"
 }
 
 for {set k 0} {$k < $::env(PITON_NUM_TILES)} {incr k} {
@@ -110,6 +116,9 @@ for {set k 0} {$k < $::env(PITON_NUM_TILES)} {incr k} {
   if {[info exists "::env(RTL_TILE$k)"]} {
     append ALL_DEFAULT_VERILOG_MACROS " RTL_TILE$k"
   }
+  if {[info exists "::env(RTL_SARG$k)"]} {
+    append ALL_DEFAULT_VERILOG_MACROS " RTL_SARG$k"
+  }
 }
 
 puts "INFO: Using Defines: ${ALL_DEFAULT_VERILOG_MACROS}"
@@ -120,8 +129,9 @@ set ALL_RTL_IMPL_FILES [pyhp_preprocess ${ALL_RTL_IMPL_FILES}]
 set ALL_INCLUDE_FILES [pyhp_preprocess ${ALL_INCLUDE_FILES}]
 
 
-if  {[info exists ::env(PITON_ARIANE)]} {
-  puts "INFO: compiling DTS and bootroms for Ariane (MAX_HARTS=$::env(PITON_NUM_TILES), UART_FREQ=$env(CONFIG_SYS_FREQ))..."
+if  {[info exists ::env(PITON_ARIANE)] || [info exists ::env(PITON_SARG)]} {
+  
+  puts "INFO: compiling DTS and bootroms for ${PITON_CORE} (MAX_HARTS=$::env(PITON_NUM_TILES), UART_FREQ=$env(CONFIG_SYS_FREQ))..."
   
   
   # credit goes to https://github.com/PrincetonUniversity/openpiton/issues/50 
@@ -135,8 +145,8 @@ if  {[info exists ::env(PITON_ARIANE)]} {
   cd $::env(DV_ROOT)/design/chipset/rv64_platform/bootrom/baremetal
   # Note: dd dumps info to stderr that we do not want to interpret
   # otherwise this command fails...
-  exec make clean 2> /dev/null
-  exec make all 2> /dev/null
+  exec make clean 2>@1
+  exec make all 2>@1
   puts "INFO: bare metal firmware generation complete"
   if {[info exists ::env(PITON_UBOOT_SPL)]} {
     cd $::env(DV_ROOT)/design/chipset/rv64_platform/bootrom
@@ -150,14 +160,14 @@ if  {[info exists ::env(PITON_ARIANE)]} {
     # exec git checkout dual-core
     # Note: dd dumps info to stderr that we do not want to interpret
     # otherwise this command fails...
-    exec make distclean 2> /dev/null
+    exec make distclean 2>@1
     exec make ARCH=riscv CROSS_COMPILE=riscv-none-embed- openpiton_riscv64_spl_defconfig
     #TODO: update riscv toochain
-    exec make CROSS_COMPILE=riscv-none-embed- -j8 2> /dev/null
+    exec make CROSS_COMPILE=riscv-none-embed- -j8 2>@1
     # generate mover using the spl image
     cd $::env(PITON_ROOT)/piton/design/chipset/rv64_platform/bootrom/u-boot/mover/
     exec make clean
-    exec make 2> /dev/null
+    exec make 2>@1
     # generate the linux bootrom using mover image
     exec cp mover.sv $::env(PITON_ROOT)/piton/design/chipset/rv64_platform/bootrom/linux/bootrom_linux.sv
     cd $::env(PITON_ROOT)/piton/design/chipset/rv64_platform/bootrom/linux/
@@ -166,17 +176,18 @@ if  {[info exists ::env(PITON_ARIANE)]} {
     cd $::env(DV_ROOT)/design/chipset/rv64_platform/bootrom/linux
     # Note: dd dumps info to stderr that we do not want to interpret
     # otherwise this command fails...
-    exec make clean 2> /dev/null
-    exec make all MAX_HARTS=$::env(PITON_NUM_TILES) UART_FREQ=$::env(CONFIG_SYS_FREQ) 2> /dev/null
+    exec make clean 2>@1
+    exec make all MAX_HARTS=$::env(PITON_NUM_TILES) UART_FREQ=$::env(CONFIG_SYS_FREQ) 2>@1
   }
   puts "INFO: done"
-  # two targets per hart (M,S) and two interrupt sources (UART, Ethernet)
+  # two targets per hart (M,S) and two interrupt sources (UART, DMA Ethernet(2))
   set NUM_TARGETS [expr 2*$::env(PITON_NUM_TILES)]
-  set NUM_SOURCES 2
-  puts "INFO: generating PLIC for Ariane ($NUM_TARGETS targets, $NUM_SOURCES sources)..."
-  cd $::env(ARIANE_ROOT)/corev_apu/rv_plic/rtl
-  exec ./gen_plic_addrmap.py -t $NUM_TARGETS -s $NUM_SOURCES > plic_regmap.sv
-
+  set NUM_SOURCES 3
+  puts "INFO: generating PLIC for ${PITON_CORE} ($NUM_TARGETS targets, $NUM_SOURCES sources)..."
+  if  {[info exists ::env(PITON_ARIANE)]} {
+    cd $::env(ARIANE_ROOT)/corev_apu/rv_plic/rtl
+    exec ./gen_plic_addrmap.py -t $NUM_TARGETS -s $NUM_SOURCES > plic_regmap.sv
+  }
   cd $TMP
   puts "INFO: done"
   set ::env(PYTHONPATH) $tmp_PYTHONPATH

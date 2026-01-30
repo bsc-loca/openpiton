@@ -5,7 +5,7 @@ CC = ${CROSSCOMPILE}gcc
 GCC_VERSION_GTEQ_12 = $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 12)
 PYTHON=python3
 
-CFLAGS = -DMAX_HARTS=$(MAX_HARTS) -DUART_FREQ=$(UART_FREQ) -Os -ggdb -mabi=lp64 -Wall -mcmodel=medany -mexplicit-relocs
+CFLAGS = -DMAX_HARTS=$(MAX_HARTS) -DUART_FREQ=$(UART_FREQ) -Os -ggdb -march=rv64ima -mabi=lp64 -Wall -mcmodel=medany -mexplicit-relocs
 CCASFLAGS = -mcmodel=medany -mexplicit-relocs
 LDFLAGS = -nostdlib -nodefaultlibs -nostartfiles
 

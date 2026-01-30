@@ -39,12 +39,6 @@ echo
 
 echo "make sure that you source this script in a bash shell in the root folder of OpenPiton"
 
-if [ -z "$BASH" ] || [ ${0: -4} !=  "bash" ]
-then
-  echo "not in bash ($0), aborting"
-  return
-fi
-
 SCRIPTNAME=sargantana_setup.sh
 
 TEST=`pwd`/piton/

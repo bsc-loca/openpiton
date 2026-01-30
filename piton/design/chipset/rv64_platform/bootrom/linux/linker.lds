@@ -37,4 +37,10 @@ SECTIONS
         *(.rodata*)
     _RODATA_END_ = .;
     }
+
+    /* Discard unnecessary sections */
+    /DISCARD/ : {
+        *(.note.gnu.build-id)
+        *(.comment)
+    }
 }
