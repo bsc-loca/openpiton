@@ -1,0 +1,154 @@
+.fpga_tests:
+  # Linux test lists
+  - export TESTS_LIST_LINUX_sarg="boot_linux "
+  # auxiliar functions
+  - |
+    function load_bitstream(){
+      local node=$1 
+      local card=$2
+      local ret=0
+
+      local test_name=$FUNCNAME
+      local ret=0
+      mkdir -p $(log_file_dir ${test_name})
+      if [ "${BOARD}" == "v80" ]; then
+        fpga-tools/fpga/load-bitstream-v80.sh qdma -i ${BITSTREAM} -b 0 -p 0 -r 0| tee $(log_file_name ${test_name} ${card})
+      else
+        fpga-tools/fpga/load-bitstream-onic.sh qdma -i ${BITSTREAM} -b ${card#0} | tee $(log_file_name ${test_name} ${card})
+      fi
+      ret=${PIPESTATUS[0]}
+      if grep -qi "ERROR" $(log_file_name ${test_name} ${card}); then
+        grep -i "ERROR" $(log_file_name ${test_name} ${card})
+        ret=1
+      fi
+
+      return $ret
+    }
+
+    function check_err_load_bitstream (){
+      declare -n result_load_bitstream=$1
+      if [[ ${result_load_bitstream[@]} =~ 1 ]]; then
+        echo "Errors loading bitstream in node ${node}:"
+        for card in ${!result_load_bitstream[@]}; do 
+            if [[ $card =~ FPGA ]] && [ ${result_load_bitstream[${card}]} -gt 0 ]; then
+              echo "   ${card}"
+            fi
+        done
+        exit 1
+      fi
+    }
+
+    function run_tests_linux(){
+      local tests_lists=$1
+
+      for test_name in ${tests_lists}; do
+        reset_result_test
+        local start=$(date +%s)
+        run_parallel ${test_name} fpgas result_test
+        let elapsed=$(date +%s)-$start
+        gen_report_results result_test
+        echo -e "\n  TIME: $elapsed" >> $REPORT_PATH/${test_name}/report_${test_name}.yaml
+        echo -e "\nNODE ${node}\n"
+        results_table "$REPORT_PATH/${test_name}/report_${test_name}.yaml" results_table_header
+        #if [ "${test_name}" == "boot_linux" ]; then
+        if grep -q "RESULT: 1" $REPORT_PATH/${test_name}/report_${test_name}.yaml; then
+          break
+        fi
+        #fi
+      done
+    }
+  ## report
+  - |
+    function reset_result_test(){
+      unset result_test
+      declare -gA result_test
+    }
+
+    function gen_report_results() {
+      local -n test_results=$1
+      local -A info_results
+      local n_passed=0
+      local n_total=0
+      test_name=${test_results["test_name"]}
+      for fpga in "${!test_results[@]}"; do
+        if [[ $fpga =~ FPGA ]]; then
+          # search in all log files
+          card=$(echo ${fpga} | grep -Eo "[0-8]{1}")
+          info_results["${fpga}"]=${test_results[$fpga]}
+          info_results["${fpga}_type"]=""
+          info_results["${fpga}_message"]=""
+          if [ ${test_results[$fpga]} -gt 0 ]; then
+            info_results["${fpga}_type"]="Assert"
+          fi
+          if grep -qi "kernel panic" $(log_file_dir ${test_name})/*_${card}.log; then
+            info_results["${fpga}_type"]="Panic"
+            message=$(grep -i --text -A1 -B10 "kernel panic" $(log_file_dir ${test_name})/*_${card}.log)
+            info_results["${fpga}_message"]=${message}
+            if [ ${test_results[${fpga}]} -eq 0 ]; then
+              echo -e "ERROR: ${test_name} initially passed, but Kernel panic has been found in FPGA ${card}.\n\
+        Test will fail, you can see the log file: $(log_file_name ${test_name} ${card})"
+            fi
+            test_results[$fpga]=1
+          fi
+          if grep -qi "badaddr" $(log_file_dir ${test_name})/*_${card}.log; then
+            if [ ${#info_results["${fpga}_type"]} == "Assert" ]; then
+              info_results["${fpga}_type"]="Warning"
+            fi
+            message=$(grep -i --text -A6 -B15 "badaddr" $(log_file_dir ${test_name})/*_${card}.log)
+            info_results["${fpga}_message"]+=${message}
+          fi
+          if grep -qi "Oops" $(log_file_dir ${test_name})/*_${card}.log; then
+            if [ ${#info_results["${fpga}_type"]} == "Assert" ]; then
+              info_results["${fpga}_type"]="Warning"
+            fi
+            message=$(grep -i --text -A6 -B15 "Oops" $(log_file_dir ${test_name})/*_${card}.log)
+            info_results["${fpga}_message"]+=${message}
+          fi
+          if [ ${test_results[$fpga]} -eq 0 ]; then
+            ((n_passed++))
+          fi
+          ((n_total++))
+        fi
+      done
+      test_results["PASS"]=${n_passed}
+      test_results["TOTAL"]=${n_total}
+
+      gen_report test_results info_results
+    }
+
+  ## Linux tests
+  - |
+    function boot_linux() {
+      local node=$1 
+      local card=$2
+      
+      local test_name=$FUNCNAME
+      local ret=0
+
+      local fpga_uart=$(get_uart $node $card)
+      log "Running ${test_name}" INFO
+      echo "fpga_uart=${fpga_uart}"
+      stty -F $fpga_uart 115200 raw -echo
+      mkdir -p $(log_file_dir ${test_name})
+      if [ "${BOARD}" == "v80" ]; then
+        card=0
+        local log_file_tty="$(log_file_dir ${test_name})/${test_name}_${card}.log"
+        cat < ${fpga_uart} > ${log_file_tty} & pid_log=$!
+        fpga-tools/boot_riscv/boot_acme.sh $LINUX_BOOT -f vx
+      else
+        log_tty ${fpga_uart} $(log_file_name ${test_name} ${card})
+        log "run boot_acme.sh ${card#0}" INFO
+        flock -w 165 --verbose "${FUNCNAME}.lock" fpga-tools/boot_riscv/boot_acme.sh $LINUX_BOOT ${card#0}
+        log "boot_acme.sh finished ${card#0}" INFO
+      fi
+      log "Loaded ${test_name}" INFO
+      wait_until_match_text "$EXPECTED_RESULT"  $(log_file_name ${test_name} ${card}) "Boot test" 250 || ret=1
+
+      if [ "${BOARD}" == "v80" ]; then
+        kill ${pid_log}
+      else
+        log_tty_kill ${fpga_uart}
+      fi
+      return $ret
+    }
+

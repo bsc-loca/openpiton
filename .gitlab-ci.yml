@@ -1,3 +1,10 @@
+include:
+  - project: 'hwdesign/ci/generic_ci'
+    ref: $GENERIC_CI_BRANCH
+    file:
+      - jobs_template.yml
+  - local: 'ci/fpga_tests.yml'
+
 image: registry.gitlab.bsc.es/hwdesign/containerhub/questa-vip:latest
 
 ## This workflow avoids duplicate pipelines when there is an open merge request (commit_branch + merge_request) 
@@ -20,11 +27,15 @@ workflow:
 
 stages:
   - build
+  - linting
   - sim_isa_tests
   - sim_benchmarks
   - sim_multicore
   - sim_mpi_mmc
-  - linting
+  - bitstream
+  - upload_bitstream
+  - fpga_prepare
+  - fpga_tests
 
 variables:
   GIT_STRATEGY: clone
@@ -69,7 +80,44 @@ default:
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
 .rule_only_merge:
+  - if: ($do_test_fpga)
+    when: never
   - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) # Merge requests, not draft 
+
+.rules_fpga_bitstream:
+  - if: ($CI_MERGE_REQUEST_TITLE =~ /Draft:/)
+    when: never
+  - if: ($CI_JOB_NAME =~ /bitstream/) && ( $CI_COMMIT_MESSAGE =~ /ci-test\/disable-fpga/ || 
+         $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_LABELS =~ /ci-test\/disable-fpga/)
+    when: never
+  - if: ($BITSTREAM_URL)
+    when: never
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_LABELS =~ /ci-test\/no-bitstream-gen/)
+    when: never
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) ||
+        ($CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_BRANCH == "main") ||
+        ($CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') &&
+        ($do_bitstream || $CI_COMMIT_MESSAGE =~ /#do_bitstream/) ||
+        ($CI_COMMIT_TAG)
+
+.rules_default:
+  - if: ($do_test_fpga)
+    when: never
+  - when: on_success
+
+.rules_fpga_tests:
+  - if: ($CI_JOB_NAME =~ /fpga/) && ( $CI_COMMIT_MESSAGE =~ /ci-test\/disable-fpga/ || $CI_MERGE_REQUEST_LABELS =~ /ci-test\/disable-fpga/)
+    when: never
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/) ||
+        (($CI_PIPELINE_SOURCE == 'pipeline' || $CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'schedule') && 
+        ( $do_test_fpga || $CI_COMMIT_MESSAGE =~ /#do_test_fpga/)) ||
+        ($CI_COMMIT_TAG)
+
+.rules_fpga_upload:
+  - if: ($CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_BRANCH == "main")
+  - if: ( $do_bitstream_pkg || $CI_COMMIT_MESSAGE =~ /#do_bitstream_pkg/ )
+    when: always
+  - if: ($CI_COMMIT_TAG)
 
 .regression_report:
   script:
@@ -90,7 +138,8 @@ default:
   before_script:
     - !reference [default, before_script]
     - source piton/lox_setup.sh
-  timeout: 10h
+  timeout: 12h
+
 .ariane_regression_base:
   dependencies:
     - ariane_build
@@ -119,6 +168,8 @@ default:
 
 sargantana_build:
   stage: build
+  rules:
+    !reference [.rules_default]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     CI_TAGS: non_resources
@@ -161,6 +212,8 @@ sargantana_elab_build:
 sargantana_isa_tests:
   extends: .sargantana_regression_base
   stage: sim_isa_tests
+  rules:
+    !reference [.rules_default]
   needs: [sargantana_build]
   parallel:
     matrix:
@@ -259,6 +312,8 @@ sargantana_mpi:
 
 lox_build:
   stage: build
+  rules:
+    !reference [.rules_default]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     CI_TAGS: non_resources
@@ -287,6 +342,8 @@ lox_build:
 lox_isa_tests:
   extends: .lox_regression_base
   stage: sim_isa_tests
+  rules:
+    !reference [.rules_default]
   needs: [lox_build]
   parallel:
     matrix:
@@ -358,6 +415,8 @@ lox_multicore:
 
 ariane_build:
   stage: build
+  rules:
+    !reference [.rules_default]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     CI_TAGS: non_resources
@@ -387,6 +446,8 @@ ariane_build:
 ariane_isa_tests:
   extends: .ariane_regression_base
   stage: sim_isa_tests
+  rules:
+    !reference [.rules_default]
   needs: [ariane_build]
   parallel:
     matrix:
@@ -511,6 +572,8 @@ ariane_mpi:
 
 ariane_hpdc_build:
   stage: build
+  rules:
+    !reference [.rules_default]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     CI_TAGS: non_resources
@@ -535,6 +598,8 @@ ariane_hpdc_build:
 ariane_hpdc_isa_tests:
   extends: .ariane_hpdc_regression_base
   stage: sim_isa_tests
+  rules:
+    !reference [.rules_default]
   needs: [ariane_hpdc_build]
   parallel:
     matrix:
@@ -607,6 +672,175 @@ ariane_hpdc_multicore:
     paths:
       - ./build
 
+## FPGA Synthesizing bitstream FPGACLUSTER - HPC
+bitstream:
+  stage: bitstream
+  extends:
+    - .hpc_vivado_synthesis
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_PATHS: ":(exclude)piton/design/chip/tile/ariane :(exclude)piton/design/chip/tile/lagarto_ox"
+    SLURM_TIME: "24:00:00"
+  timeout: 24h
+  parallel:
+    matrix:
+      - CORE: ["sarg"]
+  needs: []
+  rules:
+    !reference [.rules_fpga_bitstream]
+  script:
+    - LOCAL_OUTPUT_FOLDER="bitstream_${CORE}_${CI_COMMIT_SHORT_SHA}"
+    - mkdir ${LOCAL_OUTPUT_FOLDER}
+    - source piton/sargantana_setup.sh
+    - LD_PRELOAD=/lib64/libstdc++.so.6 protosyn --board alveou55c --design system --core ${CORE} --x_tiles 1 --y_tiles 2 --uart-dmw ddr --zeroer_off --hbm --jobs 8 --postroutephysopt --define DISABLE_SIMD
+  interruptible: false
+  artifacts:
+    expire_in: 1 week
+    when: always
+    paths:
+      - build/alveou55c/system/protosyn_logs/
+      - build/alveou55c/system/alveou55c_system/alveou55c_system.runs/*/*.log
+      - build/alveou55c/system/alveou55c_system/alveou55c_system.runs/*/*.rpt
+      - build/alveou55c/system/*.log
+      - build/alveou55c/system/alveou55c_system/alveou55c_system.runs/impl_1/system.bit
+
+fpga-prepare:
+  extends: .riscv
+  stage: fpga_prepare
+  variables:
+    FPGA_TOOLS_BRANCH: main #parallel_fpga_scripts
+    CORE: sarg
+  needs: 
+    - job: "bitstream: [sarg]"
+      optional: true
+  rules:
+    - !reference [.rules_fpga_tests]
+  script:
+    # uncomment to override bsc-linux url
+    #- BSC_LINUX_URL="https://gitlab.bsc.es/api/v4/projects/3441/packages/generic/zetta-tc2-ft-eth_addr4app/1.0.0/zetta-tc2-ft-eth_addr4app.tar.gz"
+    - |
+      if [[ "$CI_MERGE_REQUEST_LABELS" =~ ci-test/no-bitstream-gen ]] || [ ! -z ${do_test_fpga} ] && [ -z "${BITSTREAM_URL}" ]; then
+        BITSTREAM_URL="https://gitlab.bsc.es/api/v4/projects/${CI_PROJECT_ID}/packages/generic/bitstream_$CORE/${CI_COMMIT_REF_SLUG}/bitstream_$CORE.tar.gz";
+      fi
+    - echo "BITSTREAM_URL=${BITSTREAM_URL}"
+    - | 
+      if [ ! -z ${BITSTREAM_URL} ]; then
+        wget -nv -O bitstream.tar.gz --header "JOB-TOKEN:$CI_JOB_TOKEN" "${BITSTREAM_URL}"
+        tar -xzvf bitstream.tar.gz
+      fi
+    - 'wget -nv -O zetta.tar.gz --header "PRIVATE-TOKEN: $BSC_LINUX_TOKEN" ${BSC_LINUX_URL}'
+    - tar -xzvf zetta.tar.gz
+    - git clone --depth 1 https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.bsc.es/hwdesign/fpga/integration-lab/fpga-tools.git -b ${FPGA_TOOLS_BRANCH} --recurse-submodules
+  artifacts:
+    paths:
+      - fpga-tools
+      - build/alveou55c/system/alveou55c_system/alveou55c_system.runs/impl_1/system.bit
+      - output/images/fw_payload.*
+    exclude:
+      - build/debug-tests/.git
+
+fpga-tests:
+  stage: fpga_tests
+  extends: 
+    - .hpc_vivado_fpga
+  variables:
+    REPORT_PATH: reports
+    SLURM_FPGAS: 8     # not used
+    BOARD: "alveou55c"
+    EXPECTED_RESULT: "login:"
+    CLUSTER_QDMA_DRIVER_PATH: "/nfs/apps/QDMA/meep-ionic/linux-kernel/bin"
+    FPGA_UART_BAUDRATE: "115200"
+    CORE: sarg
+  retry: 1
+  needs: [fpga-prepare]
+  rules:
+    - !reference [.rules_fpga_tests]
+  script:
+    - !reference [.fpga_tests]
+    - set +e
+    - export BITSTREAM=build/alveou55c/system/alveou55c_system/alveou55c_system.runs/impl_1/system.bit
+    - LINUX_BOOT="output/images/fw_payload.bin"
+    - node=$(hostname | grep -Eo "[0-9]*")
+    - host_ip=$(ifconfig | grep -Eo "10\.5\.[0-9]\.[0-9]*")
+    - HOSTNAME=$(hostname)
+    - echo "node=$node, hostname=${HOSTNAME}"
+    - echo "BITSTREAM=${BITSTREAM}"
+    # define fpga list, eventually will be given by slurm or gitlab driver
+    - declare -ag fpgas
+    # To adjust column width, by default it takes column name size
+    - declare -A results_table_width
+    - |
+      if [ "$HPC_CLUSTER" == "FPGA" ]; then
+        fpgas=($(seq 1 8 | xargs))
+        results_table_header=("TEST_NAME" "RESULT" "PASS" "TIME" "FPGA1" "FPGA1_type" "FPGA2" "FPGA2_type" "FPGA3" "FPGA3_type" "FPGA4" "FPGA4_type" "FPGA5" "FPGA5_type" "FPGA6" "FPGA6_type" "FPGA7" "FPGA7_type" "FPGA8" "FPGA8_type")
+        # Results table configuration
+        results_table_width["TEST_NAME"]=37
+      else
+        ps -ef | grep "gitlab.*cat" | grep -v "grep" | awk '{print $2}' | xargs kill || true
+        fpgas=(0)
+        results_table_header=("TEST_NAME" "RESULT" "PASS" "TIME" "FPGA0" "FPGA0_type")
+        results_table_width["TEST_NAME"]=60
+      fi
+      results_table_width["TIME"]=5
+    # Export pcie drivers path in PATH or build them if not in FPGA cluster
+    - |
+      if [ "$HPC_CLUSTER" == "FPGA" ]; then
+        export PATH=$CLUSTER_QDMA_DRIVER_PATH:$PATH
+      else
+        fpga-tools/fpga/build_pcie_drivers.sh
+      fi
+    # Load Bitstream
+    - reset_result_test
+    - run_sequential load_bitstream fpgas result_test
+    - check_err_load_bitstream result_test
+    # Set tty/UART baudrate
+    - |
+      for card in ${fpgas[@]}; do
+        stty -F $(get_uart $node $card) $FPGA_UART_BAUDRATE raw -echo
+      done
+    # Run Linux tests
+    - TESTS_LIST=TESTS_LIST_LINUX_${CORE}
+    - run_tests_linux "${!TESTS_LIST}"
+    - ps -ef | grep "gitlab.*cat" | grep -v "grep" | awk '{print $2}' | xargs kill || true
+    ## RESULTS
+    - merge_reports  
+    - |
+      {
+        echo -e "\nNODE $(hostname)\n"
+        results_table "$REPORT_PATH/report.yaml" results_table_header
+      } | tee $REPORT_PATH/results.rpt
+    - results_exit "$REPORT_PATH/report.yaml"
+  artifacts:
+    expire_in: 1 week
+    when: always
+    paths:
+      - ${REPORT_PATH}
+      - ${TEST_FILE_NAME}
+      - log.out
+
+bitstream-upload:
+  stage: upload_bitstream
+  extends: .basic_no_clone
+  variables:
+    BITSTREAM_PATH: build/alveou55c/system/
+    CORE: sarg
+  needs: 
+    - job: "bitstream: [sarg]"
+  rules: 
+    - !reference [.rules_fpga_upload]
+  before_script:
+    - echo "Override default before_script"
+  script:
+    - echo "Uploading bitstream to Package Registry..."
+    - PKG_NAME="bitstream_${CORE}"
+    - BRANCH_NAME=${CI_COMMIT_REF_SLUG}
+    - PKG_VERSION=${BRANCH_NAME}
+    - echo PACKAGE_NAME ${PKG_NAME}
+    - echo PACKAGE_VERSION ${PKG_VERSION}
+    - tar -zcvf ${PKG_NAME}.tar.gz $BITSTREAM_PATH
+    - PKG_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PKG_NAME}/${PKG_VERSION}"
+    - 'echo curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${PKG_NAME}.tar.gz ${PKG_URL}'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${PKG_NAME}.tar.gz "${PKG_URL}/${PKG_NAME}.tar.gz"'
 ################################################################################
 # Linting
 ################################################################################
