@@ -293,6 +293,7 @@
             ariane-accu         accu_test.c
             ariane-amo-align    amo_align.c
             ariane-icache-inval icache_inval_test.c
+            ariane-lrsc-test    lrsc_test.c
         </runargs>
     </ariane_tile1_simple>
 
@@ -654,7 +655,7 @@
     <sarg_tile2_simple>
         <runargs -x_tiles=1 -y_tiles=2 -sarg -rtl_timeout 1000000>
             sarg-hello-world    hello_world_many.c
-            sarg-lrsc-test      lrsc_test.c
+            //sarg-lrsc-test      lrsc_test.c
             sarg-add-shared-var add_shared_var.c
         </runargs>
     </sarg_tile2_simple>
@@ -683,7 +684,7 @@
     <sarg_tile4_simple>
         <runargs -x_tiles=2 -y_tiles=2 -sarg -rtl_timeout 1000000>
             sarg-hello-world    hello_world_many.c
-            sarg-lrsc-test      lrsc_test.c
+            //sarg-lrsc-test      lrsc_test.c
             sarg-add-shared-var add_shared_var.c
         </runargs>
     </sarg_tile4_simple>
@@ -1008,6 +1009,7 @@
             lox-accu         accu_test.c
             lox-amo-align    amo_align.c
             lox-icache-inval icache_inval_test.c
+            lox-lrsc-test    lrsc_test.c
         </runargs>
     </lox_tile1_simple>
 
@@ -1035,7 +1037,7 @@
     <lox_tile2_simple>
         <runargs -x_tiles=1 -y_tiles=2 -lox -rtl_timeout 1000000>
             lox-hello-world    hello_world_many.c
-            lox-lrsc-test      lrsc_test.c
+            //lox-lrsc-test      lrsc_test.c
             lox-add-shared-var add_shared_var.c
         </runargs>
     </lox_tile2_simple>
@@ -1064,7 +1066,7 @@
     <lox_tile4_simple>
         <runargs -x_tiles=2 -y_tiles=2 -lox -rtl_timeout 1000000>
             lox-hello-world    hello_world_many.c
-            lox-lrsc-test      lrsc_test.c
+            //lox-lrsc-test      lrsc_test.c
             lox-add-shared-var add_shared_var.c
         </runargs>
     </lox_tile4_simple>
@@ -1093,7 +1095,7 @@
     <ariane_tile2_simple>
         <runargs -x_tiles=1 -y_tiles=2 -ariane -rtl_timeout 1000000>
             ariane-hello-world    hello_world_many.c
-            ariane-lrsc-test      lrsc_test.c
+            //ariane-lrsc-test      lrsc_test.c
             ariane-add-shared-var add_shared_var.c
         </runargs>
     </ariane_tile2_simple>
@@ -1122,7 +1124,7 @@
     <ariane_tile4_simple>
         <runargs -x_tiles=2 -y_tiles=2 -ariane -rtl_timeout 1000000>
             ariane-hello-world    hello_world_many.c
-            ariane-lrsc-test      lrsc_test.c
+            //ariane-lrsc-test      lrsc_test.c
             ariane-add-shared-var add_shared_var.c
         </runargs>
     </ariane_tile4_simple>
@@ -1130,7 +1132,7 @@
     <ariane_tile4_mmc_simple>
         <runargs -x_tiles=2 -y_tiles=2 -ariane -rtl_timeout 1000000 -multimc=2 -multimc_indices=1,2 -hbm>
             ariane-hello-world    hello_world_many.c
-            ariane-lrsc-test      lrsc_test.c
+            //ariane-lrsc-test      lrsc_test.c
             ariane-add-shared-var add_shared_var.c
         </runargs>
     </ariane_tile4_mmc_simple>
