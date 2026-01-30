@@ -310,7 +310,7 @@ begin
     begin
         for(i = 0; i < `L15_MSHR_COUNT; i = i+1)
         begin
-	        mshr_homeid[i] <= '0;
+	        mshr_homeid[i] <= {`PACKET_HOME_ID_WIDTH{1'b0}};
 	    end
     end
     else
