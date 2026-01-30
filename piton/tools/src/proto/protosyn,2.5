@@ -461,6 +461,13 @@ def setParserOptions(parser):
     parser.add_option("--config_l1d_associativity", dest="config_l1d_associativity",   action="store", default=4)
     parser.add_option("--config_l15_associativity", dest="config_l15_associativity",   action="store", default=4)
     parser.add_option("--config_l2_associativity", dest="config_l2_associativity",   action="store", default=4)
+    parser.add_option("--noc1_width", dest="noc1_width",   action="store", default=64)
+    parser.add_option("--noc2_width", dest="noc2_width",   action="store", default=64)
+    parser.add_option("--noc3_width", dest="noc3_width",   action="store", default=64)
+    parser.add_option("--l15_num_threads", dest="l15_num_threads",   action="store", default=2)
+    parser.add_option("--l2_mshr_entries", dest="l2_mshr_entries",   action="store", default=8)
+    parser.add_option("--parallel_srams", dest="parallel_srams", action="store_true", default=False)
+    parser.add_option("--write_byte_mask", dest="write_byte_mask", action="store_true", default=False)
     parser.add_option("--bram-test", dest="test_name", action="store")
     parser.add_option("--from", dest="from_step", action="store", default=None)
     parser.add_option("--to", dest="to_step", action="store", default=None)
@@ -610,6 +617,12 @@ def makeDefList(options):
     elif options.design == "chipset" and (options.board == "genesys2" or options.board == "nexysVideo"):
         disp_string = "Heeey!          I am a chipset  for (Open)Piton Enjoy debugging!"
         defines.append("{OLED_STRING=\\\"%s\\\"}" % disp_string)
+
+    if options.parallel_srams:
+        defines.append("PARALLEL_SRAMS")
+
+    if options.write_byte_mask:
+        defines.append("WRITE_BYTE_MASK")
 
     return defines
 
@@ -812,6 +825,32 @@ def main():
     os.environ['CONFIG_L1I_ASSOCIATIVITY']  = str(options.config_l1i_associativity)
     os.environ['CONFIG_L2_SIZE']            = str(options.config_l2_size)
     os.environ['CONFIG_L2_ASSOCIATIVITY']   = str(options.config_l2_associativity)
+
+    # mshrs
+    print_info("L15_NUM_THREADS = " + str(options.l15_num_threads))
+    print_info("L2_MSHR_ENTRIES = " + str(options.l2_mshr_entries))
+
+    os.environ['L15_NUM_THREADS']   = str(options.l15_num_threads)
+    os.environ['L2_MSHR_ENTRIES']   = str(options.l2_mshr_entries)
+
+    # noc config
+    print_info("noc1_width = " + str(options.noc1_width))
+    print_info("noc2_width = " + str(options.noc2_width))
+    print_info("noc3_width = " + str(options.noc3_width))
+
+    os.environ['NOC1_WIDTH']   = str(options.noc1_width)
+    os.environ['NOC2_WIDTH']   = str(options.noc2_width)
+    os.environ['NOC3_WIDTH']   = str(options.noc3_width)
+
+    # misc config
+    print_info("parallel_srams = " + str(options.parallel_srams))
+    print_info("write_byte_mask = " + str(options.write_byte_mask))
+
+    if (options.parallel_srams):
+        os.environ["PARALLEL_SRAMS"] = "1"
+
+    if (options.write_byte_mask):
+        os.environ["WRITE_BYTE_MASK"] = "1"
 
     # this is needed to generate the device tree
     os.environ['CONFIG_SYS_FREQ']          = str(int(float(design_data["BOARDS"][options.board]["FREQ"]) * 1e6))

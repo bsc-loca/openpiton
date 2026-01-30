@@ -43,44 +43,119 @@
 // *_in_*_1 --> *out_*_2
 // *_out_*_1 <-- *_in_*_2
 module noc_bidir_afifo (
-
-    input wire          clk_1,
-    input wire          rst_1,
+    input wire                          clk_1,
+    input wire                          rst_1,
     
-    input wire          clk_2,
-    input wire          rst_2,
+    input wire                          clk_2,
+    input wire                          rst_2,
     
     // Request direction
-    input wire          flit_in_val_1,
-    input wire [63:0]   flit_in_data_1,
-    output wire         flit_in_rdy_1,
+    input wire                          flit_in_val_1,
+    input wire [`PITON_NOC2_WIDTH-1:0]  flit_in_data_1,
+    output wire                         flit_in_rdy_1,
 
-    output wire         flit_out_val_2,
-    output wire [63:0]  flit_out_data_2,
-    input wire          flit_out_rdy_2,
+    output wire                         flit_out_val_2,
+    output wire [`PITON_NOC2_WIDTH-1:0] flit_out_data_2,
+    input wire                          flit_out_rdy_2,
     
     // Response direction
-    input wire          flit_in_val_2,
-    input wire [63:0]   flit_in_data_2,
-    output wire         flit_in_rdy_2,
+    input wire                          flit_in_val_2,
+    input wire [`PITON_NOC3_WIDTH-1:0]  flit_in_data_2,
+    output wire                         flit_in_rdy_2,
 
-    output wire         flit_out_val_1,
-    output wire [63:0]  flit_out_data_1,
-    input wire          flit_out_rdy_1
+    output wire                         flit_out_val_1,
+    output wire [`PITON_NOC3_WIDTH-1:0] flit_out_data_1,
+    input wire                          flit_out_rdy_1
 );
 
-wire fifo_recv_full;
-wire fifo_recv_empty;
-reg  fifo_recv_empty_reg;
-wire fifo_send_full;
-wire fifo_send_empty;
-reg  fifo_send_empty_reg;
-wire    [63:0]  fifo_data_to_splitter;
-wire            fifo_recv_rd_en;
-reg             outreg_empty;
+wire                            fifo_recv_full;
+wire                            fifo_recv_empty;
+reg                             fifo_recv_empty_reg;
+wire                            fifo_send_full;
+wire                            fifo_send_empty;
+reg                             fifo_send_empty_reg;
+wire [`PITON_NOC3_WIDTH-1:0]    fifo_data_to_splitter;
+wire                            fifo_recv_rd_en;
+reg                             outreg_empty;
+
+// Parametrization of input direction
+// ------------------------------------------------------------------------
+if(`PITON_NOC2_WIDTH == 64) begin : in_w64
+    afifo_w64_d128_std async_fifo_send(
+        .rst(rst_2),
+        .wr_clk(clk_1),
+        .rd_clk(clk_2),
+        .rd_en(flit_out_rdy_2),
+        .wr_en(flit_in_val_1),
+        .din(flit_in_data_1),
+        .dout(flit_out_data_2),     // data: 1 cycle delay after rd_en
+        .full(fifo_send_full),
+        .empty(fifo_send_empty)
+    );
+end : in_w64
+
+if(`PITON_NOC2_WIDTH == 128) begin : in_w128
+    afifo_w128_d128_std async_fifo_send(
+        .rst(rst_2),
+        .wr_clk(clk_1),
+        .rd_clk(clk_2),
+        .rd_en(flit_out_rdy_2),
+        .wr_en(flit_in_val_1),
+        .din(flit_in_data_1),
+        .dout(flit_out_data_2),     // data: 1 cycle delay after rd_en
+        .full(fifo_send_full),
+        .empty(fifo_send_empty)
+    );
+end : in_w128 
+
+if(`PITON_NOC2_WIDTH == 256) begin : in_w256
+    afifo_w256_d128_std async_fifo_send(
+        .rst(rst_2),
+        .wr_clk(clk_1),
+        .rd_clk(clk_2),
+        .rd_en(flit_out_rdy_2),
+        .wr_en(flit_in_val_1),
+        .din(flit_in_data_1),
+        .dout(flit_out_data_2),     // data: 1 cycle delay after rd_en
+        .full(fifo_send_full),
+        .empty(fifo_send_empty)
+    );
+end : in_w256 
+
+if(`PITON_NOC2_WIDTH == 512) begin : in_w512
+    afifo_w512_d128_std async_fifo_send(
+        .rst(rst_2),
+        .wr_clk(clk_1),
+        .rd_clk(clk_2),
+        .rd_en(flit_out_rdy_2),
+        .wr_en(flit_in_val_1),
+        .din(flit_in_data_1),
+        .dout(flit_out_data_2),     // data: 1 cycle delay after rd_en
+        .full(fifo_send_full),
+        .empty(fifo_send_empty)
+    );
+end : in_w512 
+
+if(`PITON_NOC2_WIDTH == 704) begin : in_w704
+    afifo_w704_d128_std async_fifo_send(
+        .rst(rst_2),
+        .wr_clk(clk_1),
+        .rd_clk(clk_2),
+        .rd_en(flit_out_rdy_2),
+        .wr_en(flit_in_val_1),
+        .din(flit_in_data_1),
+        .dout(flit_out_data_2),     // data: 1 cycle delay after rd_en
+        .full(fifo_send_full),
+        .empty(fifo_send_empty)
+    );
+end : in_w704
+
+// ------------------------------------------------------------------------
 
 
-
+// Parametrization of output direction
+// ------------------------------------------------------------------------
+if(`PITON_NOC3_WIDTH == 64) begin : out_w64
 afifo_w64_d128_std async_fifo_recv(
     .rst(rst_1),
     .wr_clk(clk_2),
@@ -92,18 +167,65 @@ afifo_w64_d128_std async_fifo_recv(
     .full(fifo_recv_full),
     .empty(fifo_recv_empty)
 );
+end : out_w64
 
-afifo_w64_d128_std async_fifo_send(
-    .rst(rst_2),
-    .wr_clk(clk_1),
-    .rd_clk(clk_2),
-    .rd_en(flit_out_rdy_2),
-    .wr_en(flit_in_val_1),
-    .din(flit_in_data_1),
-    .dout(flit_out_data_2),     // data: 1 cycle delay after rd_en
-    .full(fifo_send_full),
-    .empty(fifo_send_empty)
+if(`PITON_NOC3_WIDTH == 128) begin : out_w128
+afifo_w128_d128_std async_fifo_recv(
+    .rst(rst_1),
+    .wr_clk(clk_2),
+    .rd_clk(clk_1),
+    .rd_en(fifo_recv_rd_en),
+    .wr_en(flit_in_val_2),
+    .din(flit_in_data_2),
+    .dout(fifo_data_to_splitter),   // data: 1 cycle delay after rd_en
+    .full(fifo_recv_full),
+    .empty(fifo_recv_empty)
 );
+end : out_w128
+
+if(`PITON_NOC3_WIDTH == 256) begin : out_w256
+afifo_w256_d128_std async_fifo_recv(
+    .rst(rst_1),
+    .wr_clk(clk_2),
+    .rd_clk(clk_1),
+    .rd_en(fifo_recv_rd_en),
+    .wr_en(flit_in_val_2),
+    .din(flit_in_data_2),
+    .dout(fifo_data_to_splitter),   // data: 1 cycle delay after rd_en
+    .full(fifo_recv_full),
+    .empty(fifo_recv_empty)
+);
+end : out_w256
+
+if(`PITON_NOC3_WIDTH == 512) begin : out_w512
+afifo_w512_d128_std async_fifo_recv(
+    .rst(rst_1),
+    .wr_clk(clk_2),
+    .rd_clk(clk_1),
+    .rd_en(fifo_recv_rd_en),
+    .wr_en(flit_in_val_2),
+    .din(flit_in_data_2),
+    .dout(fifo_data_to_splitter),   // data: 1 cycle delay after rd_en
+    .full(fifo_recv_full),
+    .empty(fifo_recv_empty)
+);
+end : out_w512
+
+if(`PITON_NOC3_WIDTH == 704) begin : out_w704
+afifo_w704_d128_std async_fifo_recv(
+    .rst(rst_1),
+    .wr_clk(clk_2),
+    .rd_clk(clk_1),
+    .rd_en(fifo_recv_rd_en),
+    .wr_en(flit_in_val_2),
+    .din(flit_in_data_2),
+    .dout(fifo_data_to_splitter),   // data: 1 cycle delay after rd_en
+    .full(fifo_recv_full),
+    .empty(fifo_recv_empty)
+);
+end : out_w704
+
+// ------------------------------------------------------------------------
 
 assign flit_in_rdy_1 = ~fifo_send_full;
 assign flit_in_rdy_2 = ~fifo_recv_full;

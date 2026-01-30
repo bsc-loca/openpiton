@@ -42,11 +42,11 @@ module eth_top #(
     output                                  net_interrupt,
 
     input                                   noc_in_val,
-    input       [`NOC_DATA_WIDTH-1:0]       noc_in_data,
+    input       [`PITON_NOC2_WIDTH-1:0]     noc_in_data,
     output                                  noc_in_rdy,
 
     output                                  noc_out_val,
-    output      [`NOC_DATA_WIDTH-1:0]       noc_out_data,
+    output      [`PITON_NOC3_WIDTH-1:0]     noc_out_data,
     input                                   noc_out_rdy,
 
     input                                   net_axi_clk,
@@ -69,11 +69,11 @@ module eth_top #(
 
 // afifo <-> netbridge
 wire                            afifo_netbridge_val;
-wire    [`NOC_DATA_WIDTH-1:0]   afifo_netbridge_data;
+wire    [`PITON_NOC2_WIDTH-1:0] afifo_netbridge_data;
 wire                            netbridge_afifo_rdy;
 
 wire                            netbridge_afifo_val;
-wire    [`NOC_DATA_WIDTH-1:0]   netbridge_afifo_data;
+wire    [`PITON_NOC3_WIDTH-1:0] netbridge_afifo_data;
 wire                            fifo_netbridge_rdy;
 
 // netbridge <-> mac axi
@@ -134,6 +134,41 @@ noc_bidir_afifo  net_afifo  (
     .flit_out_data_1 (noc_out_data     ),
     .flit_out_rdy_1  (noc_out_rdy      )
 );
+wire                            afifo_netbridge_val_64b;
+wire [`PITON_NOC1_WIDTH-1:0]    afifo_netbridge_data_64b;
+wire                            netbridge_afifo_rdy_64b;
+
+wire                            netbridge_afifo_val_64b;
+wire [`PITON_NOC2_WIDTH-1:0]    netbridge_afifo_data_64b;
+wire                            afifo_netbridge_rdy_64b;
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`PITON_NOC2_WIDTH),
+    .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+) noc1_adpt_ciop (
+    .flit_val_i     ( afifo_netbridge_val       ),
+    .flit_data_i    ( afifo_netbridge_data      ),
+    .flit_rdy_o     ( netbridge_afifo_rdy       ),
+    .flit_val_o     ( afifo_netbridge_val_64b   ),
+    .flit_data_o    ( afifo_netbridge_data_64b  ),
+    .flit_rdy_i     ( netbridge_afifo_rdy_64b   ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`NOC_DATA_WIDTH),
+    .OUTPUT_WIDTH(`PITON_NOC3_WIDTH)
+) noc2_adpt_ciop_out (
+    .flit_val_i     ( netbridge_afifo_val_64b   ),
+    .flit_data_i    ( netbridge_afifo_data_64b  ),
+    .flit_rdy_o     ( afifo_netbridge_rdy_64b   ),
+    .flit_val_o     ( netbridge_afifo_val       ),
+    .flit_data_o    ( netbridge_afifo_data      ),
+    .flit_rdy_i     ( afifo_netbridge_rdy       ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
 
 noc_axilite_bridge #(
     .SLAVE_RESP_BYTEWIDTH   (4),
@@ -142,13 +177,13 @@ noc_axilite_bridge #(
     .clk                    (net_axi_clk        ),
     .rst                    (~rst_n             ),      // TODO: rewrite to positive ?
 
-    .splitter_bridge_val    (afifo_netbridge_val   ),
-    .splitter_bridge_data   (afifo_netbridge_data  ),
-    .bridge_splitter_rdy    (netbridge_afifo_rdy   ),   // CRAZY NAMING !
+    .splitter_bridge_val    ( afifo_netbridge_val_64b  ),
+    .splitter_bridge_data   ( afifo_netbridge_data_64b ),
+    .bridge_splitter_rdy    ( netbridge_afifo_rdy_64b  ),   // CRAZY NAMING !
 
-    .bridge_splitter_val    (netbridge_afifo_val   ),
-    .bridge_splitter_data   (netbridge_afifo_data  ),
-    .splitter_bridge_rdy    (afifo_netbridge_rdy   ),   // CRAZY NAMING !
+    .bridge_splitter_val    ( netbridge_afifo_val_64b  ),
+    .bridge_splitter_data   ( netbridge_afifo_data_64b ),
+    .splitter_bridge_rdy    ( afifo_netbridge_rdy_64b  ),   // CRAZY NAMING !
 
     //axi lite signals
     //write address channel

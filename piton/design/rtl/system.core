@@ -22,6 +22,10 @@ filesets:
             - ../chipset/xilinx/genesys2/ip_cores/clk_mmcm/clk_mmcm.xci: {file_type : xci}
             - ../chipset/xilinx/genesys2/ip_cores/mac_eth_axi_lite/mac_eth_axi_lite.xci: {file_type : xci}
             - ../chipset/xilinx/genesys2/ip_cores/afifo_w64_d128_std/afifo_w64_d128_std.xci: {file_type : xci}
+            - ../chipset/xilinx/genesys2/ip_cores/afifo_w128_d128_std/afifo_w128_d128_std.xci: {file_type : xci}
+            - ../chipset/xilinx/genesys2/ip_cores/afifo_w256_d128_std/afifo_w256_d128_std.xci: {file_type : xci}
+            - ../chipset/xilinx/genesys2/ip_cores/afifo_w512_d128_std/afifo_w512_d128_std.xci: {file_type : xci}
+            - ../chipset/xilinx/genesys2/ip_cores/afifo_w704_d128_std/afifo_w704_d128_std.xci: {file_type : xci}
             - ../chipset/mc/xilinx/genesys2/ip_cores/mig_7series_0/mig_7series_0.xci: {file_type : xci}
             - ../chipset/mc/xilinx/genesys2/ip_cores/mig_7series_0/mig_a.prj: {file_type : user}
             - ../chipset/io_ctrl/xilinx/genesys2/ip_cores/uart_16550/uart_16550.xci: {file_type : xci}

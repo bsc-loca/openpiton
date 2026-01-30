@@ -40,7 +40,7 @@ def get_bootrom_info(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath,
 
     gitver_cmd = "git log | grep commit -m1 | LD_LIBRARY_PATH= awk -e '{print $2;}'"
     piton_ver  = subprocess.check_output([gitver_cmd], shell=True)
-    ariane_ver =  subprocess.check_output(["cd %s && %s" % (root, gitver_cmd)], shell=True)
+    core_ver =  subprocess.check_output(["cd %s && %s" % (root, gitver_cmd)], shell=True)
 
     # get length of memory
     memLen  = 0
@@ -61,57 +61,55 @@ def get_bootrom_info(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath,
     else:
         sysFreq = "Unknown"
 
-    tmpStr = '''// Info string generated with get_bootrom_info(...)
-// OpenPiton + Ariane framework
-// Date: %s
+    tmpStr = f'''// Info string generated with get_bootrom_info(...)
+// OpenPiton +  {core} framework
+// Date: {timeStamp}
 
-const char info[] = {
+const char info[] = {{
 "\\r\\n\\r\\n"
 "----------------------------------------\\r\\n"
-"--     OpenPiton+Ariane Platform      --\\r\\n"
+"--     OpenPiton+{core} Platform      --\\r\\n"
 "----------------------------------------\\r\\n"
-"OpenPiton Version: %s                   \\r\\n"
-"%s     Version:    %s                   \\r\\n"
-"                                        \\r\\n"
-"FPGA Board:        %s                   \\r\\n"
-"Build Date:        %s                   \\r\\n"
-"                                        \\r\\n"
-"#X-Tiles:          %d                   \\r\\n"
-"#Y-Tiles:          %d                   \\r\\n"
-"#Cores:            %d                   \\r\\n"
-"Core Freq:         %s                   \\r\\n"
-"Network:           %s                   \\r\\n"
-"DRAM Size:         %d MB                \\r\\n"
-"                                        \\r\\n"
-"L1I Size / Assoc:  %3d kB / %d          \\r\\n"
-"L1D Size / Assoc:  %3d kB / %d          \\r\\n"
-"L15 Size / Assoc:  %3d kB / %d          \\r\\n"
-"L2  Size / Assoc:  %3d kB / %d          \\r\\n"
-"L15/L1D Cacheline size %d               \\r\\n"
+"OpenPiton Version: {piton_ver[0:8]}\\r\\n"
+"{core:<9} Version: {core_ver[0:8]}\\r\\n"
+"\\r\\n"
+"Platform Info:\\r\\n"
+"\tFPGA Board: {boardName}\\r\\n"
+"\tBootrom Build Date: {timeStamp}\\r\\n"
+"\tNetwork: {os.environ['PITON_NETWORK_CONFIG']}\\r\\n"
+"\tDRAM Size: {memLen/1024/1024} MB\\r\\n"
+"\\r\\n"
+"Core Info:\\r\\n"
+"\t#X-Tiles: {os.environ['PITON_X_TILES']}\\r\\n"
+"\t#Y-Tiles: {os.environ['PITON_Y_TILES']}\\r\\n"
+"\t#Cores:   {os.environ['PITON_NUM_TILES']}\\r\\n"
+"\tCore Freq: {sysFreq}\\r\\n"
+"\\r\\n"
+"Cache Info:\\r\\n"
+"\tL1I Size / Assoc: {int(os.environ['CONFIG_L1I_SIZE'])/1024:>4.0f} kB / {os.environ['CONFIG_L1I_ASSOCIATIVITY']:>2}\\r\\n"
+"\tL1D Size / Assoc: {int(os.environ['CONFIG_L1D_SIZE'])/1024:>4.0f} kB / {os.environ['CONFIG_L1D_ASSOCIATIVITY']:>2}\\r\\n"
+"\tL15 Size / Assoc: {CONFIG_L15_SIZE/1024:>4.0f} kB / {os.environ['CONFIG_L15_ASSOCIATIVITY']:>2}\\r\\n"
+"\tL2  Size / Assoc: {int(os.environ['CONFIG_L1I_SIZE'])/1024:>4.0f} kB / {os.environ['CONFIG_L2_ASSOCIATIVITY']:>2}\\r\\n"
+"\tL15/L1D Cacheline size: {os.environ['CONFIG_L15_L1D_CACHELINE_SIZE']}B\\r\\n"
+"\\r\\n"
+"MSHRs:\\r\\n"
+"\tL1D: {os.environ['L15_NUM_THREADS']:>3}\\r\\n"
+"\tL15: {os.environ['L15_NUM_THREADS']:>3}\\r\\n"
+"\tL2:  {os.environ['L2_MSHR_ENTRIES']:>3}\\r\\n"
+"\\r\\n"
+"NoC Widths:\\r\\n"
+"\tNoC 1: {os.environ['NOC1_WIDTH']:>3}b\\r\\n"
+"\tNoC 2: {os.environ['NOC2_WIDTH']:>3}b\\r\\n"
+"\tNoC 3: {os.environ['NOC3_WIDTH']:>3}b\\r\\n"
+"\\r\\n"
+"Additional features:\\r\\n"
+"\tWrite Coalescing: {"Yes" if 'WRITE_BYTE_MASK' in os.environ else "No"}\\r\\n"
+"\tParallel SRAMs: {"Yes" if 'PARALLEL_SRAMS' in os.environ else "No"}\\r\\n"
+"\tL1 Data Cache: {"HPDcache" if 'PITON_ARIANE_HPDC' in os.environ else "WT_CACHE" if 'WT_CACHE' in os.environ else "Unknown"}\\r\\n"
 "----------------------------------------\\r\\n\\r\\n\\r\\n"
-};
+}};
 
-''' % (timeStamp,
-       piton_ver[0:8],
-       core,
-       ariane_ver[0:8],
-       boardName,
-       timeStamp,
-       int(os.environ['PITON_X_TILES']),
-       int(os.environ['PITON_Y_TILES']),
-       int(os.environ['PITON_NUM_TILES']),
-       sysFreq,
-       os.environ['PITON_NETWORK_CONFIG'],
-       int(memLen/1024/1024),
-       int(os.environ['CONFIG_L1I_SIZE'])/1024,
-       int(os.environ['CONFIG_L1I_ASSOCIATIVITY']),
-       int(os.environ['CONFIG_L1D_SIZE'])/1024,
-       int(os.environ['CONFIG_L1D_ASSOCIATIVITY']),
-       int(os.environ['CONFIG_L15_SIZE'])/1024,
-       int(os.environ['CONFIG_L15_ASSOCIATIVITY']),
-       int(os.environ['CONFIG_L2_SIZE'] )/1024,
-       int(os.environ['CONFIG_L2_ASSOCIATIVITY']),
-       int(os.environ['CONFIG_L15_L1D_CACHELINE_SIZE']))
+'''
 
     with open(dtsPath + '/info.h','w') as file:
         file.write(tmpStr)

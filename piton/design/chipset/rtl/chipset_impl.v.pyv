@@ -929,37 +929,206 @@ wire uart_interrupt;
 wire ciop_iob_rst_n;
 assign ciop_iob_rst_n = io_ctrl_rst_n & test_start & ~piton_ready_n;
 
+wire                        intf_chipset_val_noc1_64b;
+wire [`NOC_DATA_WIDTH-1:0]  intf_chipset_data_noc1_64b;
+wire                        intf_chipset_rdy_noc1_64b;
+ 
+wire                        iob_filter_noc2_valid_64b;
+wire [`NOC_DATA_WIDTH-1:0]  iob_filter_noc2_data_64b;
+wire                        filter_iob_noc2_ready_64b;
+ 
+wire                        filter_iob_noc3_valid_64b;
+wire [`NOC_DATA_WIDTH-1:0]  filter_iob_noc3_data_64b;
+wire                        iob_filter_noc3_ready_64b;
+ 
+wire                        buf_iob_noc2_valid_64b;
+wire [`NOC_DATA_WIDTH-1:0]  buf_iob_noc2_data_64b;
+wire                        iob_buf_noc2_ready_64b;
+ 
+wire                        iob_buf_noc3_valid_64b;
+wire [`NOC_DATA_WIDTH-1:0]  iob_buf_noc3_data_64b;
+wire                        buf_iob_noc3_ready_64b;
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`PITON_NOC1_WIDTH),
+    .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+) noc1_adpt_ciop (
+    .flit_val_i     (intf_chipset_val_noc1      ),
+    .flit_data_i    (intf_chipset_data_noc1     ),
+    .flit_rdy_o     (intf_chipset_rdy_noc1      ), 
+    .flit_val_o     (intf_chipset_val_noc1_64b  ),
+    .flit_data_o    (intf_chipset_data_noc1_64b ),
+    .flit_rdy_i     (intf_chipset_rdy_noc1_64b  ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`NOC_DATA_WIDTH),
+    .OUTPUT_WIDTH(`PITON_NOC2_WIDTH)
+) noc2_adpt_ciop_out (
+    .flit_val_i     (iob_filter_noc2_valid_64b  ),
+    .flit_data_i    (iob_filter_noc2_data_64b   ),
+    .flit_rdy_o     (filter_iob_noc2_ready_64b  ), 
+    .flit_val_o     (iob_filter_noc2_valid      ),
+    .flit_data_o    (iob_filter_noc2_data       ),
+    .flit_rdy_i     (filter_iob_noc2_ready      ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`PITON_NOC3_WIDTH),
+    .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+) noc3_adpt_ciop_in (
+    .flit_val_i     (filter_iob_noc3_valid      ),
+    .flit_data_i    (filter_iob_noc3_data       ),
+    .flit_rdy_o     (iob_filter_noc3_ready      ), 
+    .flit_val_o     (filter_iob_noc3_valid_64b  ),
+    .flit_data_o    (filter_iob_noc3_data_64b   ),
+    .flit_rdy_i     (iob_filter_noc3_ready_64b  ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`PITON_NOC2_WIDTH),
+    .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+) noc2_adpt_ciop_in (
+    .flit_val_i     (buf_iob_noc2_valid         ),
+    .flit_data_i    (buf_iob_noc2_data          ),
+    .flit_rdy_o     (iob_buf_noc2_ready         ), 
+    .flit_val_o     (buf_iob_noc2_valid_64b     ),
+    .flit_data_o    (buf_iob_noc2_data_64b      ),
+    .flit_rdy_i     (iob_buf_noc2_ready_64b     ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`NOC_DATA_WIDTH),
+    .OUTPUT_WIDTH(`PITON_NOC3_WIDTH)
+) noc3_adpt_ciop_out (
+    .flit_val_i     (iob_buf_noc3_valid_64b     ),
+    .flit_data_i    (iob_buf_noc3_data_64b      ),
+    .flit_rdy_o     (buf_iob_noc3_ready_64b     ), 
+    .flit_val_o     (iob_buf_noc3_valid         ),
+    .flit_data_o    (iob_buf_noc3_data          ),
+    .flit_rdy_i     (buf_iob_noc3_ready         ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
 ciop_iob ciop_iob     (
-    .chip_clk        ( chipset_clk           ),
-    .fpga_clk        ( chipset_clk           ),
-    .rst_n           ( ciop_iob_rst_n        ),
+    .chip_clk        ( chipset_clk                  ),
+    .fpga_clk        ( chipset_clk                  ),
+    .rst_n           ( ciop_iob_rst_n               ),
 
-    .noc1_in_val     ( intf_chipset_val_noc1 ),
-    .noc1_in_data    ( intf_chipset_data_noc1),
-    .noc1_in_rdy     ( intf_chipset_rdy_noc1 ),
+    .noc1_in_val     ( intf_chipset_val_noc1_64b    ),
+    .noc1_in_data    ( intf_chipset_data_noc1_64b   ),
+    .noc1_in_rdy     ( intf_chipset_rdy_noc1_64b    ),
 
-    .noc2_out_val    ( iob_filter_noc2_valid ),
-    .noc2_out_data   ( iob_filter_noc2_data  ),
-    .noc2_out_rdy    ( filter_iob_noc2_ready ),
+    .noc2_out_val    ( iob_filter_noc2_valid_64b    ),
+    .noc2_out_data   ( iob_filter_noc2_data_64b     ),
+    .noc2_out_rdy    ( filter_iob_noc2_ready_64b    ),
 
-    .noc3_in_val     ( filter_iob_noc3_valid ),
-    .noc3_in_data    ( filter_iob_noc3_data  ),
-    .noc3_in_rdy     ( iob_filter_noc3_ready ),
+    .noc3_in_val     ( filter_iob_noc3_valid_64b    ),
+    .noc3_in_data    ( filter_iob_noc3_data_64b     ),
+    .noc3_in_rdy     ( iob_filter_noc3_ready_64b    ),
 
-    .noc2_in_val     ( buf_iob_noc2_valid    ),
-    .noc2_in_data    ( buf_iob_noc2_data     ),
-    .noc2_in_rdy     ( iob_buf_noc2_ready    ),
+    .noc2_in_val     ( buf_iob_noc2_valid_64b       ),
+    .noc2_in_data    ( buf_iob_noc2_data_64b        ),
+    .noc2_in_rdy     ( iob_buf_noc2_ready_64b       ),
 
-    .noc3_out_val    ( iob_buf_noc3_valid    ),
-    .noc3_out_data   ( iob_buf_noc3_data     ),
-    .noc3_out_rdy    ( buf_iob_noc3_ready    ),
+    .noc3_out_val    ( iob_buf_noc3_valid_64b       ),
+    .noc3_out_data   ( iob_buf_noc3_data_64b        ),
+    .noc3_out_rdy    ( buf_iob_noc3_ready_64b       ),
 
-    .uart_interrupt ( uart_interrupt         ),
-    .net_interrupt  ( net_interrupt          )
+    .uart_interrupt ( uart_interrupt                ),
+    .net_interrupt  ( net_interrupt                 )
 );
 
 
 `ifdef PITONSYS_UART
+
+// NOC WIDTH ADAPTERS to the uart_top module
+// noc2 -> uart_top
+wire                            buf_uart_noc2_valid_64b;
+wire  [`NOC_DATA_WIDTH-1:0]     buf_uart_noc2_data_64b;
+wire                            uart_buf_noc2_ready_64b;
+
+// uart_top -> noc2 
+wire                            uart_filter_noc2_valid_64b;
+wire  [`NOC_DATA_WIDTH-1:0]     uart_filter_noc2_data_64b;
+wire                            filter_uart_noc2_ready_64b;
+
+// noc3 -> uart_top
+wire                            filter_uart_noc3_valid_64b;
+wire  [`NOC_DATA_WIDTH-1:0]     filter_uart_noc3_data_64b;
+wire                            uart_filter_noc3_ready_64b;
+
+// uart_top -> noc3
+wire                            uart_buf_noc3_valid_64b;
+wire  [`NOC_DATA_WIDTH-1:0]     uart_buf_noc3_data_64b;
+wire                            buf_uart_noc3_ready_64b;
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`PITON_NOC2_WIDTH),
+    .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+) noc2_adpt_uart_in (
+    .flit_val_i     (buf_uart_noc2_valid    ),
+    .flit_data_i    (buf_uart_noc2_data     ),
+    .flit_rdy_o     (uart_buf_noc2_ready    ), 
+    .flit_val_o     (buf_uart_noc2_valid_64b),
+    .flit_data_o    (buf_uart_noc2_data_64b ),
+    .flit_rdy_i     (uart_buf_noc2_ready_64b),
+    .clk            (chipset_clk            ),
+    .rst_n          (chipset_rst_n          )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`NOC_DATA_WIDTH),
+    .OUTPUT_WIDTH(`PITON_NOC2_WIDTH)
+) noc2_adpt_uart_out (
+    .flit_val_i     (uart_filter_noc2_valid_64b ),
+    .flit_data_i    (uart_filter_noc2_data_64b  ),
+    .flit_rdy_o     (filter_uart_noc2_ready_64b ), 
+    .flit_val_o     (uart_filter_noc2_valid     ),
+    .flit_data_o    (uart_filter_noc2_data      ),
+    .flit_rdy_i     (filter_uart_noc2_ready     ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`PITON_NOC3_WIDTH),
+    .OUTPUT_WIDTH(`NOC_DATA_WIDTH)
+) noc3_adpt_uart_in (
+    .flit_val_i     (filter_uart_noc3_valid     ),
+    .flit_data_i    (filter_uart_noc3_data      ),
+    .flit_rdy_o     (uart_filter_noc3_ready     ), 
+    .flit_val_o     (filter_uart_noc3_valid_64b ),
+    .flit_data_o    (filter_uart_noc3_data_64b  ),
+    .flit_rdy_i     (uart_filter_noc3_ready_64b ),
+    .clk            (chipset_clk                ),
+    .rst_n          (chipset_rst_n              )
+);
+
+noc_width_adaptor #(
+    .INPUT_WIDTH(`NOC_DATA_WIDTH),
+    .OUTPUT_WIDTH(`PITON_NOC3_WIDTH)
+) noc3_adpt_uart_out (
+    .flit_val_i     (uart_buf_noc3_valid_64b),
+    .flit_data_i    (uart_buf_noc3_data_64b ),
+    .flit_rdy_o     (buf_uart_noc3_ready_64b), 
+    .flit_val_o     (uart_buf_noc3_valid    ),
+    .flit_data_o    (uart_buf_noc3_data     ),
+    .flit_rdy_i     (buf_uart_noc3_ready    ),
+    .clk            (chipset_clk            ),
+    .rst_n          (chipset_rst_n          )
+);
+
+
 <%
 for i in range(1, len(devices)):
     if devices[i]["name"] == "uart":
@@ -1002,24 +1171,24 @@ uart_top        uart_top (
     .x_id                       ( `NOC_X_WIDTH'd%s                      ),
     .y_id                       ( `NOC_Y_WIDTH'd0                       ),
     // input from noc2
-    .xbar_uart_noc2_valid       ( buf_uart_noc2_valid                   ),
-    .xbar_uart_noc2_data        ( buf_uart_noc2_data                    ),
-    .uart_xbar_noc2_ready       ( uart_buf_noc2_ready                   ),
+    .xbar_uart_noc2_valid       ( buf_uart_noc2_valid_64b               ),
+    .xbar_uart_noc2_data        ( buf_uart_noc2_data_64b                ),
+    .uart_xbar_noc2_ready       ( uart_buf_noc2_ready_64b               ),
 
     //output to noc3
-    .uart_xbar_noc3_valid       ( uart_buf_noc3_valid                   ),
-    .uart_xbar_noc3_data        ( uart_buf_noc3_data                    ),
-    .xbar_uart_noc3_ready       ( buf_uart_noc3_ready                   ),
+    .uart_xbar_noc3_valid       ( uart_buf_noc3_valid_64b               ),
+    .uart_xbar_noc3_data        ( uart_buf_noc3_data_64b                ),
+    .xbar_uart_noc3_ready       ( buf_uart_noc3_ready_64b               ),
 
     // output to noc2
-    .uart_xbar_noc2_valid       ( uart_filter_noc2_valid                ),
-    .uart_xbar_noc2_data        ( uart_filter_noc2_data                 ),
-    .xbar_uart_noc2_ready       ( filter_uart_noc2_ready                ),
+    .uart_xbar_noc2_valid       ( uart_filter_noc2_valid_64b            ),
+    .uart_xbar_noc2_data        ( uart_filter_noc2_data_64b             ),
+    .xbar_uart_noc2_ready       ( filter_uart_noc2_ready_64b            ),
 
     // input from noc3
-    .xbar_uart_noc3_valid       ( filter_uart_noc3_valid                ),
-    .xbar_uart_noc3_data        ( filter_uart_noc3_data                 ),
-    .uart_xbar_noc3_ready       ( uart_filter_noc3_ready                )
+    .xbar_uart_noc3_valid       ( filter_uart_noc3_valid_64b            ),
+    .xbar_uart_noc3_data        ( filter_uart_noc3_data_64b             ),
+    .uart_xbar_noc3_ready       ( uart_filter_noc3_ready_64b            )
 );''' % (devices[i]["portnum"]))
 %>
 `else // ifndef PITONSYS_UART
