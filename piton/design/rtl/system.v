@@ -529,6 +529,7 @@ wire  [`PITON_NUM_TILES-1:0]   unavailable; // communicate whether the hart is u
 wire                     rtc;         // Real-time clock in (usually 32.768 kHz)
 wire  [`PITON_NUM_TILES-1:0]   timer_irq;   // Timer interrupts
 wire  [`PITON_NUM_TILES-1:0]   ipi;         // software interrupt (a.k.a inter-process-interrupt)
+wire  [63:0]                   time_i;      // mtime CSR value from the CLINT
 `endif // ifdef PITON_RV64_CLINT
 
 `ifdef PITON_RV64_PLIC
@@ -841,6 +842,7 @@ chip chip(
     //CLINT
     ,.timer_irq_i                   ( timer_irq                  ) // Timer interrupts
     ,.ipi_i                         ( ipi                        ) // software interrupt (a.k.a inter-process-interrupt)
+    ,.time_i                        ( time_i                     ) // mtime CSR value from the CLINT
 `endif // ifdef PITON_RV64_CLINT
 
 `ifdef PITON_RV64_PLIC
@@ -1257,6 +1259,7 @@ chipset chipset(
     ,.rtc_i                         ( rtc                        ) // Real-time clock in (usually 32.768 kHz)
     ,.timer_irq_o                   ( timer_irq                  ) // Timer interrupts
     ,.ipi_o                         ( ipi                        ) // software interrupt (a.k.a inter-process-interrupt)
+    ,.time_o                        ( time_i                     ) // mtime CSR value from the CLINT
 `endif // ifdef PITON_RV64_CLINT
 
 `ifdef PITON_RV64_PLIC

@@ -212,6 +212,7 @@ print(s)
     // CLINT
 ,   input                               timer_irq_i    // Timer interrupts
 ,   input                               ipi_i          // software interrupt (a.k.a inter-process-interrupt)
+,   input [63:0]                        time_i         // Timer value for mtime CSR on chip
 `endif // ifdef PITON_RV64_CLINT
 
 `ifdef PITON_RV64_PLIC
@@ -1354,7 +1355,11 @@ print(str)
         .hart_id_i   ( {{64-`JTAG_FLATID_WIDTH{1'b0}}, flat_tileid} ),
         .boot_addr_i ( 40'hFFF1010000 ),
 
+        // CLINT and PLIC signals
         .time_irq_i  ( timer_irq_i  ),
+        .soft_irq_i  ( ipi_i        ),
+        .time_i      ( time_i       ),
+        .irq_i       ( irq_i        ),
 
         .l15_req_o   ( l15_req      ),
         .l15_rtrn_i  ( l15_rtrn     ),

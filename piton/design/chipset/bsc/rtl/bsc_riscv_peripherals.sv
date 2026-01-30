@@ -85,6 +85,7 @@ module bsc_riscv_peripherals #(
     input                               rtc_i,        // Real-time clock in (usually 32.768 kHz)
     output [NumHarts-1:0]               timer_irq_o,  // Timer interrupts
     output [NumHarts-1:0]               ipi_o,        // software interrupt (a.k.a inter-process-interrupt)
+    output [63:0]                       time_o,       // mtime CSR value
     // PLIC
     input  [NumSources-1:0]             irq_sources_i,
     input  [NumSources-1:0]             irq_le_i,     // 0:level 1:edge
@@ -92,8 +93,8 @@ module bsc_riscv_peripherals #(
 );
 
   localparam int unsigned AxiIdWidth    =  1;
-  localparam int unsigned AxiAddrWidth  = 64;
-  localparam int unsigned AxiDataWidth  = 64;
+  localparam int unsigned AxiAddrWidth  = `NOC_DATA_WIDTH;
+  localparam int unsigned AxiDataWidth  = `NOC_DATA_WIDTH;
   localparam int unsigned AxiUserWidth  =  1;
 
   /////////////////////////////
@@ -189,22 +190,45 @@ module bsc_riscv_peripherals #(
     .AXI_ADDR_WIDTH ( AxiAddrWidth ),
     .AXI_DATA_WIDTH ( AxiDataWidth )
   ) axi_clint ();
-
-  bsc_clint #(
-    .AXI_ADDR_WIDTH ( AxiAddrWidth ),
-    .AXI_DATA_WIDTH ( AxiDataWidth ),
-    .AXI_ID_WIDTH   ( AxiIdWidth   ),
-    .NR_CORES       ( NumHarts     )
+  
+  clint_axi_wrapper #(
+    .NR_CORES       ( NumHarts     ),
+    .ADDR_WIDTH ( AxiAddrWidth ),
+    .DATA_WIDTH ( AxiDataWidth )
   ) i_clint (
-    .clk_i                         ,
-    .rst_ni                        ,
-    .testmode_i                    ,
-    .axi   ( axi_clint  ),
-    .rtc_i                         ,
-    .timer_irq_o                   ,
-    .ipi_o
-  );
+    .clk_i          ( clk_i              ),
+    .rst_ni         ( rst_ni             ),
 
+    // timer signals
+    .rtc_i          ( rtc_i              ),
+    .timer_irq_o    ( timer_irq_o        ),
+    .ipi_o          ( ipi_o              ),
+    .time_o         ( time_o             ), // timer out value, directed to MTIME on-chip CSR  
+    
+    // axilite signals
+    .axi_arvalid    ( axi_clint.ar_valid ),
+    .axi_araddr     ( axi_clint.ar_addr  ),
+    .axi_arready    ( axi_clint.ar_ready ),
+
+    .axi_awvalid    ( axi_clint.aw_valid ),
+    .axi_awaddr     ( axi_clint.aw_addr  ),
+    .axi_awready    ( axi_clint.aw_ready ),
+
+    .axi_wvalid     ( axi_clint.w_valid  ),
+    .axi_wdata      ( axi_clint.w_data   ),
+    .axi_wstrb      ( axi_clint.w_strb   ),
+    .axi_wready     ( axi_clint.w_ready  ),
+
+    .axi_rready     ( axi_clint.r_ready  ),
+    .axi_rvalid     ( axi_clint.r_valid  ),
+    .axi_rdata      ( axi_clint.r_data   ),
+    .axi_rresp      ( axi_clint.r_resp   ),
+
+    .axi_bready     ( axi_clint.b_ready  ),
+    .axi_bvalid     ( axi_clint.b_valid  ),
+    .axi_bresp      ( axi_clint.b_resp   )
+  );
+  
   noc_axilite_bridge #(
     .SLAVE_RESP_BYTEWIDTH   ( 8             ),
     .SWAP_ENDIANESS         ( SwapEndianess )
@@ -255,14 +279,51 @@ module bsc_riscv_peripherals #(
     .AXI_DATA_WIDTH ( AxiDataWidth )
   ) axi_plic();
 
+  plic_axi_wrapper #(
+    .ADDR_WIDTH(DataWidth),
+    .DATA_WIDTH(DataWidth),
+    .PARAMETER_BITWIDTH(8),
+    .NUM_TARGETS(NumHarts*2),
+    .NUM_SOURCES(NumSources) // for example
+  ) plic (
+    .clk_i            ( clk_i             ),
+    .rst_ni           ( rst_ni            ),
+
+    .irq_sources_i    ( irq_sources_i     ),
+    .eip_targets_o    ( irq_o             ),
+  
+    // axilite interface
+    .axi_arvalid      ( axi_plic.ar_valid ),
+    .axi_araddr       ( axi_plic.ar_addr  ),
+    .axi_arready      ( axi_plic.ar_ready ),
+
+    .axi_awvalid      ( axi_plic.aw_valid ),
+    .axi_awaddr       ( axi_plic.aw_addr  ),
+    .axi_awready      ( axi_plic.aw_ready ),
+
+    .axi_wvalid       ( axi_plic.w_valid  ),
+    .axi_wdata        ( axi_plic.w_data   ),
+    .axi_wstrb        ( axi_plic.w_strb   ),
+    .axi_wready       ( axi_plic.w_ready  ),
+
+    .axi_rready       ( axi_plic.r_ready  ),
+    .axi_rvalid       ( axi_plic.r_valid  ),
+    .axi_rdata        ( axi_plic.r_data   ),
+    .axi_rresp        ( axi_plic.r_resp   ),
+
+    .axi_bready       ( axi_plic.b_ready  ),
+    .axi_bvalid       ( axi_plic.b_valid  ),
+    .axi_bresp        ( axi_plic.b_resp   ) 
+  );
+
   noc_axilite_bridge #(
     // this enables variable width accesses
     // note that the accesses are still 64bit, but the
     // write-enables are generated according to the access size
-    .SLAVE_RESP_BYTEWIDTH   ( 0             ),
+    .SLAVE_RESP_BYTEWIDTH   ( 4             ),
     .SWAP_ENDIANESS         ( SwapEndianess ),
     // this disables shifting of unaligned read data
-    .ALIGN_RDATA            ( 0             )
+    .ALIGN_RDATA            ( 1             )
   ) i_plic_axilite_bridge (
     .clk                    ( clk_i                        ),
     .rst                    ( ~rst_ni                      ),
@@ -300,23 +361,6 @@ module bsc_riscv_peripherals #(
     .w_reqbuf_size          (),
     .r_reqbuf_size          ()
   );
-
-  bsc_plic #(
-      .ADDR_WIDTH(DataWidth),
-      .DATA_WIDTH(DataWidth),
-      .ID_BITWIDTH(2),
-      .PARAMETER_BITWIDTH(2),
-      .NUM_TARGETS(NumHarts*2),
-      .NUM_SOURCES(NumSources) // for example
-   ) plic (
-      .clk_i(clk_i),
-      .rst_ni(rst_ni),
-
-      .irq_sources_i(irq_sources_i),
-      .eip_targets_o(irq_o),
-
-      .axi(axi_plic)
-   );
 
 endmodule // bsc_riscv_peripherals
 

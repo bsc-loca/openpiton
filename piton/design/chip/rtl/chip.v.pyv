@@ -161,6 +161,7 @@ module chip (
     // CLINT
 ,   input   [`PITON_NUM_TILES-1:0]              timer_irq_i     // Timer interrupts
 ,   input   [`PITON_NUM_TILES-1:0]              ipi_i           // software interrupt (a.k.a inter-process-interrupt)
+,   input   [63:0]                              time_i          // mtime CSR value from CLINT
 `endif // ifdef PITON_RV64_CLINT
 
 `ifdef PITON_RV64_PLIC
@@ -1174,6 +1175,7 @@ module chip (
     `ifdef PITON_RV64_CLINT
         ,.timer_irq_i         ( timer_irq_i[_FLAT_ID_]   )
         ,.ipi_i               ( ipi_i[_FLAT_ID_]         )
+        ,.time_i              ( time_i                   )
     `endif // ifdef PITON_RV64_CLINT
     `ifdef PITON_RV64_PLIC
         ,.irq_i               ( irq_i[_FLAT_ID_*2 +: 2]  )

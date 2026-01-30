@@ -506,6 +506,7 @@ module chipset(
 ,    input                                                  rtc_i           // Real-time clock in (usually 32.768 kHz)
 ,    output  [`PITON_NUM_TILES-1:0]                         timer_irq_o     // Timer interrupts
 ,    output  [`PITON_NUM_TILES-1:0]                         ipi_o           // software interrupt (a.k.a inter-process-interrupt)
+,    output  [63:0]                                         time_o          // mtime CSR register value from the CLINT
 `endif // ifdef PITON_RV64_CLINT
 
 `ifdef PITON_RV64_PLIC
@@ -1529,6 +1530,7 @@ chipset_impl_noc_power_test  chipset_impl (
         ,.rtc_i                  ( rtc_i         )
         ,.timer_irq_o            ( timer_irq_o   )
         ,.ipi_o                  ( ipi_o         )
+        ,.time_o                 ( time_o        )
     `endif // ifdef PITON_RV64_CLINT
     
     `ifdef PITON_RV64_PLIC
