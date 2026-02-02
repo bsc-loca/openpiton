@@ -532,6 +532,7 @@ begin
     predecode_fwd_subcacheline_vector_s1 = 0;
     predecode_interrupt_broadcast_s1 = 0;
     predecode_multicyc_invordowngrade_s1 = 0;
+    predecode_hit_stbuf_mshr_index_s1 = 0;
     case (predecode_source_s1)
         `L15_PREDECODE_SOURCE_NOC2:
         begin
@@ -3712,7 +3713,9 @@ begin
 	
     stbuf_compare_match_val_s3 = 0;
     stbuf_compare_lru_match_val_s3 = 0;
-        for(i = 0; i < `L15_MSHR_COUNT; i = i+1)
+    stbuf_compare_lru_mshr_index_s3 = 0;
+    stbuf_compare_mshr_index_s3 = 0;
+    for(i = 0; i < `L15_MSHR_COUNT; i = i+1)
 	begin
 	    `ifdef PITON_ASIC_RTL
 	        stbuf_compare_address_match_s3[i] = mshr_address_array[i][L15_IDX_HI:L15_IDX_LOW] == cache_index_s3;
