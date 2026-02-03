@@ -2648,6 +2648,7 @@ begin
         wmt_read_op_s2_next = wmt_read_op_s2;
         `endif
         `endif
+        req_subline_s2_next = req_subline_s2;
     end
     else
     begin
