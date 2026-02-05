@@ -692,7 +692,7 @@ bitstream:
     - LOCAL_OUTPUT_FOLDER="bitstream_${CORE}_${CI_COMMIT_SHORT_SHA}"
     - mkdir ${LOCAL_OUTPUT_FOLDER}
     - source piton/sargantana_setup.sh
-    - LD_PRELOAD=/lib64/libstdc++.so.6 protosyn --board alveou55c --design system --core ${CORE} --x_tiles 1 --y_tiles 2 --uart-dmw ddr --zeroer_off --hbm --jobs 8 --postroutephysopt --define DISABLE_SIMD,SYNTHESIZABLE_BRAM --config_l1i_size 16384 --config_l1i_associativity 4 --config_l1d_size 32768 --config_l1d_associativity 8 --config_l15_size 131072 --config_l15_associativity 8 --config_l2_size 524288 --config_l2_associativity 8 --noc1_width 64 --noc2_width 64 --noc3_width 64 --l15_num_threads 64 --l2_mshr_entries 128
+    - LD_PRELOAD=/lib64/libstdc++.so.6 protosyn --board alveou55c --design system --core ${CORE} --x_tiles 1 --y_tiles 2 --uart-dmw ddr --zeroer_off --hbm --jobs 8 --postroutephysopt --define DISABLE_SIMD,SYNTHESIZABLE_BRAM --config_l1i_size 16384 --config_l1i_associativity 4 --config_l1d_size 32768 --config_l1d_associativity 8 --config_l15_size 131072 --config_l15_associativity 8 --config_l2_size 524288 --config_l2_associativity 8 --noc1_width 64 --noc2_width 64 --noc3_width 64 --l15_num_threads 64 --l2_mshr_entries 128 --write_byte_mask
   interruptible: false
   artifacts:
     expire_in: 1 week
