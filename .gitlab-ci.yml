@@ -195,6 +195,8 @@ sargantana_build:
   
 sargantana_elab_build:
   stage: build
+  rules:
+    !reference [.rules_default]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     CI_TAGS: non_resources
@@ -291,8 +293,7 @@ sargantana_mpi:
   extends: .sargantana_regression_base
   stage: sim_mpi_mmc
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/
-    - if: $CI_COMMIT_BRANCH   # run also for normal commits
+    !reference [.rules_default]  
   needs: [sargantana_build]
   script:
     - cd build
@@ -553,8 +554,7 @@ ariane_mpi:
   extends: .ariane_regression_base
   stage: sim_mpi_mmc
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /Draft:/
-    - if: $CI_COMMIT_BRANCH   # run also for normal commits
+    !reference [.rules_default]
   needs: [ariane_build]  
   script:
     - cd build
@@ -849,6 +849,8 @@ linting_check:
   stage: linting
   needs: [lox_build]
   extends: .vc_base
+  rules:
+    !reference [.rules_default]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -874,6 +876,8 @@ linting_check:
 
 sarg_DC_elab:
   stage: linting
+  rules:
+    !reference [.rules_default]
   needs: [sargantana_elab_build]
   extends: .vc_base
   before_script:
