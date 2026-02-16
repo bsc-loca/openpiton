@@ -78,12 +78,7 @@ else
   #cd -
 
   cd build
-  tmp_dest=$LOX_ROOT/tmp
-  if [ -w /tmp ]
-  then
-    tmp_dest=/tmp
-  fi
-  ../configure --prefix=$tmp_dest/riscv-tests/build
+  ../configure --prefix=$LOX_ROOT/tmp/riscv-tests/build
 
   make clean
   make isa        -j${NUM_JOBS} > /dev/null
