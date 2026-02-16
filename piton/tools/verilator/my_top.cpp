@@ -195,6 +195,8 @@ std::cout << "Trace done" << std::endl;
 tfp->close();
 #endif
 
+top->final();
+
 delete top;
 exit(0);
 }

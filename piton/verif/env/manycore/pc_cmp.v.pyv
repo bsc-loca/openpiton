@@ -446,6 +446,16 @@ always @* begin
 %>
 end
 
+reg finish_once_called;
+initial finish_once_called= '0;
+
+task finish_once();
+  if (~finish_once_called) begin
+    $finish;
+    finish_once_called= '1;
+  end
+endtask
+
 //main routine of pc cmp to finish the simulation.
 always @(posedge clk)begin
     if(rst_l)begin
@@ -513,7 +523,7 @@ always @(posedge clk)begin
                                 @(posedge clk);
                                 `endif
                                 $display("%0d: Simulation -> PASS (HIT GOOD TRAP)", $time);
-                                $finish;
+                                finish_once();
                             end
                         end // if (active_thread[{0}])
                     end // if (done[{2}])"""
