@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/usr/bin/env sh
 # Modified by Princeton University on March 5th, 2019
 # ========== Copyright Header Begin ==========================================
 # 

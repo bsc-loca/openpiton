@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 target="7n"  # Output directory name where the synthesis results will be stored
 top="chip"   # Top module name

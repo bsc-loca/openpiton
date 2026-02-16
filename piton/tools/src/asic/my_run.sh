@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 SCRPT_FULL_PATH=$(realpath "${BASH_SOURCE[0]}")
 SCRPT_DIR_PATH=$(dirname "$SCRPT_FULL_PATH")
 
