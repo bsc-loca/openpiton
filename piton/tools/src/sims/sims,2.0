@@ -243,6 +243,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'vcs_use_initreg' => 0,
         'vlt_build' => 0,
         'vlt_build_args' => [],
+        'vlt_build_jobs' => 4,
         'vlt_run' => 0,
         'metro_mpi_build' => 0,    
         'metro_mpi_run' => 0,
@@ -1662,6 +1663,7 @@ sub generic_sim_build
 
     if ($opt{vlt_build}) {
       $build_cmd = "verilator -cc " ;
+      $build_cmd .= "-j ${opt{vlt_build_jobs}} " ;
       $build_cmd .= "-O2 -exe $dv_root/tools/verilator/my_top.cpp " ;
       $build_cmd .= "$dv_root/tools/pli/iop/b_ary.c " ;
       $build_cmd .= "$dv_root/tools/pli/iop/bw_lib.c " ;
@@ -1753,7 +1755,7 @@ sub generic_sim_build
     }
 
     if ($opt{vlt_build}) {
-      $build_cmd = "make -j4 -C $model_path/obj_dir -f Vcmp_top.mk Vcmp_top" ;
+      $build_cmd = "make -j ${opt{vlt_build_jobs}} -C $model_path/obj_dir -f Vcmp_top.mk Vcmp_top" ;
 
       print "$prg: $build_cmd\n";
 
@@ -3060,6 +3062,7 @@ sub parse_args
             'vfile=s@',
             'vlt_build!',
             'vlt_build_args=s@',
+            'vlt_build_jobs=s',
             'vlt_run!',
             'metro_mpi_build!',
             'metro_mpi_build_args=s@',
