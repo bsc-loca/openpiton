@@ -150,7 +150,7 @@ def gen_riscv_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, ti
 
 
     tmpStr = '''// DTS generated with gen_riscv_dts(...)
-// OpenPiton + Ariane framework
+// OpenPiton framework
 // Date: %s
 
 /dts-v1/;
@@ -180,11 +180,14 @@ def gen_riscv_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, ti
     ''' % (timeStamp, timeBaseFreq)
 
     if os.environ.get('PITON_ARIANE') == '1':
+        core = 'openhwgroup, cva6'
         isaString = 'rv64g'
     elif os.environ.get('PITON_SARG') == '1':
+        core = 'bsc, sargantana'
         # TODO: SIMD switch
         isaString = 'rv64imafdbh_Zicsr_Zicntr_Zihpm_Zicbom_Zibop_Zicboz_Zicond_Sscofpmf_Smcntrpmf'
     elif os.environ.get('PITON_LOX') == '1':
+        core = 'bsc, ox'
         isaString = 'rv64g'
     else:
         print("Unknown CPU, can't generate device tree")
@@ -198,7 +201,7 @@ def gen_riscv_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, ti
             device_type = "cpu";
             reg = <%d>;
             status = "okay";
-            compatible = "openhwgroup, cva6", "riscv";
+            compatible = "%s", "riscv";
             riscv,isa = "%s";
             mmu-type = "riscv,sv39";
             tlb-split;
@@ -209,7 +212,7 @@ def gen_riscv_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, ti
                 compatible = "riscv,cpu-intc";
             };
         };
-        ''' % (k,k,cpuFreq,k,isaString,k)
+        ''' % (k,k,cpuFreq,k,core,isaString,k)
 
     tmpStr += '''
     };
