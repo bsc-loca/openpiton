@@ -116,3 +116,9 @@ set_property BITSTREAM.CONFIG.SPI_FALL_EDGE YES [current_design]
 set_property BITSTREAM.CONFIG.UNUSEDPIN Pullup [current_design]
 set_property BITSTREAM.CONFIG.SPI_32BIT_ADDR Yes [current_design]
 # --------------------------------------------------------------
+
+#----------------- Improve QDMA floorplanning ------------------
+create_pblock qdma_pcie
+resize_pblock [get_pblocks qdma_pcie] -add {CLOCKREGION_X7Y3:CLOCKREGION_X7Y0}
+add_cells_to_pblock [get_pblocks qdma_pcie] [get_cells meep_shell/qdma_0/inst/pcie4c_ip_i]
+#----------------------------------------------------------------
