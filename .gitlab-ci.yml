@@ -848,18 +848,11 @@ bitstream-upload:
 linting_check:
   stage: linting
   needs: [lox_build]
-  extends: .vc_base
+  extends: .vc_static
   rules:
     !reference [.rules_default]
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
-  before_script:
-    - export SNPS_LICENSE_FILE=27020@epi01.bsc.es
-    - export SNPSLMD_LICENSE_FILE=27020@epi01.bsc.es
-    - export LM_LICENSE_FILE=$LM_LICENSE_FILE:$SNPS_LICENSE_FILE:$SNPSLMD_LICENSE_FILE
-    - export SNPSLMD_QUEUE=true
-    - source /eda/synopsys/synopsys.sh
-    - source piton/lox_setup.sh
   script:
     - cd linting_scripts
     - make FLIST=../build/hpc/lox_msm_1_1/flist VC_REL
