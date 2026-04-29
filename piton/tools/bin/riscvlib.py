@@ -19,6 +19,7 @@ import os
 import subprocess
 from pyhplib import *
 import time
+import sys
 
 # this prints some system information, to be printed by the bootrom at power-on
 def get_bootrom_info(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, timeStamp):
@@ -178,6 +179,17 @@ def gen_riscv_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, ti
         timebase-frequency = <%d>;
     ''' % (timeStamp, timeBaseFreq)
 
+    if os.environ.get('PITON_ARIANE') == '1':
+        isaString = 'rv64g'
+    elif os.environ.get('PITON_SARG') == '1':
+        # TODO: SIMD switch
+        isaString = 'rv64imafdbh_Zicsr_Zicntr_Zihpm_Zicbom_Zibop_Zicboz_Zicond_Sscofpmf_Smcntrpmf'
+    elif os.environ.get('PITON_LOX') == '1':
+        isaString = 'rv64g'
+    else:
+        print("Unknown CPU, can't generate device tree")
+        sys.exit(-1)
+
     for k in range(nCpus):
         tmpStr += '''
         CPU%d: cpu@%d {
@@ -187,7 +199,7 @@ def gen_riscv_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, ti
             reg = <%d>;
             status = "okay";
             compatible = "openhwgroup, cva6", "riscv";
-            riscv,isa = "rv64imafd";
+            riscv,isa = "%s";
             mmu-type = "riscv,sv39";
             tlb-split;
             // HLIC - hart local interrupt controller
@@ -197,7 +209,7 @@ def gen_riscv_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, dtsPath, ti
                 compatible = "riscv,cpu-intc";
             };
         };
-        ''' % (k,k,cpuFreq,k,k)
+        ''' % (k,k,cpuFreq,k,isaString,k)
 
     tmpStr += '''
     };
